@@ -13,14 +13,14 @@ const PasswordInput = ({ error, ...props }) => {
         <input
           {...props}
           type={showPassword ? 'text' : 'password'}
-          className={`w-full px-4 py-2.5 pr-11 border ${
-            error ? 'border-red-300' : 'border-gray-300'
-          } rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all`}
+          className={`w-full px-4 py-3 pr-12 border ${
+            error ? 'border-danger-300 focus:ring-danger-500' : 'border-gray-300 focus:ring-primary-500'
+          } rounded-xl focus:ring-2 focus:border-transparent outline-none transition-all bg-white`}
         />
         <button
           type="button"
           onClick={togglePasswordVisibility}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+          className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 transition-colors rounded-lg hover:bg-gray-100"
           aria-label={showPassword ? 'Hide password' : 'Show password'}
         >
           {showPassword ? (
@@ -36,7 +36,7 @@ const PasswordInput = ({ error, ...props }) => {
         </button>
       </div>
       {error && (
-        <p className="mt-1.5 text-sm text-red-600">{error}</p>
+        <p className="mt-2 text-sm text-danger-600">{error}</p>
       )}
     </div>
   )

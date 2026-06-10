@@ -8,20 +8,28 @@ datasource db {
 }
 
 model User {
-  id                 String      @id @default(uuid())
+  id                 String         @id @default(uuid())
   firstName          String
   lastName           String
-  email              String      @unique
+  email              String         @unique
   passwordHash       String?
-  googleId           String?     @unique
-  authProvider       String      @default("local")
-  onboardingComplete Boolean     @default(false)
+  googleId           String?        @unique
+  authProvider       String         @default("local")
+  onboardingComplete Boolean        @default(false)
+  primaryRole        String?        // PLAYER or ORGANIZER
+  sports             String[]       @default([])
+  bio                String?
+  profilePicture     String?
+  city               String?
+  phone              String?
   dob                DateTime?
   gender             String?
-  createdAt          DateTime    @default(now())
-  updatedAt          DateTime    @updatedAt
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
 
   orgMemberships     OrgMember[]
+  registrations      Registration[] @relation("UserRegistrations")
+  partnerRegistrations Registration[] @relation("PartnerRegistrations")
 
   @@map("users")
 }
@@ -35,6 +43,7 @@ model Organization {
   updatedAt   DateTime    @updatedAt
 
   members     OrgMember[]
+  tournaments Tournament[]
 
   @@map("organizations")
 }
@@ -53,8 +62,92 @@ model OrgMember {
   @@map("org_members")
 }
 
+model Tournament {
+  id                  String            @id @default(uuid())
+  organizationId      String
+  name                String
+  sport               String
+  format              TournamentFormat  @default(ROUND_ROBIN)
+  startDate           DateTime
+  endDate             DateTime
+  venueName           String
+  venueAddress        String?
+  city                String
+  registrationDeadline DateTime
+  entryFee            Decimal?          @db.Decimal(10, 2)
+  description         String?
+  maxParticipants     Int?
+  status              TournamentStatus  @default(DRAFT)
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  organization        Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  events              Event[]
+
+  @@map("tournaments")
+}
+
+model Event {
+  id              String        @id @default(uuid())
+  tournamentId    String
+  name            String
+  format          EventFormat
+  category        String?
+  gender          String?
+  maxParticipants Int?
+  registrationFee Decimal?      @db.Decimal(10, 2)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  tournament      Tournament    @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  registrations   Registration[]
+
+  @@map("events")
+}
+
+model Registration {
+  id        String             @id @default(uuid())
+  userId    String
+  eventId   String
+  partnerId String?
+  status    RegistrationStatus @default(CONFIRMED)
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  user      User               @relation("UserRegistrations", fields: [userId], references: [id], onDelete: Cascade)
+  event     Event              @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  partner   User?              @relation("PartnerRegistrations", fields: [partnerId], references: [id])
+
+  @@unique([userId, eventId])
+  @@map("registrations")
+}
+
 enum OrgRole {
   OWNER
   ADMIN
   MEMBER
+}
+
+enum TournamentFormat {
+  ROUND_ROBIN
+  KNOCKOUT
+}
+
+enum TournamentStatus {
+  DRAFT
+  OPEN
+  CLOSED
+  ONGOING
+  COMPLETED
+}
+
+enum EventFormat {
+  SINGLES
+  DOUBLES
+  MIXED_DOUBLES
+}
+
+enum RegistrationStatus {
+  CONFIRMED
+  CANCELLED
 }

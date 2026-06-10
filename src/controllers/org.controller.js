@@ -140,4 +140,97 @@ const inviteMember = async (req, res) => {
   res.status(201).json({ success: true, member });
 };
 
-module.exports = { createOrg, getMyOrgs, getOrg, inviteMember };
+// PATCH /orgs/:orgId — update organization (OWNER or ADMIN only)
+const updateOrg = async (req, res) => {
+  const { orgId } = req.params;
+  const { name, logoUrl } = req.body;
+
+  const updateData = {};
+  if (name !== undefined) {
+    updateData.name = name.trim();
+    // Regenerate slug if name changed
+    const baseSlug = generateSlug(name);
+    let slug = baseSlug;
+    let suffix = 2;
+    while (await prisma.organization.findFirst({ where: { slug, NOT: { id: orgId } } })) {
+      slug = `${baseSlug}-${suffix}`;
+      suffix++;
+    }
+    updateData.slug = slug;
+  }
+  if (logoUrl !== undefined) updateData.logoUrl = logoUrl || null;
+
+  const org = await prisma.organization.update({
+    where: { id: orgId },
+    data: updateData
+  });
+
+  res.json({ success: true, org });
+};
+
+// DELETE /orgs/:orgId — delete organization (OWNER only)
+const deleteOrg = async (req, res) => {
+  const { orgId } = req.params;
+
+  // Delete cascades to tournaments, events, registrations, and members
+  await prisma.organization.delete({
+    where: { id: orgId }
+  });
+
+  res.json({ success: true, message: 'Organization deleted successfully' });
+};
+
+// GET /orgs/:orgId/tournaments — get all tournaments for an organization
+const getOrgTournaments = async (req, res, next) => {
+  try {
+    const { orgId } = req.params;
+
+    const tournaments = await prisma.tournament.findMany({
+      where: { organizationId: orgId },
+      include: {
+        organization: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            logoUrl: true
+          }
+        },
+        events: {
+          select: {
+            id: true,
+            name: true,
+            format: true,
+            _count: {
+              select: {
+                registrations: true
+              }
+            }
+          }
+        }
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+
+    // Add participant counts
+    const tournamentsWithCounts = tournaments.map(tournament => {
+      const totalRegistrations = tournament.events.reduce(
+        (sum, event) => sum + event._count.registrations,
+        0
+      );
+
+      return {
+        ...tournament,
+        participantCount: totalRegistrations
+      };
+    });
+
+    res.json({ success: true, tournaments: tournamentsWithCounts });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = { createOrg, getMyOrgs, getOrg, updateOrg, deleteOrg, inviteMember, getOrgTournaments };

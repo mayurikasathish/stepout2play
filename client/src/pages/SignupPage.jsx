@@ -1,12 +1,10 @@
-import { useState, useEffect } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import PasswordInput from '../components/PasswordInput'
-import GoogleOAuthButton from '../components/GoogleOAuthButton'
 
 const SignupPage = () => {
   const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
   const { register, isAuthenticated } = useAuth()
   const [formData, setFormData] = useState({
     firstName: '',
@@ -18,55 +16,43 @@ const SignupPage = () => {
   const [errors, setErrors] = useState({})
   const [loading, setLoading] = useState(false)
 
-  useEffect(() => {
-    const error = searchParams.get('error')
-    if (error === 'oauth_failed') {
-      setErrors({ general: 'Google sign-up failed. Please try again.' })
-    }
-  }, [searchParams])
-
   if (isAuthenticated) {
     navigate('/dashboard', { replace: true })
+    return null
   }
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
-    if (errors[e.target.name]) {
-      setErrors({ ...errors, [e.target.name]: '' })
+    if (errors[e.target.name] || errors.general) {
+      setErrors({ ...errors, [e.target.name]: '', general: '' })
     }
   }
 
-  const validateForm = () => {
-    const newErrors = {}
-
-    if (!formData.firstName.trim()) newErrors.firstName = 'First name is required'
-    if (!formData.lastName.trim()) newErrors.lastName = 'Last name is required'
-    if (!formData.email) newErrors.email = 'Email is required'
+  const validate = () => {
+    const errs = {}
+    if (!formData.firstName.trim()) errs.firstName = 'First name is required'
+    if (!formData.lastName.trim()) errs.lastName = 'Last name is required'
+    if (!formData.email) errs.email = 'Email is required'
     if (!formData.password) {
-      newErrors.password = 'Password is required'
+      errs.password = 'Password is required'
     } else if (formData.password.length < 8) {
-      newErrors.password = 'Password must be at least 8 characters'
+      errs.password = 'At least 8 characters'
     } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?])/.test(formData.password)) {
-      newErrors.password = 'Password must include uppercase, lowercase, number, and special character'
+      errs.password = 'Must include uppercase, lowercase, number & special character'
     }
     if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match'
+      errs.confirmPassword = 'Passwords do not match'
     }
-
-    return newErrors
+    return errs
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    const newErrors = validateForm()
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors)
-      return
-    }
+    const errs = validate()
+    if (Object.keys(errs).length > 0) { setErrors(errs); return }
 
     setLoading(true)
     setErrors({})
-
     try {
       await register({
         firstName: formData.firstName.trim(),
@@ -74,173 +60,110 @@ const SignupPage = () => {
         email: formData.email.trim(),
         password: formData.password,
       })
-      navigate('/dashboard', { replace: true })
+      navigate('/onboarding', { replace: true })
     } catch (error) {
-      console.error('Registration error:', error.response?.data)
       const serverErrors = error.response?.data?.errors
-      if (serverErrors && Array.isArray(serverErrors)) {
-        setErrors({ general: serverErrors.join('. ') })
-      } else {
-        setErrors({
-          general: error.response?.data?.error || error.message || 'Registration failed. Please try again.',
-        })
-      }
+      const msg = Array.isArray(serverErrors)
+        ? serverErrors.join('. ')
+        : error.response?.data?.error || 'Registration failed. Please try again.'
+      setErrors({ general: msg })
     } finally {
       setLoading(false)
     }
   }
 
+  const inputCls = (field) =>
+    `w-full px-4 py-3 border ${errors[field] ? 'border-red-300 focus:ring-red-500' : 'border-gray-300 focus:ring-primary-500'} rounded-xl focus:ring-2 focus:border-transparent outline-none transition-all bg-white`
+
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-primary-50/20 flex flex-col">
       {/* Header */}
-      <div className="border-b border-gray-200 bg-white">
+      <div className="glass-nav">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-lg">S</span>
+          <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/')}>
+            <div className="w-9 h-9 bg-gradient-to-br from-primary-600 to-primary-700 rounded-lg flex items-center justify-center shadow-sm">
+              <span className="text-white font-black text-xl">S</span>
             </div>
-            <span className="text-xl font-semibold text-gray-900">StepOut2Play</span>
+            <span className="text-lg font-bold text-gray-900">StepOut2Play</span>
           </div>
         </div>
       </div>
 
-      {/* Main Content */}
       <div className="flex-1 flex items-center justify-center px-4 py-12">
-        <div className="w-full max-w-md">
+        <div className="w-full max-w-md animate-fade-in">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Create your account</h1>
-            <p className="text-gray-600">Start managing tournaments today</p>
+            <p className="text-gray-600">Get started in under a minute</p>
           </div>
 
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8">
+          <div className="glass-card rounded-2xl p-8 shadow-glass-lg">
             {errors.general && (
-              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-sm text-red-600">{errors.general}</p>
+              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
+                <p className="text-sm text-red-700 font-medium">{errors.general}</p>
               </div>
             )}
 
             <form onSubmit={handleSubmit} className="space-y-5">
-              <GoogleOAuthButton text="Sign up with Google" />
-
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-300"></div>
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white text-gray-500">Or sign up with email</span>
-                </div>
-              </div>
-
+              {/* Name row */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    First name
-                  </label>
-                  <input
-                    type="text"
-                    name="firstName"
-                    placeholder="John"
-                    value={formData.firstName}
-                    onChange={handleChange}
-                    className={`w-full px-4 py-2.5 border ${
-                      errors.firstName ? 'border-red-300' : 'border-gray-300'
-                    } rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all`}
-                    required
-                  />
-                  {errors.firstName && (
-                    <p className="mt-1.5 text-sm text-red-600">{errors.firstName}</p>
-                  )}
+                  <label className="block text-sm font-medium text-gray-900 mb-2">First name</label>
+                  <input type="text" name="firstName" placeholder="Mayurika"
+                    value={formData.firstName} onChange={handleChange}
+                    className={inputCls('firstName')} autoFocus />
+                  {errors.firstName && <p className="mt-1.5 text-sm text-red-600">{errors.firstName}</p>}
                 </div>
-
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Last name
-                  </label>
-                  <input
-                    type="text"
-                    name="lastName"
-                    placeholder="Doe"
-                    value={formData.lastName}
-                    onChange={handleChange}
-                    className={`w-full px-4 py-2.5 border ${
-                      errors.lastName ? 'border-red-300' : 'border-gray-300'
-                    } rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all`}
-                    required
-                  />
-                  {errors.lastName && (
-                    <p className="mt-1.5 text-sm text-red-600">{errors.lastName}</p>
-                  )}
+                  <label className="block text-sm font-medium text-gray-900 mb-2">Last name</label>
+                  <input type="text" name="lastName" placeholder="Sharma"
+                    value={formData.lastName} onChange={handleChange}
+                    className={inputCls('lastName')} />
+                  {errors.lastName && <p className="mt-1.5 text-sm text-red-600">{errors.lastName}</p>}
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Email address
-                </label>
-                <input
-                  type="email"
-                  name="email"
-                  placeholder="you@example.com"
-                  value={formData.email}
-                  onChange={handleChange}
-                  className={`w-full px-4 py-2.5 border ${
-                    errors.email ? 'border-red-300' : 'border-gray-300'
-                  } rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all`}
-                  required
-                />
-                {errors.email && (
-                  <p className="mt-1.5 text-sm text-red-600">{errors.email}</p>
+                <label className="block text-sm font-medium text-gray-900 mb-2">Email address</label>
+                <input type="email" name="email" placeholder="you@example.com"
+                  value={formData.email} onChange={handleChange}
+                  className={inputCls('email')} />
+                {errors.email && <p className="mt-1.5 text-sm text-red-600">{errors.email}</p>}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-900 mb-2">Password</label>
+                <PasswordInput name="password" placeholder="Create a strong password"
+                  value={formData.password} onChange={handleChange} error={errors.password} />
+                {!errors.password && (
+                  <p className="mt-1.5 text-xs text-gray-500">Min 8 chars, uppercase, lowercase, number & symbol</p>
                 )}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Password
-                </label>
-                <PasswordInput
-                  name="password"
-                  placeholder="Create a strong password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  error={errors.password}
-                  required
-                />
+                <label className="block text-sm font-medium text-gray-900 mb-2">Confirm password</label>
+                <PasswordInput name="confirmPassword" placeholder="Confirm your password"
+                  value={formData.confirmPassword} onChange={handleChange} error={errors.confirmPassword} />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Confirm password
-                </label>
-                <PasswordInput
-                  name="confirmPassword"
-                  placeholder="Confirm your password"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  error={errors.confirmPassword}
-                  required
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full px-4 py-2.5 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
-              >
+              <button type="submit" disabled={loading}
+                className="w-full px-4 py-3 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm hover:shadow-md">
                 {loading ? (
                   <>
-                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    <span>Creating account...</span>
+                    <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    Creating account...
                   </>
-                ) : (
-                  <span>Create account</span>
-                )}
+                ) : 'Create account'}
               </button>
             </form>
 
-            <div className="mt-6 text-center">
+            {/* Switch to login */}
+            <div className="mt-6 pt-6 border-t border-gray-100 text-center">
               <p className="text-sm text-gray-600">
                 Already have an account?{' '}
-                <Link to="/login" className="text-indigo-600 hover:text-indigo-700 font-medium">
+                <Link to="/login" className="text-primary-600 hover:text-primary-700 font-semibold transition-colors">
                   Sign in
                 </Link>
               </p>

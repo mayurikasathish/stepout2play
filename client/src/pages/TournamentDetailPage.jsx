@@ -1,0 +1,448 @@
+import { useState, useEffect } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
+import Navbar from '../components/Navbar'
+import SuccessModal from '../components/SuccessModal'
+import api from '../services/api'
+
+const CalendarIcon = (props) => (
+  <svg {...props} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+  </svg>
+)
+
+const LocationIcon = (props) => (
+  <svg {...props} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+  </svg>
+)
+
+const ClockIcon = (props) => (
+  <svg {...props} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+)
+
+const TrophyIcon = (props) => (
+  <svg {...props} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+  </svg>
+)
+
+const UsersIcon = (props) => (
+  <svg {...props} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+  </svg>
+)
+
+const ArrowLeftIcon = (props) => (
+  <svg {...props} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+  </svg>
+)
+
+const TournamentDetailPage = () => {
+  const { id } = useParams()
+  const navigate = useNavigate()
+  const { user } = useAuth()
+  const [tournament, setTournament] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [registering, setRegistering] = useState(false)
+  const [registeredEvents, setRegisteredEvents] = useState(new Set())
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
+  const [successMessage, setSuccessMessage] = useState({ title: '', message: '' })
+  const [showAuthModal, setShowAuthModal] = useState(false)
+
+  useEffect(() => {
+    fetchTournamentDetails()
+    if (user) {
+      fetchMyRegistrations()
+    }
+  }, [id, user])
+
+  const fetchMyRegistrations = async () => {
+    try {
+      const response = await api.get('/users/me/registrations')
+      if (response.data.success) {
+        // Extract event IDs from user's registrations
+        const eventIds = new Set(
+          response.data.registrations.map(reg => reg.eventId)
+        )
+        setRegisteredEvents(eventIds)
+      }
+    } catch (err) {
+      console.error('Error fetching registrations:', err)
+    }
+  }
+
+  const fetchTournamentDetails = async () => {
+    try {
+      setLoading(true)
+      setError('')
+
+      const response = await api.get(`/tournaments/${id}`)
+
+      if (response.data.success) {
+        setTournament(response.data.tournament)
+      }
+    } catch (err) {
+      console.error('Error fetching tournament:', err)
+      setError('Failed to load tournament details. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleRegister = async (eventId, eventName) => {
+    if (!user) {
+      setShowAuthModal(true)
+      return
+    }
+
+    try {
+      setRegistering(true)
+      const response = await api.post(`/events/${eventId}/register`)
+
+      if (response.data.success) {
+        // Mark event as registered
+        setRegisteredEvents(prev => new Set([...prev, eventId]))
+
+        // Show success modal
+        setSuccessMessage({
+          title: 'Registration Successful!',
+          message: `You've successfully registered for ${eventName}. Check "My Matches" to see all your registrations and match schedules.`
+        })
+        setShowSuccessModal(true)
+
+        // Refresh tournament data to update participant counts
+        fetchTournamentDetails()
+      }
+    } catch (err) {
+      console.error('Error registering:', err)
+      const errorMessage = err.response?.data?.error || 'Failed to register. Please try again.'
+      // Show error in modal
+      setSuccessMessage({
+        title: 'Registration Failed',
+        message: errorMessage
+      })
+      setShowSuccessModal(true)
+    } finally {
+      setRegistering(false)
+    }
+  }
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString)
+    return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+  }
+
+  const formatDateTime = (dateString) => {
+    const date = new Date(dateString)
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+  }
+
+  const getStatusBadge = (status) => {
+    const badges = {
+      OPEN: { bg: 'bg-success-50', text: 'text-success-700', border: 'border-success-100', label: 'Registration Open' },
+      DRAFT: { bg: 'bg-gray-50', text: 'text-gray-700', border: 'border-gray-100', label: 'Draft' },
+      CLOSED: { bg: 'bg-danger-50', text: 'text-danger-700', border: 'border-danger-100', label: 'Registration Closed' },
+      ONGOING: { bg: 'bg-warning-50', text: 'text-warning-700', border: 'border-warning-100', label: 'Ongoing' },
+      COMPLETED: { bg: 'bg-gray-50', text: 'text-gray-700', border: 'border-gray-100', label: 'Completed' }
+    }
+    const badge = badges[status] || badges.DRAFT
+    return (
+      <span className={`inline-flex items-center px-4 py-2 ${badge.bg} ${badge.text} text-sm font-medium rounded-lg border ${badge.border}`}>
+        {badge.label}
+      </span>
+    )
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-primary-50/20">
+        <Navbar />
+        <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
+          <div className="flex flex-col items-center gap-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+            <p className="text-sm text-gray-500">Loading tournament...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (error || !tournament) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-primary-50/20">
+        <Navbar />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="glass-card rounded-2xl p-12 text-center">
+            <p className="text-danger-600 mb-4">{error || 'Tournament not found'}</p>
+            <button
+              onClick={() => navigate('/browse')}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-all"
+            >
+              <ArrowLeftIcon className="w-4 h-4" />
+              Back to Browse
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  const registrationDeadlinePassed = new Date(tournament.registrationDeadline) < new Date()
+  const canRegister = tournament.status === 'OPEN' && !registrationDeadlinePassed
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-primary-50/20">
+      <Navbar />
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Back Button */}
+        <button
+          onClick={() => navigate('/browse')}
+          className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 transition-colors"
+        >
+          <ArrowLeftIcon className="w-4 h-4" />
+          Back to Browse
+        </button>
+
+        {/* Header */}
+        <div className="glass-card rounded-2xl p-8 mb-6">
+          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-6">
+            <div className="flex-1">
+              <h1 className="text-4xl font-bold text-gray-900 mb-2">
+                {tournament.name}
+              </h1>
+              <p className="text-lg text-gray-600">
+                Organized by {tournament.organization?.name}
+              </p>
+            </div>
+            <div>
+              {getStatusBadge(tournament.status)}
+            </div>
+          </div>
+
+          {/* Tournament Details Grid */}
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-lg bg-primary-50 flex items-center justify-center flex-shrink-0">
+                <CalendarIcon className="w-5 h-5 text-primary-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-500 mb-1">Tournament Dates</p>
+                <p className="font-semibold text-gray-900">{formatDate(tournament.startDate)}</p>
+                <p className="text-sm text-gray-600">to {formatDate(tournament.endDate)}</p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-lg bg-primary-50 flex items-center justify-center flex-shrink-0">
+                <LocationIcon className="w-5 h-5 text-primary-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-500 mb-1">Venue</p>
+                <p className="font-semibold text-gray-900">{tournament.venueName}</p>
+                <p className="text-sm text-gray-600">{tournament.city}</p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-lg bg-primary-50 flex items-center justify-center flex-shrink-0">
+                <ClockIcon className="w-5 h-5 text-primary-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-500 mb-1">Registration Deadline</p>
+                <p className="font-semibold text-gray-900">{formatDateTime(tournament.registrationDeadline)}</p>
+                {registrationDeadlinePassed && (
+                  <p className="text-sm text-danger-600">Deadline passed</p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-lg bg-primary-50 flex items-center justify-center flex-shrink-0">
+                <UsersIcon className="w-5 h-5 text-primary-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-500 mb-1">Participants</p>
+                <p className="font-semibold text-gray-900">
+                  {tournament.participantCount || 0}
+                  {tournament.maxParticipants ? ` / ${tournament.maxParticipants}` : ''}
+                </p>
+                {tournament.spotsRemaining > 0 && (
+                  <p className="text-sm text-success-600">{tournament.spotsRemaining} spots left</p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Description */}
+          {tournament.description && (
+            <div className="mt-6 pt-6 border-t border-gray-200">
+              <h3 className="font-semibold text-gray-900 mb-2">About This Tournament</h3>
+              <p className="text-gray-600 leading-relaxed">{tournament.description}</p>
+            </div>
+          )}
+
+          {/* Entry Fee */}
+          {tournament.entryFee && (
+            <div className="mt-6 pt-6 border-t border-gray-200">
+              <h3 className="font-semibold text-gray-900 mb-2">Entry Fee</h3>
+              <p className="text-2xl font-bold text-gray-900">₹{tournament.entryFee}</p>
+            </div>
+          )}
+        </div>
+
+        {/* Events Section */}
+        <div className="glass-card rounded-2xl p-8">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">Events</h2>
+
+          {tournament.events && tournament.events.length > 0 ? (
+            <div className="space-y-4">
+              {tournament.events.map((event) => (
+                <EventCard
+                  key={event.id}
+                  event={event}
+                  canRegister={canRegister}
+                  onRegister={handleRegister}
+                  registering={registering}
+                  isRegistered={registeredEvents.has(event.id)}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <TrophyIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-600">No events have been created yet.</p>
+            </div>
+          )}
+        </div>
+      </main>
+
+      {/* Success Modal */}
+      <SuccessModal
+        isOpen={showSuccessModal}
+        onClose={() => setShowSuccessModal(false)}
+        title={successMessage.title}
+        message={successMessage.message}
+        actionText="View My Matches"
+        onAction={() => navigate('/matches')}
+      />
+
+      {/* Auth Modal */}
+      {showAuthModal && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm" onClick={() => setShowAuthModal(false)} />
+          <div className="flex min-h-full items-center justify-center p-4">
+            <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">Sign in to Register</h2>
+              <p className="text-gray-600 mb-8">
+                You need to be logged in to register for tournaments. Sign in to your account or create a new one to get started.
+              </p>
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={() => navigate('/login')}
+                  className="w-full px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-lg transition-all"
+                >
+                  Log In
+                </button>
+                <button
+                  onClick={() => navigate('/signup')}
+                  className="w-full px-6 py-3 bg-white hover:bg-gray-50 text-gray-700 font-semibold rounded-lg border border-gray-300 transition-all"
+                >
+                  Sign Up
+                </button>
+                <button
+                  onClick={() => setShowAuthModal(false)}
+                  className="w-full px-6 py-3 text-gray-600 hover:text-gray-900 font-medium transition-all"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Event Card Component
+const EventCard = ({ event, canRegister, onRegister, registering, isRegistered }) => {
+  const getFormatLabel = (format) => {
+    const labels = {
+      SINGLES: 'Singles',
+      DOUBLES: 'Doubles',
+      MIXED_DOUBLES: 'Mixed Doubles'
+    }
+    return labels[format] || format
+  }
+
+  const isFull = event.maxParticipants && event.participantCount >= event.maxParticipants
+
+  return (
+    <div className="border border-gray-200 rounded-xl p-6 hover:border-primary-300 transition-all">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex-1">
+          <div className="flex items-center gap-3 mb-2">
+            <h3 className="text-lg font-semibold text-gray-900">{event.name}</h3>
+            <span className="px-3 py-1 bg-gray-100 text-gray-700 text-xs font-medium rounded-full">
+              {getFormatLabel(event.format)}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-6 text-sm text-gray-600">
+            <div className="flex items-center gap-2">
+              <UsersIcon className="w-4 h-4" />
+              <span>
+                {event.participantCount || 0}
+                {event.maxParticipants ? ` / ${event.maxParticipants}` : ''}
+                {' '}registered
+              </span>
+            </div>
+            {event.spotsRemaining > 0 && (
+              <span className="text-success-600 font-medium">
+                {event.spotsRemaining} spots left
+              </span>
+            )}
+            {isFull && (
+              <span className="text-danger-600 font-medium">Event Full</span>
+            )}
+          </div>
+
+          {event.registrationFee && (
+            <p className="text-sm text-gray-600 mt-2">
+              Registration Fee: <span className="font-semibold">₹{event.registrationFee}</span>
+            </p>
+          )}
+        </div>
+
+        {isRegistered ? (
+          <div className="px-6 py-3 bg-success-50 text-success-700 font-medium rounded-lg border border-success-200 flex items-center gap-2">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+            Registered
+          </div>
+        ) : (
+          <button
+            onClick={() => onRegister(event.id, event.name)}
+            disabled={!canRegister || isFull || registering}
+            className={`px-6 py-3 font-medium rounded-lg transition-all shadow-sm hover:shadow-md ${
+              !canRegister || isFull
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'bg-primary-600 hover:bg-primary-700 text-white'
+            }`}
+          >
+            {registering ? 'Registering...' : isFull ? 'Full' : 'Register'}
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+
+export default TournamentDetailPage

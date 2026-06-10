@@ -1,162 +1,126 @@
-import { useState, useEffect } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import PasswordInput from '../components/PasswordInput'
-import GoogleOAuthButton from '../components/GoogleOAuthButton'
 
 const LoginPage = () => {
   const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
   const { login, isAuthenticated } = useAuth()
   const [formData, setFormData] = useState({ email: '', password: '' })
   const [errors, setErrors] = useState({})
   const [loading, setLoading] = useState(false)
 
-  useEffect(() => {
-    const error = searchParams.get('error')
-    if (error === 'oauth_failed') {
-      setErrors({ general: 'Google sign-in failed. Please try again.' })
-    }
-  }, [searchParams])
-
   if (isAuthenticated) {
     navigate('/dashboard', { replace: true })
+    return null
   }
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
-    if (errors[e.target.name]) {
-      setErrors({ ...errors, [e.target.name]: '' })
+    if (errors[e.target.name] || errors.general) {
+      setErrors({ ...errors, [e.target.name]: '', general: '' })
     }
-  }
-
-  const validateForm = () => {
-    const newErrors = {}
-    if (!formData.email) newErrors.email = 'Email is required'
-    if (!formData.password) newErrors.password = 'Password is required'
-    return newErrors
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    const newErrors = validateForm()
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors)
-      return
-    }
+    const newErrors = {}
+    if (!formData.email) newErrors.email = 'Email is required'
+    if (!formData.password) newErrors.password = 'Password is required'
+    if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return }
 
     setLoading(true)
     setErrors({})
-
     try {
       await login(formData.email, formData.password)
       navigate('/dashboard', { replace: true })
     } catch (error) {
-      console.error('Login error:', error.response?.data)
-      setErrors({
-        general: error.response?.data?.error || error.message || 'Login failed. Please try again.',
-      })
+      const msg = error.response?.data?.errors?.[0]
+        || error.response?.data?.error
+        || 'Invalid email or password. Please try again.'
+      setErrors({ general: msg })
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-primary-50/20 flex flex-col">
       {/* Header */}
-      <div className="border-b border-gray-200 bg-white">
+      <div className="glass-nav">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-lg">S</span>
+          <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/')}>
+            <div className="w-9 h-9 bg-gradient-to-br from-primary-600 to-primary-700 rounded-lg flex items-center justify-center shadow-sm">
+              <span className="text-white font-black text-xl">S</span>
             </div>
-            <span className="text-xl font-semibold text-gray-900">StepOut2Play</span>
+            <span className="text-lg font-bold text-gray-900">StepOut2Play</span>
           </div>
         </div>
       </div>
 
-      {/* Main Content */}
       <div className="flex-1 flex items-center justify-center px-4 py-12">
-        <div className="w-full max-w-md">
+        <div className="w-full max-w-md animate-fade-in">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome back</h1>
-            <p className="text-gray-600">Sign in to manage your tournaments</p>
+            <p className="text-gray-600">Sign in to continue</p>
           </div>
 
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8">
+          <div className="glass-card rounded-2xl p-8 shadow-glass-lg">
             {errors.general && (
-              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-sm text-red-600">{errors.general}</p>
+              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
+                <p className="text-sm text-red-700 font-medium">{errors.general}</p>
               </div>
             )}
 
             <form onSubmit={handleSubmit} className="space-y-5">
-              <GoogleOAuthButton text="Continue with Google" />
-
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-300"></div>
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white text-gray-500">Or continue with email</span>
-                </div>
-              </div>
-
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Email address
-                </label>
+                <label className="block text-sm font-medium text-gray-900 mb-2">Email address</label>
                 <input
                   type="email"
                   name="email"
                   placeholder="you@example.com"
                   value={formData.email}
                   onChange={handleChange}
-                  className={`w-full px-4 py-2.5 border ${
-                    errors.email ? 'border-red-300' : 'border-gray-300'
-                  } rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all`}
-                  required
+                  className={`w-full px-4 py-3 border ${errors.email ? 'border-red-300 focus:ring-red-500' : 'border-gray-300 focus:ring-primary-500'} rounded-xl focus:ring-2 focus:border-transparent outline-none transition-all bg-white`}
+                  autoFocus
                 />
-                {errors.email && (
-                  <p className="mt-1.5 text-sm text-red-600">{errors.email}</p>
-                )}
+                {errors.email && <p className="mt-1.5 text-sm text-red-600">{errors.email}</p>}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Password
-                </label>
+                <label className="block text-sm font-medium text-gray-900 mb-2">Password</label>
                 <PasswordInput
                   name="password"
                   placeholder="Enter your password"
                   value={formData.password}
                   onChange={handleChange}
                   error={errors.password}
-                  required
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full px-4 py-2.5 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                className="w-full px-4 py-3 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
               >
                 {loading ? (
                   <>
-                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    <span>Signing in...</span>
+                    <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    Signing in...
                   </>
-                ) : (
-                  <span>Sign in</span>
-                )}
+                ) : 'Sign in'}
               </button>
             </form>
 
-            <div className="mt-6 text-center">
+            {/* Switch to signup */}
+            <div className="mt-6 pt-6 border-t border-gray-100 text-center">
               <p className="text-sm text-gray-600">
                 Don't have an account?{' '}
-                <Link to="/signup" className="text-indigo-600 hover:text-indigo-700 font-medium">
-                  Sign up
+                <Link to="/signup" className="text-primary-600 hover:text-primary-700 font-semibold transition-colors">
+                  Create one — it's free
                 </Link>
               </p>
             </div>

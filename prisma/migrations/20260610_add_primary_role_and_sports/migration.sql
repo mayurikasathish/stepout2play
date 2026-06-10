@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "primaryRole" TEXT;
+ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "sports" TEXT[] DEFAULT ARRAY[]::TEXT[];

@@ -95,6 +95,12 @@ class AuthController {
           lastName: true,
           email: true,
           onboardingComplete: true,
+          primaryRole: true,
+          sports: true,
+          bio: true,
+          profilePicture: true,
+          city: true,
+          phone: true,
           dob: true,
           gender: true,
           orgMemberships: {
@@ -124,6 +130,12 @@ class AuthController {
           lastName: user.lastName,
           email: user.email,
           onboardingComplete: user.onboardingComplete,
+          primaryRole: user.primaryRole,
+          sports: user.sports,
+          bio: user.bio,
+          profilePicture: user.profilePicture,
+          city: user.city,
+          phone: user.phone,
           dob: user.dob,
           gender: user.gender,
         },
@@ -143,11 +155,90 @@ class AuthController {
    */
   async completeOnboarding(req, res, next) {
     try {
+      const { primaryRole, sports, orgName, ...profileData } = req.body;
+
+      const updateData = {
+        onboardingComplete: true,
+        ...profileData
+      };
+
+      if (primaryRole) updateData.primaryRole = primaryRole;
+      if (sports && Array.isArray(sports)) updateData.sports = sports;
+
       await prisma.user.update({
         where: { id: req.user.id },
-        data: { onboardingComplete: true }
+        data: updateData
       });
+
       res.json({ success: true });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Update user profile
+   * PATCH /auth/profile
+   */
+  async updateProfile(req, res, next) {
+    try {
+      const { firstName, lastName, bio, profilePicture, city, phone, dob, gender, primaryRole } = req.body;
+
+      const updateData = {};
+      if (firstName !== undefined) updateData.firstName = firstName.trim();
+      if (lastName !== undefined) updateData.lastName = lastName.trim();
+      if (bio !== undefined) updateData.bio = bio.trim() || null;
+      if (profilePicture !== undefined) updateData.profilePicture = profilePicture.trim() || null;
+      if (city !== undefined) updateData.city = city.trim() || null;
+      if (phone !== undefined) updateData.phone = phone.trim() || null;
+      if (dob !== undefined) updateData.dob = dob ? new Date(dob) : null;
+      if (gender !== undefined) updateData.gender = gender || null;
+      if (primaryRole !== undefined) {
+        if (!['PLAYER', 'ORGANIZER'].includes(primaryRole)) {
+          return res.status(400).json({ success: false, error: 'Invalid role' });
+        }
+        updateData.primaryRole = primaryRole;
+      }
+
+      const user = await prisma.user.update({
+        where: { id: req.user.id },
+        data: updateData,
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          bio: true,
+          profilePicture: true,
+          city: true,
+          phone: true,
+          dob: true,
+          gender: true,
+          primaryRole: true,
+          sports: true,
+          onboardingComplete: true,
+          createdAt: true,
+          updatedAt: true
+        }
+      });
+
+      res.json({ success: true, user });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Delete user account
+   * DELETE /auth/profile
+   */
+  async deleteAccount(req, res, next) {
+    try {
+      await prisma.user.delete({
+        where: { id: req.user.id }
+      });
+
+      res.json({ success: true, message: 'Account deleted successfully' });
     } catch (error) {
       next(error);
     }

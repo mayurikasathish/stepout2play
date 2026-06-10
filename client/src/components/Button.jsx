@@ -1,68 +1,44 @@
-const Button = ({ children, variant = 'primary', fullWidth = false, loading = false, ...props }) => {
-  const baseStyle = {
-    padding: '0.75rem 2rem',
-    borderRadius: '10px',
-    fontSize: '1rem',
-    fontWeight: '600',
-    border: 'none',
-    cursor: props.disabled || loading ? 'not-allowed' : 'pointer',
-    transition: 'all 0.2s',
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '0.5rem',
-    width: fullWidth ? '100%' : 'auto',
-    opacity: props.disabled || loading ? 0.6 : 1,
+const Button = ({
+  children,
+  variant = 'primary',
+  size = 'md',
+  fullWidth = false,
+  loading = false,
+  icon,
+  className = '',
+  ...props
+}) => {
+  const baseClasses = 'inline-flex items-center justify-center gap-2 font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed'
+
+  const sizeClasses = {
+    sm: 'px-3 py-1.5 text-sm',
+    md: 'px-4 py-2.5 text-[15px]',
+    lg: 'px-6 py-3 text-base',
   }
 
-  const variants = {
-    primary: {
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      color: 'white',
-    },
-    secondary: {
-      background: 'transparent',
-      color: '#667eea',
-      border: '2px solid #667eea',
-    },
-    danger: {
-      background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-      color: 'white',
-    },
+  const variantClasses = {
+    primary: 'bg-primary-600 hover:bg-primary-700 text-white shadow-sm hover:shadow-md focus:ring-primary-500',
+    secondary: 'bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 shadow-sm hover:shadow focus:ring-primary-500',
+    ghost: 'hover:bg-gray-100 text-gray-700 focus:ring-gray-300',
+    danger: 'bg-danger-500 hover:bg-danger-600 text-white shadow-sm hover:shadow-md focus:ring-danger-500',
+    success: 'bg-success-500 hover:bg-success-600 text-white shadow-sm hover:shadow-md focus:ring-success-500',
   }
+
+  const widthClass = fullWidth ? 'w-full' : ''
 
   return (
     <button
-      {...props}
-      style={{
-        ...baseStyle,
-        ...variants[variant],
-        ...props.style,
-      }}
+      className={`${baseClasses} ${sizeClasses[size]} ${variantClasses[variant]} ${widthClass} ${className}`}
       disabled={props.disabled || loading}
-      onMouseEnter={(e) => {
-        if (!props.disabled && !loading) {
-          e.target.style.transform = 'translateY(-2px)'
-          e.target.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.4)'
-        }
-      }}
-      onMouseLeave={(e) => {
-        e.target.style.transform = 'translateY(0)'
-        e.target.style.boxShadow = 'none'
-      }}
+      {...props}
     >
       {loading && (
-        <div
-          style={{
-            width: '16px',
-            height: '16px',
-            border: '2px solid rgba(255, 255, 255, 0.3)',
-            borderTop: '2px solid white',
-            borderRadius: '50%',
-            animation: 'spin 1s linear infinite',
-          }}
-        />
+        <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
       )}
+      {icon && !loading && icon}
       {children}
     </button>
   )

@@ -1,39 +1,33 @@
 const express = require('express');
 const cors = require('cors');
-const session = require('express-session');
-const passport = require('./config/passport');
 const authRoutes = require('./routes/auth.routes');
 const orgRoutes = require('./routes/org.routes');
+const tournamentRoutes = require('./routes/tournament.routes');
+const registrationRoutes = require('./routes/registration.routes');
 
 const app = express();
 
 // Middleware
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} ${req.method} ${req.url}`);
+  next();
+});
+
 app.use(cors({
   origin: process.env.CLIENT_URL || 'http://localhost:5173',
   credentials: true,
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(
-  session({
-    secret: process.env.SESSION_SECRET || 'your-session-secret-change-in-production',
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: 24 * 60 * 60 * 1000,
-    },
-  })
-);
-app.use(passport.initialize());
-app.use(passport.session());
 
-// Routes
-app.use('/auth', authRoutes);
-app.use('/orgs', orgRoutes);
+// Routes - all under /api prefix
+app.use('/api/auth', authRoutes);
+app.use('/api/orgs', orgRoutes);
+app.use('/api/tournaments', tournamentRoutes);
+app.use('/api', registrationRoutes); // Registration routes use /events and /users paths
 
 // Health check
-app.get('/health', (req, res) => {
+app.get('/api/health', (req, res) => {
   res.status(200).json({ success: true, message: 'StepOut2Play API is running' });
 });
 

@@ -1,33 +1,56 @@
 const OrganizationCard = ({ organization, onClick }) => {
+  const getGradient = (name) => {
+    const gradients = [
+      'from-primary-500 to-primary-600',
+      'from-blue-500 to-indigo-600',
+      'from-purple-500 to-pink-600',
+      'from-orange-500 to-red-600',
+      'from-green-500 to-emerald-600',
+    ]
+    const index = name.charCodeAt(0) % gradients.length
+    return gradients[index]
+  }
+
   return (
     <button
       onClick={onClick}
-      className="glass-card rounded-xl p-6 text-left hover:shadow-md transition-all w-full group"
+      className="glass-card rounded-xl p-6 text-left hover:shadow-glass-lg transition-all duration-300 w-full group hover:-translate-y-1"
     >
+      {/* Header */}
       <div className="flex items-start justify-between mb-4">
-        <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
-          <span className="text-white font-bold text-lg">
+        <div className={`w-14 h-14 bg-gradient-to-br ${getGradient(organization.name)} rounded-xl flex items-center justify-center shadow-md group-hover:scale-110 transition-transform`}>
+          <span className="text-white font-bold text-xl">
             {organization.name.charAt(0).toUpperCase()}
           </span>
         </div>
-        <span className="px-2.5 py-1 bg-green-50 text-green-700 text-xs font-medium rounded-full">
+        <span className="px-3 py-1 bg-success-50 text-success-700 text-xs font-medium rounded-full border border-success-100">
           Active
         </span>
       </div>
-      <h3 className="text-lg font-semibold text-gray-900 mb-2 group-hover:text-indigo-600 transition-colors">
+
+      {/* Content */}
+      <h3 className="text-lg font-semibold text-gray-900 mb-2 group-hover:text-primary-600 transition-colors">
         {organization.name}
       </h3>
-      <p className="text-sm text-gray-600 mb-4 line-clamp-2">
+      <p className="text-sm text-gray-600 mb-5 line-clamp-2 leading-relaxed">
         {organization.description || 'No description provided'}
       </p>
-      <div className="flex items-center space-x-4 text-xs text-gray-500">
-        <div className="flex items-center space-x-1">
-          <span>🏆</span>
-          <span>{organization.tournamentCount || 0} Tournaments</span>
+
+      {/* Stats */}
+      <div className="flex items-center gap-4 pt-4 border-t border-gray-100">
+        <div className="flex items-center gap-2 text-sm text-gray-600">
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+          </svg>
+          <span className="font-medium">{organization.tournamentCount || 0}</span>
+          <span className="text-gray-500">Tournaments</span>
         </div>
-        <div className="flex items-center space-x-1">
-          <span>👥</span>
-          <span>{organization.memberCount || 0} Members</span>
+        <div className="flex items-center gap-2 text-sm text-gray-600">
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+          </svg>
+          <span className="font-medium">{organization.memberCount || 0}</span>
+          <span className="text-gray-500">Members</span>
         </div>
       </div>
     </button>

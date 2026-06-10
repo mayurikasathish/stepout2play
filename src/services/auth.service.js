@@ -106,35 +106,6 @@ class AuthService {
       throw authError;
     }
   }
-
-  async findOrCreateGoogleUser({ googleId, email, firstName, lastName }) {
-    let user = await prisma.user.findUnique({
-      where: { email: email.toLowerCase() },
-    });
-
-    if (user) {
-      if (!user.googleId) {
-        user = await prisma.user.update({
-          where: { id: user.id },
-          data: { googleId, authProvider: 'google' },
-        });
-      }
-    } else {
-      user = await prisma.user.create({
-        data: {
-          email: email.toLowerCase(),
-          googleId,
-          firstName,
-          lastName,
-          authProvider: 'google',
-          passwordHash: null,
-        },
-      });
-    }
-
-    const { passwordHash, ...userWithoutPassword } = user;
-    return userWithoutPassword;
-  }
 }
 
 module.exports = new AuthService();
