@@ -8,40 +8,38 @@ datasource db {
 }
 
 model User {
-  id                 String         @id @default(uuid())
-  firstName          String
-  lastName           String
-  email              String         @unique
-  passwordHash       String?
-  googleId           String?        @unique
-  authProvider       String         @default("local")
-  onboardingComplete Boolean        @default(false)
-  primaryRole        String?        // PLAYER or ORGANIZER
-  sports             String[]       @default([])
-  bio                String?
-  profilePicture     String?
-  city               String?
-  phone              String?
-  dob                DateTime?
-  gender             String?
-  createdAt          DateTime       @default(now())
-  updatedAt          DateTime       @updatedAt
-
-  orgMemberships     OrgMember[]
-  registrations      Registration[] @relation("UserRegistrations")
+  id                   String         @id @default(uuid())
+  firstName            String
+  lastName             String
+  email                String         @unique
+  passwordHash         String?
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+  googleId             String?        @unique
+  authProvider         String         @default("local")
+  dob                  DateTime?
+  gender               String?
+  onboardingComplete   Boolean        @default(false)
+  bio                  String?
+  city                 String?
+  phone                String?
+  profilePicture       String?
+  primaryRole          String?
+  sports               String[]       @default([])
+  orgMemberships       OrgMember[]
   partnerRegistrations Registration[] @relation("PartnerRegistrations")
+  registrations        Registration[] @relation("UserRegistrations")
 
   @@map("users")
 }
 
 model Organization {
-  id          String      @id @default(uuid())
+  id          String       @id @default(uuid())
   name        String
-  slug        String      @unique
+  slug        String       @unique
   logoUrl     String?
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
   members     OrgMember[]
   tournaments Tournament[]
 
@@ -49,57 +47,54 @@ model Organization {
 }
 
 model OrgMember {
-  id        String      @id @default(uuid())
+  id        String       @id @default(uuid())
   userId    String
   orgId     String
-  role      OrgRole     @default(MEMBER)
-  createdAt DateTime    @default(now())
-
-  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      OrgRole      @default(MEMBER)
+  createdAt DateTime     @default(now())
   org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, orgId])
   @@map("org_members")
 }
 
 model Tournament {
-  id                  String            @id @default(uuid())
-  organizationId      String
-  name                String
-  sport               String
-  format              TournamentFormat  @default(ROUND_ROBIN)
-  startDate           DateTime
-  endDate             DateTime
-  venueName           String
-  venueAddress        String?
-  city                String
+  id                   String           @id @default(uuid())
+  organizationId       String
+  name                 String
+  sport                String
+  startDate            DateTime
+  endDate              DateTime
+  venueName            String
+  venueAddress         String?
+  city                 String
   registrationDeadline DateTime
-  entryFee            Decimal?          @db.Decimal(10, 2)
-  description         String?
-  maxParticipants     Int?
-  status              TournamentStatus  @default(DRAFT)
-  createdAt           DateTime          @default(now())
-  updatedAt           DateTime          @updatedAt
-
-  organization        Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  events              Event[]
+  entryFee             Decimal?         @db.Decimal(10, 2)
+  description          String?
+  maxParticipants      Int?
+  status               TournamentStatus @default(DRAFT)
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+  format               TournamentFormat @default(BRACKET)
+  events               Event[]
+  organization         Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@map("tournaments")
 }
 
 model Event {
-  id              String        @id @default(uuid())
+  id              String         @id @default(uuid())
   tournamentId    String
   name            String
   format          EventFormat
+  maxParticipants Int?
+  registrationFee Decimal?       @db.Decimal(10, 2)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
   category        String?
   gender          String?
-  maxParticipants Int?
-  registrationFee Decimal?      @db.Decimal(10, 2)
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-
-  tournament      Tournament    @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  tournament      Tournament     @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
   registrations   Registration[]
 
   @@map("events")
@@ -113,10 +108,9 @@ model Registration {
   status    RegistrationStatus @default(CONFIRMED)
   createdAt DateTime           @default(now())
   updatedAt DateTime           @updatedAt
-
-  user      User               @relation("UserRegistrations", fields: [userId], references: [id], onDelete: Cascade)
   event     Event              @relation(fields: [eventId], references: [id], onDelete: Cascade)
   partner   User?              @relation("PartnerRegistrations", fields: [partnerId], references: [id])
+  user      User               @relation("UserRegistrations", fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, eventId])
   @@map("registrations")
@@ -129,8 +123,10 @@ enum OrgRole {
 }
 
 enum TournamentFormat {
+  BRACKET
   ROUND_ROBIN
   KNOCKOUT
+  LEAGUE
 }
 
 enum TournamentStatus {
