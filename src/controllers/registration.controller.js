@@ -1,5 +1,6 @@
 const registrationService = require('../services/registration.service');
 const eligibilityService = require('../services/eligibility.service');
+const partnerService = require('../services/partner.service');
 
 class RegistrationController {
   /**
@@ -107,6 +108,68 @@ class RegistrationController {
         success: true,
         registrations,
         count: registrations.length
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Search for a partner by email
+   * POST /events/:eventId/search-partner
+   */
+  async searchPartner(req, res, next) {
+    try {
+      const { email } = req.body;
+
+      if (!email || typeof email !== 'string') {
+        return res.status(400).json({
+          success: false,
+          error: 'Email is required'
+        });
+      }
+
+      const partner = await partnerService.searchPartnerByEmail(email);
+
+      res.status(200).json({
+        success: true,
+        partner
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Verify partner eligibility for an event
+   * POST /events/:eventId/verify-partner
+   */
+  async verifyPartner(req, res, next) {
+    try {
+      const { eventId } = req.params;
+      const { partnerId } = req.body;
+      const userId = req.user.id;
+
+      if (!partnerId || typeof partnerId !== 'string') {
+        return res.status(400).json({
+          success: false,
+          error: 'Partner ID is required'
+        });
+      }
+
+      // Cannot partner with yourself
+      if (partnerId === userId) {
+        return res.status(400).json({
+          success: false,
+          error: 'You cannot register with yourself as a partner'
+        });
+      }
+
+      const verification = await partnerService.verifyPartnerEligibility(userId, partnerId, eventId);
+
+      res.status(200).json({
+        success: true,
+        ...verification
       });
     } catch (error) {
       next(error);

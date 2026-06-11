@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import Navbar from '../components/Navbar'
 import SuccessModal from '../components/SuccessModal'
 import NotEligibleModal from '../components/NotEligibleModal'
+import PartnerSelectionModal from '../components/PartnerSelectionModal'
 import api from '../services/api'
 
 const CalendarIcon = (props) => (
@@ -57,6 +58,8 @@ const TournamentDetailPage = () => {
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [showNotEligibleModal, setShowNotEligibleModal] = useState(false)
   const [eligibilityData, setEligibilityData] = useState({ reasons: [], userAge: null, eventCategory: null, eventGender: null })
+  const [showPartnerModal, setShowPartnerModal] = useState(false)
+  const [currentEvent, setCurrentEvent] = useState(null)
 
   useEffect(() => {
     fetchTournamentDetails()
@@ -98,33 +101,49 @@ const TournamentDetailPage = () => {
     }
   }
 
-  const handleRegister = async (eventId, eventName) => {
+  const handleRegister = async (eventId, eventName, eventFormat) => {
     if (!user) {
       setShowAuthModal(true)
       return
     }
 
+    // For doubles/mixed doubles, show partner selection modal
+    if (eventFormat === 'DOUBLES' || eventFormat === 'MIXED_DOUBLES') {
+      setCurrentEvent({ id: eventId, name: eventName, format: eventFormat })
+      setShowPartnerModal(true)
+      return
+    }
+
+    // For singles, proceed directly
+    await registerForEvent(eventId, eventName, null)
+  }
+
+  const registerForEvent = async (eventId, eventName, partnerId) => {
     try {
       setRegistering(true)
 
-      // First check eligibility
-      const eligibilityCheck = await api.get(`/events/${eventId}/check-eligibility`)
+      // First check eligibility for singles
+      if (!partnerId) {
+        const eligibilityCheck = await api.get(`/events/${eventId}/check-eligibility`)
 
-      if (!eligibilityCheck.data.eligible) {
-        // Show not eligible modal
-        setEligibilityData({
-          reasons: eligibilityCheck.data.reasons || [],
-          userAge: eligibilityCheck.data.userAge,
-          eventCategory: eligibilityCheck.data.eventCategory,
-          eventGender: eligibilityCheck.data.eventGender
-        })
-        setShowNotEligibleModal(true)
-        setRegistering(false)
-        return
+        if (!eligibilityCheck.data.eligible) {
+          // Show not eligible modal
+          setEligibilityData({
+            reasons: eligibilityCheck.data.reasons || [],
+            userAge: eligibilityCheck.data.userAge,
+            eventCategory: eligibilityCheck.data.eventCategory,
+            eventGender: eligibilityCheck.data.eventGender
+          })
+          setShowNotEligibleModal(true)
+          setRegistering(false)
+          return
+        }
       }
 
-      // If eligible, proceed with registration
-      const response = await api.post(`/events/${eventId}/register`)
+      // Proceed with registration (with or without partner)
+      const response = await api.post(`/events/${eventId}/register`, {
+        partnerId: partnerId || undefined
+      })
 
       if (response.data.success) {
         // Mark event as registered
@@ -133,7 +152,9 @@ const TournamentDetailPage = () => {
         // Show success modal
         setSuccessMessage({
           title: 'Registration Successful!',
-          message: `You've successfully registered for ${eventName}. Check "My Matches" to see all your registrations and match schedules.`
+          message: partnerId
+            ? `You've successfully registered for ${eventName} with your partner. Check "My Matches" to see all your registrations and match schedules.`
+            : `You've successfully registered for ${eventName}. Check "My Matches" to see all your registrations and match schedules.`
         })
         setShowSuccessModal(true)
 
@@ -163,6 +184,12 @@ const TournamentDetailPage = () => {
       }
     } finally {
       setRegistering(false)
+    }
+  }
+
+  const handlePartnerConfirm = (partnerId, partnerInfo) => {
+    if (currentEvent) {
+      registerForEvent(currentEvent.id, currentEvent.name, partnerId)
     }
   }
 
@@ -340,7 +367,7 @@ const TournamentDetailPage = () => {
                   key={event.id}
                   event={event}
                   canRegister={canRegister}
-                  onRegister={handleRegister}
+                  onRegister={(eventId, eventName) => handleRegister(eventId, eventName, event.format)}
                   registering={registering}
                   isRegistered={registeredEvents.has(event.id)}
                 />
@@ -408,6 +435,16 @@ const TournamentDetailPage = () => {
         userAge={eligibilityData.userAge}
         eventCategory={eligibilityData.eventCategory}
         eventGender={eligibilityData.eventGender}
+      />
+
+      {/* Partner Selection Modal */}
+      <PartnerSelectionModal
+        isOpen={showPartnerModal}
+        onClose={() => { setShowPartnerModal(false); setCurrentEvent(null) }}
+        eventId={currentEvent?.id}
+        eventName={currentEvent?.name}
+        eventFormat={currentEvent?.format}
+        onConfirm={handlePartnerConfirm}
       />
     </div>
   )

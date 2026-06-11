@@ -28,6 +28,20 @@ router.get(
   registrationController.getMyRegistrations.bind(registrationController)
 );
 
+// POST /events/:eventId/search-partner - Search for a partner by email
+router.post(
+  '/events/:eventId/search-partner',
+  authenticate,
+  registrationController.searchPartner.bind(registrationController)
+);
+
+// POST /events/:eventId/verify-partner - Verify partner eligibility
+router.post(
+  '/events/:eventId/verify-partner',
+  authenticate,
+  registrationController.verifyPartner.bind(registrationController)
+);
+
 /**
  * Organizer routes
  */
