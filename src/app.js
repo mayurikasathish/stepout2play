@@ -4,6 +4,7 @@ const authRoutes = require('./routes/auth.routes');
 const orgRoutes = require('./routes/org.routes');
 const tournamentRoutes = require('./routes/tournament.routes');
 const registrationRoutes = require('./routes/registration.routes');
+const bracketRoutes = require('./routes/bracket.routes');
 
 const app = express();
 
@@ -29,6 +30,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/orgs', orgRoutes);
 app.use('/api/tournaments', tournamentRoutes);
 app.use('/api', registrationRoutes); // Registration routes use /events and /users paths
+app.use('/api', bracketRoutes); // Bracket routes use /events and /matches paths
 
 // Health check
 app.get('/api/health', (req, res) => {

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import RegistrationsView from '../components/RegistrationsView'
+import BracketView from '../components/BracketView'
 import api from '../services/api'
 
 const UsersIcon = (props) => (
@@ -305,21 +306,50 @@ const TournamentManagePage = () => {
         )}
 
         {activeTab === 'brackets' && (
-          <div className="glass-card rounded-2xl p-8">
-            <div className="text-center py-12">
-              <GridIcon className="w-16 h-16 text-primary-600 mx-auto mb-4" />
-              <h2 className="text-2xl font-bold mb-4">Bracket Generation</h2>
-              <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
-                Generate tournament brackets automatically from registered participants.
-                This is the core feature that makes tournament management effortless!
-              </p>
-              <button
-                onClick={() => alert('Bracket generation coming next! This is the USP feature.')}
-                className="px-8 py-4 bg-gradient-to-r from-warning-500 to-warning-600 hover:from-warning-600 hover:to-warning-700 text-white font-bold rounded-xl text-lg shadow-lg hover:shadow-xl transition-all"
-              >
-                Generate Brackets
-              </button>
+          <div className="space-y-6">
+            {/* Event Selection */}
+            <div className="glass-card rounded-xl p-6">
+              <label className="block text-sm font-medium text-gray-900 mb-3">
+                Select Event to Generate Bracket
+              </label>
+              {events.length === 0 ? (
+                <p className="text-gray-600">No events created yet. Create events first.</p>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {events.map((event) => (
+                    <button
+                      key={event.id}
+                      onClick={() => {
+                        // Find the bracket view section and scroll to it
+                        document.getElementById(`bracket-${event.id}`)?.scrollIntoView({ behavior: 'smooth' })
+                      }}
+                      className="p-4 border-2 border-gray-200 hover:border-primary-400 rounded-xl text-left transition-all hover:shadow-md"
+                    >
+                      <h3 className="font-semibold text-gray-900 mb-1">{event.name}</h3>
+                      <p className="text-sm text-gray-600 capitalize">
+                        {event.format.replace('_', ' ')}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-2">
+                        {event.participantCount || 0} participants
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
+
+            {/* Bracket Views for Each Event */}
+            {events.map((event) => (
+              <div key={event.id} id={`bracket-${event.id}`}>
+                <BracketView
+                  eventId={event.id}
+                  eventName={event.name}
+                  eventFormat={event.format}
+                  registrationCount={event.participantCount || 0}
+                  isOrganizer={true}
+                />
+              </div>
+            ))}
           </div>
         )}
 
