@@ -207,6 +207,76 @@ class TournamentService {
       spotsRemaining: maxParticipants ? maxParticipants - totalRegistrations : null
     };
   }
+
+  /**
+   * Get all registrations for a tournament (across all events)
+   */
+  async getTournamentRegistrations(tournamentId) {
+    const prisma = require('../lib/prisma');
+
+    // First verify tournament exists
+    const tournament = await prisma.tournament.findUnique({
+      where: { id: tournamentId },
+      include: {
+        events: {
+          include: {
+            registrations: {
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    email: true,
+                    gender: true,
+                    dob: true
+                  }
+                },
+                partner: {
+                  select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    email: true,
+                    gender: true,
+                    dob: true
+                  }
+                },
+                event: {
+                  select: {
+                    id: true,
+                    name: true,
+                    format: true,
+                    category: true,
+                    gender: true
+                  }
+                }
+              },
+              orderBy: {
+                createdAt: 'asc'
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (!tournament) {
+      const error = new Error('Tournament not found');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    // Flatten registrations from all events
+    const allRegistrations = [];
+    tournament.events.forEach(event => {
+      event.registrations.forEach(reg => {
+        allRegistrations.push(reg);
+      });
+    });
+
+    return allRegistrations;
+  }
 }
 
 module.exports = new TournamentService();

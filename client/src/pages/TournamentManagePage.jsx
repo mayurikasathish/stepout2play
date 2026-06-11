@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
+import RegistrationsView from '../components/RegistrationsView'
 import api from '../services/api'
 
 const UsersIcon = (props) => (
@@ -300,10 +301,7 @@ const TournamentManagePage = () => {
         )}
 
         {activeTab === 'registrations' && (
-          <div className="glass-card rounded-2xl p-8">
-            <h2 className="text-2xl font-bold mb-6">All Registrations</h2>
-            <p className="text-gray-600">Registrations view coming next...</p>
-          </div>
+          <RegistrationsView tournamentId={id} />
         )}
 
         {activeTab === 'brackets' && (

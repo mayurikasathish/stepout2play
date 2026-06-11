@@ -263,6 +263,26 @@ class TournamentController {
       next(error);
     }
   }
+
+  /**
+   * Get all registrations for a tournament
+   * GET /tournaments/:id/registrations
+   */
+  async getTournamentRegistrations(req, res, next) {
+    try {
+      const { id } = req.params;
+
+      const registrations = await tournamentService.getTournamentRegistrations(id);
+
+      res.status(200).json({
+        success: true,
+        registrations,
+        count: registrations.length
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = new TournamentController();

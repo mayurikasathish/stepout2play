@@ -31,6 +31,13 @@ router.delete(
 // GET /tournaments/:tournamentId/events - List events for tournament
 router.get('/:tournamentId/events', eventController.listEvents.bind(eventController));
 
+// GET /tournaments/:id/registrations - Get all registrations for tournament (organizer only)
+router.get(
+  '/:id/registrations',
+  authenticate,
+  tournamentController.getTournamentRegistrations.bind(tournamentController)
+);
+
 /**
  * Protected routes
  */
