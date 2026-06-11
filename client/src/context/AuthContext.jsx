@@ -37,8 +37,10 @@ export const AuthProvider = ({ children }) => {
     if (data.success) {
       setUser(data.user)
       setContext(data.context)
+      return data.user // Return the user data so caller can check onboarding status
     } else {
       setUser(user)
+      return user
     }
   }
 
@@ -48,8 +50,10 @@ export const AuthProvider = ({ children }) => {
     if (data.success) {
       setUser(data.user)
       setContext(data.context)
+      return data.user
     } else {
       setUser(user)
+      return user
     }
   }
 

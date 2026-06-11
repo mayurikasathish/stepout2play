@@ -8,8 +8,11 @@ const JWT_EXPIRES_IN = '24h';
 
 class AuthService {
   async register({ email, password, firstName, lastName }) {
+    // Normalize email to lowercase for case-insensitive storage
+    const normalizedEmail = email.toLowerCase().trim();
+
     const existingUser = await prisma.user.findUnique({
-      where: { email: email.toLowerCase() },
+      where: { email: normalizedEmail },
     });
 
     if (existingUser) {
@@ -22,10 +25,10 @@ class AuthService {
 
     const user = await prisma.user.create({
       data: {
-        email: email.toLowerCase(),
+        email: normalizedEmail,
         passwordHash,
-        firstName,
-        lastName,
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
       },
       select: {
         id: true,
@@ -42,12 +45,22 @@ class AuthService {
   }
 
   async login({ email, password }) {
+    // Normalize email to lowercase for case-insensitive lookup
+    const normalizedEmail = email.toLowerCase().trim();
+
     const user = await prisma.user.findUnique({
-      where: { email: email.toLowerCase() },
+      where: { email: normalizedEmail },
     });
 
     if (!user) {
       const error = new Error('Invalid credentials');
+      error.statusCode = 401;
+      throw error;
+    }
+
+    // Check if user has a password hash (local auth)
+    if (!user.passwordHash) {
+      const error = new Error('This account was created with Google. Please use "Sign in with Google"');
       error.statusCode = 401;
       throw error;
     }

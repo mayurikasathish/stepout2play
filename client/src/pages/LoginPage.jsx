@@ -25,16 +25,24 @@ const LoginPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault()
     const newErrors = {}
-    if (!formData.email) newErrors.email = 'Email is required'
+    const trimmedEmail = formData.email.trim()
+
+    if (!trimmedEmail) newErrors.email = 'Email is required'
     if (!formData.password) newErrors.password = 'Password is required'
     if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return }
 
     setLoading(true)
     setErrors({})
     try {
-      await login(formData.email, formData.password)
-      navigate('/dashboard', { replace: true })
+      const userData = await login(trimmedEmail, formData.password)
+      // Navigate based on onboarding status
+      if (userData && !userData.onboardingComplete) {
+        navigate('/onboarding', { replace: true })
+      } else {
+        navigate('/dashboard', { replace: true })
+      }
     } catch (error) {
+      console.error('Login error:', error)
       const msg = error.response?.data?.errors?.[0]
         || error.response?.data?.error
         || 'Invalid email or password. Please try again.'
