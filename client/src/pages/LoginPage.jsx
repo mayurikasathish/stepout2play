@@ -120,7 +120,7 @@ const LoginPage = () => {
               <p className="text-sm text-gray-600">
                 Don't have an account?{' '}
                 <Link to="/signup" className="text-primary-600 hover:text-primary-700 font-semibold transition-colors">
-                  Create one — it's free
+                  Create one - it's free
                 </Link>
               </p>
             </div>

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import Navbar from '../components/Navbar'
 import OrganizationCard from '../components/OrganizationCard'
+import CreateOrganizationModal from '../components/CreateOrganizationModal'
 import { useNavigate } from 'react-router-dom'
 
 const BuildingIcon = (props) => (
@@ -17,10 +18,11 @@ const PlusIcon = (props) => (
 )
 
 const ManagePage = () => {
-  const { context } = useAuth()
+  const { context, refreshContext } = useAuth()
   const navigate = useNavigate()
   const [organizations, setOrganizations] = useState([])
   const [loading, setLoading] = useState(true)
+  const [showCreateModal, setShowCreateModal] = useState(false)
 
   useEffect(() => {
     // Set organizations from context
@@ -30,6 +32,11 @@ const ManagePage = () => {
 
   const handleViewOrg = (org) => {
     navigate(`/manage/org/${org.id}`)
+  }
+
+  const handleCreateSuccess = async (newOrg) => {
+    await refreshContext()
+    setShowCreateModal(false)
   }
 
   return (
@@ -46,6 +53,13 @@ const ManagePage = () => {
               View and manage your tournaments, events, and teams
             </p>
           </div>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-xl transition-all shadow-sm hover:shadow-md flex items-center gap-2 self-start sm:self-auto"
+          >
+            <PlusIcon className="w-5 h-5" />
+            Create Organization
+          </button>
         </div>
 
         {loading ? (
@@ -53,6 +67,23 @@ const ManagePage = () => {
             <div className="flex flex-col items-center gap-4">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
               <p className="text-sm text-gray-500">Loading organizations...</p>
+            </div>
+          </div>
+        ) : organizations.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20">
+            <div className="glass-card rounded-2xl p-12 max-w-lg text-center">
+              <BuildingIcon className="w-16 h-16 text-gray-400 mx-auto mb-6" />
+              <h2 className="text-2xl font-bold text-gray-900 mb-3">No organizations yet</h2>
+              <p className="text-gray-600 mb-8">
+                Create your first organization to start managing tournaments and events
+              </p>
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="px-8 py-3 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-xl transition-all shadow-sm hover:shadow-md inline-flex items-center gap-2"
+              >
+                <PlusIcon className="w-5 h-5" />
+                Create Your First Organization
+              </button>
             </div>
           </div>
         ) : (
@@ -67,6 +98,13 @@ const ManagePage = () => {
           </div>
         )}
       </main>
+
+      {/* Create Organization Modal */}
+      <CreateOrganizationModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSuccess={handleCreateSuccess}
+      />
     </div>
   )
 }

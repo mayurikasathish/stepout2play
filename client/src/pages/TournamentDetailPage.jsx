@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import Navbar from '../components/Navbar'
 import SuccessModal from '../components/SuccessModal'
+import NotEligibleModal from '../components/NotEligibleModal'
 import api from '../services/api'
 
 const CalendarIcon = (props) => (
@@ -54,6 +55,8 @@ const TournamentDetailPage = () => {
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [successMessage, setSuccessMessage] = useState({ title: '', message: '' })
   const [showAuthModal, setShowAuthModal] = useState(false)
+  const [showNotEligibleModal, setShowNotEligibleModal] = useState(false)
+  const [eligibilityData, setEligibilityData] = useState({ reasons: [], userAge: null, eventCategory: null, eventGender: null })
 
   useEffect(() => {
     fetchTournamentDetails()
@@ -103,6 +106,24 @@ const TournamentDetailPage = () => {
 
     try {
       setRegistering(true)
+
+      // First check eligibility
+      const eligibilityCheck = await api.get(`/events/${eventId}/check-eligibility`)
+
+      if (!eligibilityCheck.data.eligible) {
+        // Show not eligible modal
+        setEligibilityData({
+          reasons: eligibilityCheck.data.reasons || [],
+          userAge: eligibilityCheck.data.userAge,
+          eventCategory: eligibilityCheck.data.eventCategory,
+          eventGender: eligibilityCheck.data.eventGender
+        })
+        setShowNotEligibleModal(true)
+        setRegistering(false)
+        return
+      }
+
+      // If eligible, proceed with registration
       const response = await api.post(`/events/${eventId}/register`)
 
       if (response.data.success) {
@@ -121,13 +142,25 @@ const TournamentDetailPage = () => {
       }
     } catch (err) {
       console.error('Error registering:', err)
-      const errorMessage = err.response?.data?.error || 'Failed to register. Please try again.'
-      // Show error in modal
-      setSuccessMessage({
-        title: 'Registration Failed',
-        message: errorMessage
-      })
-      setShowSuccessModal(true)
+
+      // Check if it's an eligibility error (403)
+      if (err.response?.status === 403) {
+        setEligibilityData({
+          reasons: err.response.data.reasons || [err.response.data.error || 'You are not eligible for this event'],
+          userAge: err.response.data.userAge,
+          eventCategory: err.response.data.eventCategory,
+          eventGender: err.response.data.eventGender
+        })
+        setShowNotEligibleModal(true)
+      } else {
+        // Show other errors in success modal (acts as generic modal)
+        const errorMessage = err.response?.data?.error || 'Failed to register. Please try again.'
+        setSuccessMessage({
+          title: 'Registration Failed',
+          message: errorMessage
+        })
+        setShowSuccessModal(true)
+      }
     } finally {
       setRegistering(false)
     }
@@ -366,6 +399,16 @@ const TournamentDetailPage = () => {
           </div>
         </div>
       )}
+
+      {/* Not Eligible Modal */}
+      <NotEligibleModal
+        isOpen={showNotEligibleModal}
+        onClose={() => setShowNotEligibleModal(false)}
+        reasons={eligibilityData.reasons}
+        userAge={eligibilityData.userAge}
+        eventCategory={eligibilityData.eventCategory}
+        eventGender={eligibilityData.eventGender}
+      />
     </div>
   )
 }

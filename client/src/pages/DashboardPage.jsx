@@ -71,10 +71,10 @@ const DashboardPage = () => {
         {/* Greeting */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-1">
-            Hey, {user?.firstName} 👋
+            Hey, {user?.firstName}
           </h1>
           <p className="text-gray-500">
-            {isOrganizer && isPlayer && 'Managing tournaments and playing — you do it all.'}
+            {isOrganizer && isPlayer && 'Managing tournaments and playing - you do it all.'}
             {isOrganizer && !isPlayer && 'Ready to run your next tournament?'}
             {!isOrganizer && isPlayer && `You're registered for ${myRegistrations.length} event${myRegistrations.length !== 1 ? 's' : ''}.`}
             {!isOrganizer && !isPlayer && 'Find a tournament to join, or create your own organization.'}
@@ -109,7 +109,7 @@ const DashboardPage = () => {
         {/* Main grid */}
         <div className="grid lg:grid-cols-3 gap-6">
 
-          {/* Left column — spans 2 on lg */}
+          {/* Left column - spans 2 on lg */}
           <div className="lg:col-span-2 space-y-6">
 
             {/* My upcoming events */}
@@ -125,8 +125,8 @@ const DashboardPage = () => {
                     <div key={reg.id}
                       className="flex items-center gap-4 p-4 rounded-xl border border-gray-100 hover:border-primary-200 hover:bg-primary-50/30 transition-all cursor-pointer"
                       onClick={() => navigate(`/tournaments/${reg.event?.tournament?.id}`)}>
-                      <div className="w-10 h-10 rounded-lg bg-primary-100 flex items-center justify-center text-lg flex-shrink-0">
-                        🎾
+                      <div className="w-10 h-10 rounded-lg bg-primary-100 flex items-center justify-center text-lg flex-shrink-0 font-bold text-primary-600">
+                        E
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-gray-900 truncate">{reg.event?.name}</p>
@@ -145,7 +145,7 @@ const DashboardPage = () => {
             <div className="glass-card rounded-2xl p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-bold text-gray-900">
-                  {suggestedTournaments.length > 0 ? '✨ Recommended for you' : 'Open Tournaments'}
+                  {suggestedTournaments.length > 0 ? 'Recommended for you' : 'Open Tournaments'}
                 </h2>
                 <button onClick={() => navigate('/browse')}
                   className="text-sm text-primary-600 hover:text-primary-700 font-medium">Browse all</button>
@@ -165,13 +165,13 @@ const DashboardPage = () => {
                     <div key={t.id}
                       className="flex items-center gap-4 p-4 rounded-xl border border-gray-100 hover:border-primary-200 hover:bg-primary-50/30 transition-all cursor-pointer"
                       onClick={() => navigate(`/tournaments/${t.id}`)}>
-                      <div className="w-10 h-10 rounded-lg bg-yellow-100 flex items-center justify-center text-lg flex-shrink-0">
-                        🏆
+                      <div className="w-10 h-10 rounded-lg bg-yellow-100 flex items-center justify-center text-lg flex-shrink-0 font-bold text-yellow-600">
+                        T
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-gray-900 truncate">{t.name}</p>
                         <p className="text-sm text-gray-500">
-                          {t.city} · {t.sport} ·{' '}
+                          {t.city}, {t.sport},{' '}
                           {new Date(t.startDate).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}
                         </p>
                       </div>
@@ -184,7 +184,7 @@ const DashboardPage = () => {
               )}
             </div>
 
-            {/* Org quick actions — only if organizer */}
+            {/* Org quick actions - only if organizer */}
             {isOrganizer && (
               <div className="glass-card rounded-2xl p-6">
                 <div className="flex items-center justify-between mb-4">
@@ -211,32 +211,26 @@ const DashboardPage = () => {
             )}
           </div>
 
-          {/* Right column — quick actions */}
+          {/* Right column - quick actions */}
           <div className="space-y-4">
             <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Quick Actions</h2>
 
             {[
-              { icon: '🔍', label: 'Browse Tournaments', sub: 'Find & register for events', path: '/browse', color: 'from-primary-500 to-primary-600' },
-              { icon: '📅', label: 'My Matches', sub: 'View your schedule', path: '/matches', color: 'from-green-500 to-green-600' },
-              ...(isOrganizer ? [{ icon: '🏢', label: 'Manage Orgs', sub: 'Run your tournaments', path: '/manage', color: 'from-yellow-500 to-yellow-600' }] : []),
-              { icon: '👤', label: 'My Profile', sub: 'Update your details', path: '/profile', color: 'from-gray-600 to-gray-700' },
+              { label: 'Browse Tournaments', sub: 'Find and register for events', path: '/browse', color: 'from-primary-500 to-primary-600' },
+              { label: 'My Matches', sub: 'View your schedule', path: '/matches', color: 'from-green-500 to-green-600' },
+              ...(isOrganizer ? [{ label: 'Manage Orgs', sub: 'Run your tournaments', path: '/manage', color: 'from-yellow-500 to-yellow-600' }] : []),
+              { label: 'My Profile', sub: 'Update your details', path: '/profile', color: 'from-gray-600 to-gray-700' },
             ].map(item => (
               <button key={item.path} onClick={() => navigate(item.path)}
-                className="w-full p-5 rounded-2xl text-left hover:shadow-lg transition-all bg-gradient-to-r text-white"
-                style={{ background: `linear-gradient(135deg, var(--tw-gradient-stops))` }}
-              >
-                <div className={`w-full p-5 rounded-2xl text-left bg-gradient-to-br ${item.color} hover:shadow-md transition-all`}>
-                  <div className="text-3xl mb-2">{item.icon}</div>
-                  <div className="font-bold text-white">{item.label}</div>
-                  <div className="text-sm text-white/80">{item.sub}</div>
-                </div>
+                className={`w-full p-5 rounded-2xl text-left bg-gradient-to-br ${item.color} hover:shadow-md transition-all`}>
+                <div className="font-bold text-white">{item.label}</div>
+                <div className="text-sm text-white/80">{item.sub}</div>
               </button>
             ))}
 
             {/* If not an organizer yet, suggest it */}
             {!isOrganizer && (
               <div className="p-5 rounded-2xl border-2 border-dashed border-gray-200 text-center">
-                <div className="text-2xl mb-2">🏆</div>
                 <p className="font-semibold text-gray-700 text-sm mb-1">Run your own tournament?</p>
                 <p className="text-xs text-gray-400 mb-3">Create an organization to get started</p>
                 <button onClick={() => navigate('/manage')}

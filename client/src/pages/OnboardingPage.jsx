@@ -58,9 +58,8 @@ export default function OnboardingPage() {
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-primary-50/20 flex items-center justify-center px-4 py-12">
         <div className="w-full max-w-xl animate-fade-in">
           <div className="text-center mb-8">
-            <div className="text-4xl mb-3">👋</div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome, {user?.firstName}</h1>
-            <p className="text-gray-500">Let's set up your profile — takes 30 seconds</p>
+            <p className="text-gray-500">Let's set up your profile - takes 30 seconds</p>
           </div>
 
           <div className="glass-card rounded-2xl p-8">
@@ -164,8 +163,8 @@ export default function OnboardingPage() {
               className="w-full p-6 rounded-2xl border-2 border-gray-200 bg-white hover:border-primary-400 hover:shadow-md transition-all text-left group"
             >
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-primary-50 group-hover:bg-primary-100 flex items-center justify-center text-2xl transition-all flex-shrink-0">
-                  🏆
+                <div className="w-12 h-12 rounded-xl bg-primary-50 group-hover:bg-primary-100 flex items-center justify-center text-2xl transition-all flex-shrink-0 font-bold text-primary-600">
+                  O
                 </div>
                 <div className="flex-1">
                   <h3 className="text-lg font-bold text-gray-900 mb-0.5">Run a tournament</h3>
@@ -184,8 +183,8 @@ export default function OnboardingPage() {
               className="w-full p-6 rounded-2xl border-2 border-gray-200 bg-white hover:border-primary-400 hover:shadow-md transition-all text-left group disabled:opacity-50"
             >
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-green-50 group-hover:bg-green-100 flex items-center justify-center text-2xl transition-all flex-shrink-0">
-                  🎾
+                <div className="w-12 h-12 rounded-xl bg-green-50 group-hover:bg-green-100 flex items-center justify-center text-2xl transition-all flex-shrink-0 font-bold text-green-600">
+                  P
                 </div>
                 <div className="flex-1">
                   <h3 className="text-lg font-bold text-gray-900 mb-0.5">Play in tournaments</h3>
@@ -230,7 +229,6 @@ export default function OnboardingPage() {
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-primary-50/20 flex items-center justify-center px-4 py-12">
         <div className="w-full max-w-md animate-fade-in">
           <div className="text-center mb-10">
-            <div className="text-4xl mb-3">🏢</div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Name your organization</h1>
             <p className="text-gray-500">This is what players will see when browsing your tournaments</p>
           </div>
@@ -269,7 +267,7 @@ export default function OnboardingPage() {
                     </svg>
                     Setting up...
                   </>
-                ) : 'Create & get started →'}
+                ) : 'Create and get started'}
               </button>
             </div>
           </div>

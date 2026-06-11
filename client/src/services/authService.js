@@ -15,7 +15,7 @@ const authService = {
     return { token, user }
   },
 
-  // Returns { user, context } — context has orgs and isOrganizer
+  // Returns { user, context } - context has orgs and isOrganizer
   async getMe() {
     const response = await api.get('/auth/me')
     return response.data  // { success, user, context }

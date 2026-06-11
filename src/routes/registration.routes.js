@@ -7,6 +7,13 @@ const requireEventOrgRole = require('../middleware/requireEventOrgRole');
 /**
  * User registration routes
  */
+// GET /events/:eventId/check-eligibility - Check if user is eligible for an event
+router.get(
+  '/events/:eventId/check-eligibility',
+  authenticate,
+  registrationController.checkEligibility.bind(registrationController)
+);
+
 // POST /events/:eventId/register - Register for an event
 router.post(
   '/events/:eventId/register',

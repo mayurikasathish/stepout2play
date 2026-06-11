@@ -20,7 +20,7 @@ export const AuthProvider = ({ children }) => {
             setContext(data.context)
           }
         } catch (error) {
-          // Token invalid or expired — clear it
+          // Token invalid or expired - clear it
           authService.logout()
         }
       }

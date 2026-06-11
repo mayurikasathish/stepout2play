@@ -26,10 +26,10 @@ function App() {
           <Route path="/browse" element={<BrowsePage />} />
           <Route path="/tournaments/:id" element={<TournamentDetailPage />} />
 
-          {/* Onboarding — auth required but no onboardingComplete check */}
+          {/* Onboarding - auth required but no onboardingComplete check */}
           <Route path="/onboarding" element={<OnboardingPage />} />
 
-          {/* Protected routes — requires auth + onboardingComplete */}
+          {/* Protected routes - requires auth + onboardingComplete */}
           <Route
             path="/dashboard"
             element={

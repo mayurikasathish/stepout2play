@@ -118,7 +118,7 @@ class TournamentController {
       const { sport, city, status } = req.query;
 
       // Validate filters
-      const validSports = ['badminton', 'tennis', 'table-tennis'];
+      const validSports = ['badminton', 'tennis', 'table-tennis', 'squash', 'pickleball', 'padel'];
       if (sport && !validSports.includes(sport)) {
         return res.status(400).json({
           success: false,

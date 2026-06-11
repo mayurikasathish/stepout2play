@@ -100,7 +100,7 @@ const LandingPage = () => {
               <span className="block text-primary-600 mt-3">Made Simple</span>
             </h1>
             <p className="text-xl lg:text-2xl text-gray-600 mb-4 max-w-3xl mx-auto animate-slide-up font-medium" style={{ animationDelay: '0.1s' }}>
-              Badminton · Tennis · Table Tennis · Squash · Pickleball · Padel
+              Badminton, Tennis, Table Tennis, Squash, Pickleball, Padel
             </p>
             <p className="text-base text-gray-500 mb-10 max-w-2xl mx-auto animate-slide-up" style={{ animationDelay: '0.15s' }}>
               Powered by automatic bracket generation
@@ -126,7 +126,7 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* USP — Bracket Generation */}
+      {/* USP - Bracket Generation */}
       <section className="py-20 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white relative overflow-hidden">
         <div className="absolute inset-0 opacity-5">
           <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '40px 40px' }} />
@@ -168,12 +168,12 @@ const LandingPage = () => {
               {
                 title: 'Players', cta: user ? 'Go to Dashboard' : 'Start Playing', dark: false,
                 desc: 'Find tournaments, register, and track your progress.',
-                items: ['Browse tournaments by sport, location, and date', 'Register for singles, doubles, or mixed events', 'Track your matches and view live brackets', 'Build your profile with tournament history'],
+                items: ['Browse tournaments by sport, location and date', 'Register for singles, doubles or mixed events', 'Track your matches and view live brackets', 'Build your profile with tournament history'],
               },
               {
                 title: 'Organizers', cta: user ? 'Go to Dashboard' : 'Start Organizing', dark: true,
                 desc: 'Create tournaments and generate brackets automatically.',
-                items: ['Create tournaments with custom formats and rules', 'Manage registrations and participant details', 'Generate brackets automatically — no manual work', 'Real-time scoring and live bracket updates'],
+                items: ['Create tournaments with custom formats and rules', 'Manage registrations and participant details', 'Generate brackets automatically with no manual work', 'Real-time scoring and live bracket updates'],
               },
             ].map(({ title, cta, dark, desc, items }) => (
               <div key={title} className="glass-card rounded-2xl p-10 hover:shadow-xl transition-all border border-gray-200 flex flex-col">
@@ -379,7 +379,7 @@ const LoginForm = ({ onClose, onSwitchToSignup }) => {
           Don't have an account?{' '}
           <button onClick={onSwitchToSignup}
             className="text-primary-600 hover:text-primary-700 font-semibold transition-colors">
-            Create one — it's free
+            Create one - it's free
           </button>
         </p>
       </div>
@@ -440,7 +440,7 @@ const SignupForm = ({ onClose, onSwitchToLogin }) => {
   return (
     <>
       <h2 className="text-2xl font-bold text-gray-900 mb-1">Create your account</h2>
-      <p className="text-gray-500 text-sm mb-6">Join StepOut2Play — it's free</p>
+      <p className="text-gray-500 text-sm mb-6">Join StepOut2Play - it's free</p>
 
       {error && (
         <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">

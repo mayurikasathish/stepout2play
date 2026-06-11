@@ -1,6 +1,26 @@
 const registrationService = require('../services/registration.service');
+const eligibilityService = require('../services/eligibility.service');
 
 class RegistrationController {
+  /**
+   * Check eligibility for an event
+   * GET /events/:eventId/check-eligibility
+   */
+  async checkEligibility(req, res, next) {
+    try {
+      const { eventId } = req.params;
+      const userId = req.user.id;
+
+      const eligibility = await eligibilityService.checkEligibility(userId, eventId);
+
+      res.status(200).json({
+        success: true,
+        ...eligibility
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
   /**
    * Register current user for an event
    * POST /events/:eventId/register
@@ -24,6 +44,19 @@ class RegistrationController {
         return res.status(400).json({
           success: false,
           error: 'You cannot register with yourself as a partner'
+        });
+      }
+
+      // Check eligibility
+      const eligibility = await eligibilityService.checkEligibility(userId, eventId);
+      if (!eligibility.eligible) {
+        return res.status(403).json({
+          success: false,
+          error: 'You are not eligible for this event',
+          reasons: eligibility.reasons,
+          userAge: eligibility.userAge,
+          eventCategory: eligibility.eventCategory,
+          eventGender: eligibility.eventGender
         });
       }
 

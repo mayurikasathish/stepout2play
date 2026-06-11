@@ -204,7 +204,7 @@ const TournamentManagePage = () => {
               activeTab === 'brackets' ? 'border-primary-600 text-primary-600 font-bold' : 'border-transparent text-gray-600'
             }`}
           >
-            🏆 Brackets
+            Brackets
           </button>
         </div>
 
@@ -280,9 +280,9 @@ const TournamentManagePage = () => {
                         <h3 className="text-lg font-semibold mb-2">{event.name}</h3>
                         <div className="flex items-center gap-4 text-sm text-gray-600">
                           <span className="capitalize">{event.format.replace('_', ' ')}</span>
-                          {event.category && <span>• {event.category}</span>}
-                          {event.gender && <span>• {event.gender}</span>}
-                          <span>• <UsersIcon className="w-4 h-4 inline" /> {event.participantCount}/{event.maxParticipants || '∞'}</span>
+                          {event.category && <span>, {event.category}</span>}
+                          {event.gender && <span>, {event.gender}</span>}
+                          <span>, <UsersIcon className="w-4 h-4 inline" /> {event.participantCount}/{event.maxParticipants || 'unlimited'}</span>
                         </div>
                       </div>
                       <button
@@ -319,7 +319,7 @@ const TournamentManagePage = () => {
                 onClick={() => alert('Bracket generation coming next! This is the USP feature.')}
                 className="px-8 py-4 bg-gradient-to-r from-warning-500 to-warning-600 hover:from-warning-600 hover:to-warning-700 text-white font-bold rounded-xl text-lg shadow-lg hover:shadow-xl transition-all"
               >
-                🏆 Generate Brackets
+                Generate Brackets
               </button>
             </div>
           </div>
