@@ -3,13 +3,23 @@ import api from '../services/api'
 import BracketGenerator from './BracketGenerator'
 import SingleEliminationBracket from './SingleEliminationBracket'
 import RoundRobinBracket from './RoundRobinBracket'
+import AutoScheduleButton from './AutoScheduleButton'
+import ScheduleTimeline from './ScheduleTimeline'
+import ScheduleConfig from './ScheduleConfig'
+import Toast from './Toast'
 
-const BracketView = ({ eventId, eventName, eventFormat, registrationCount, isOrganizer }) => {
+const BracketView = ({ eventId, eventName, eventFormat, registrationCount, isOrganizer, tournament }) => {
   const [bracket, setBracket] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [selectedMatch, setSelectedMatch] = useState(null)
   const [showMatchModal, setShowMatchModal] = useState(false)
+  const [activeTab, setActiveTab] = useState('bracket') // bracket, schedule, config
+  const [scheduleRefresh, setScheduleRefresh] = useState(0)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [showToast, setShowToast] = useState(false)
+  const [toastMessage, setToastMessage] = useState('')
+  const [toastType, setToastType] = useState('success')
 
   useEffect(() => {
     loadBracket()
@@ -40,17 +50,26 @@ const BracketView = ({ eventId, eventName, eventFormat, registrationCount, isOrg
     loadBracket() // Reload to show the new bracket
   }
 
-  const handleDeleteBracket = async () => {
-    if (!confirm('Are you sure you want to delete this bracket? This cannot be undone.')) {
-      return
-    }
+  const handleScheduled = (result) => {
+    console.log('Matches scheduled:', result)
+    setScheduleRefresh(prev => prev + 1) // Force schedule timeline to refresh
+    setActiveTab('schedule') // Switch to schedule tab
+  }
 
+  const handleDeleteBracket = async () => {
     try {
       await api.delete(`/events/${eventId}/bracket`)
       setBracket(null)
+      setShowDeleteConfirm(false)
+      setToastMessage('Bracket deleted successfully')
+      setToastType('success')
+      setShowToast(true)
     } catch (err) {
       console.error('Error deleting bracket:', err)
-      alert('Failed to delete bracket')
+      setShowDeleteConfirm(false)
+      setToastMessage('Failed to delete bracket')
+      setToastType('error')
+      setShowToast(true)
     }
   }
 
@@ -69,9 +88,15 @@ const BracketView = ({ eventId, eventName, eventFormat, registrationCount, isOrg
       setShowMatchModal(false)
       setSelectedMatch(null)
       loadBracket() // Reload to show updated bracket
+      setToastMessage('Match result updated successfully')
+      setToastType('success')
+      setShowToast(true)
     } catch (err) {
       console.error('Error updating match:', err)
-      alert('Failed to update match result')
+      setShowMatchModal(false)
+      setToastMessage('Failed to update match result')
+      setToastType('error')
+      setShowToast(true)
     }
   }
 
@@ -114,38 +139,102 @@ const BracketView = ({ eventId, eventName, eventFormat, registrationCount, isOrg
             <div>
               <h3 className="text-xl font-bold text-gray-900">{eventName}</h3>
               <div className="flex items-center gap-4 mt-2">
-                <span className="px-3 py-1 bg-primary-100 text-primary-700 text-sm font-medium rounded-full">
-                  {bracket.event.bracketFormat === 'SINGLE_ELIMINATION' ? '🏆 Single Elimination' : '🔄 Round Robin'}
+                <span className="px-3 py-1 bg-indigo-100 text-indigo-700 text-sm font-medium rounded-full">
+                  {bracket.event.bracketFormat === 'SINGLE_ELIMINATION' ? 'Single Elimination' : 'Round Robin'}
                 </span>
-                <span className="px-3 py-1 bg-success-100 text-success-700 text-sm font-medium rounded-full">
-                  {bracket.event.seedingMethod === 'RANDOM' ? '🎲 Random Draw' : '📋 Manual Seeding'}
+                <span className="px-3 py-1 bg-green-100 text-green-700 text-sm font-medium rounded-full">
+                  {bracket.event.seedingMethod === 'RANDOM' ? 'Random Draw' : 'Manual Seeding'}
                 </span>
               </div>
             </div>
+            <div className="flex items-center gap-3">
+              {activeTab === 'bracket' && (
+                <AutoScheduleButton
+                  eventId={eventId}
+                  eventName={eventName}
+                  onScheduled={handleScheduled}
+                />
+              )}
+              <button
+                onClick={() => setShowDeleteConfirm(true)}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-all"
+              >
+                Delete Bracket
+              </button>
+            </div>
+          </div>
+
+          {/* Tabs */}
+          <div className="flex gap-2 mt-6 border-b border-gray-200">
             <button
-              onClick={handleDeleteBracket}
-              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-all"
+              onClick={() => setActiveTab('bracket')}
+              className={`px-4 py-2 font-medium text-sm transition-all border-b-2 ${
+                activeTab === 'bracket'
+                  ? 'border-indigo-600 text-indigo-600'
+                  : 'border-transparent text-gray-600 hover:text-gray-900'
+              }`}
             >
-              Delete Bracket
+              Bracket
+            </button>
+            <button
+              onClick={() => setActiveTab('schedule')}
+              className={`px-4 py-2 font-medium text-sm transition-all border-b-2 ${
+                activeTab === 'schedule'
+                  ? 'border-indigo-600 text-indigo-600'
+                  : 'border-transparent text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Schedule
+            </button>
+            <button
+              onClick={() => setActiveTab('config')}
+              className={`px-4 py-2 font-medium text-sm transition-all border-b-2 ${
+                activeTab === 'config'
+                  ? 'border-indigo-600 text-indigo-600'
+                  : 'border-transparent text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Configuration
             </button>
           </div>
         </div>
       )}
 
-      {/* Bracket Display */}
-      <div className="glass-card rounded-xl p-6">
-        {bracket.event.bracketFormat === 'SINGLE_ELIMINATION' ? (
-          <SingleEliminationBracket
-            matches={bracket.matches}
+      {/* Tab Content */}
+      {activeTab === 'bracket' && (
+        <div className="glass-card rounded-xl p-6">
+          {bracket.event.bracketFormat === 'SINGLE_ELIMINATION' ? (
+            <SingleEliminationBracket
+              matches={bracket.matches}
+              onMatchClick={isOrganizer ? handleMatchClick : null}
+            />
+          ) : (
+            <RoundRobinBracket
+              matches={bracket.matches}
+              onMatchClick={isOrganizer ? handleMatchClick : null}
+            />
+          )}
+        </div>
+      )}
+
+      {activeTab === 'schedule' && (
+        <div className="glass-card rounded-xl p-6">
+          <ScheduleTimeline
+            key={scheduleRefresh}
+            eventId={eventId}
             onMatchClick={isOrganizer ? handleMatchClick : null}
           />
-        ) : (
-          <RoundRobinBracket
-            matches={bracket.matches}
-            onMatchClick={isOrganizer ? handleMatchClick : null}
-          />
-        )}
-      </div>
+        </div>
+      )}
+
+      {activeTab === 'config' && tournament && (
+        <ScheduleConfig
+          tournament={tournament}
+          onSaved={(updatedTournament) => {
+            console.log('Configuration saved:', updatedTournament)
+          }}
+        />
+      )}
 
       {/* Match Result Modal */}
       {showMatchModal && selectedMatch && (
@@ -153,6 +242,49 @@ const BracketView = ({ eventId, eventName, eventFormat, registrationCount, isOrg
           match={selectedMatch}
           onClose={() => setShowMatchModal(false)}
           onSubmit={handleMatchUpdate}
+        />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-md" onClick={() => setShowDeleteConfirm(false)} />
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-10 animate-slide-up">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-gradient-to-br from-red-500 to-red-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">Delete Bracket?</h3>
+              <p className="text-gray-600">
+                This will permanently delete this bracket and all match data. This action cannot be undone.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="flex-1 px-6 py-4 bg-gray-100 hover:bg-gray-200 text-gray-900 font-semibold rounded-xl transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteBracket}
+                className="flex-1 px-6 py-4 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-semibold rounded-xl transition-all shadow-lg"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast */}
+      {showToast && (
+        <Toast
+          message={toastMessage}
+          type={toastType}
+          onClose={() => setShowToast(false)}
         />
       )}
     </div>
@@ -176,7 +308,6 @@ const MatchResultModal = ({ match, onClose, onSubmit }) => {
   const handleSubmit = (e) => {
     e.preventDefault()
     if (!winnerId) {
-      alert('Please select a winner')
       return
     }
     onSubmit(winnerId, score)

@@ -185,12 +185,12 @@ class AuthController {
       const { firstName, lastName, bio, profilePicture, city, phone, dob, gender, primaryRole } = req.body;
 
       const updateData = {};
-      if (firstName !== undefined) updateData.firstName = firstName.trim();
-      if (lastName !== undefined) updateData.lastName = lastName.trim();
-      if (bio !== undefined) updateData.bio = bio.trim() || null;
-      if (profilePicture !== undefined) updateData.profilePicture = profilePicture.trim() || null;
-      if (city !== undefined) updateData.city = city.trim() || null;
-      if (phone !== undefined) updateData.phone = phone.trim() || null;
+      if (firstName !== undefined) updateData.firstName = firstName ? firstName.trim() : null;
+      if (lastName !== undefined) updateData.lastName = lastName ? lastName.trim() : null;
+      if (bio !== undefined) updateData.bio = bio ? bio.trim() : null;
+      if (profilePicture !== undefined) updateData.profilePicture = profilePicture ? profilePicture.trim() : null;
+      if (city !== undefined) updateData.city = city ? city.trim() : null;
+      if (phone !== undefined) updateData.phone = phone ? phone.trim() : null;
       if (dob !== undefined) updateData.dob = dob ? new Date(dob) : null;
       if (gender !== undefined) updateData.gender = gender || null;
       if (primaryRole !== undefined) {

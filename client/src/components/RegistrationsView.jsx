@@ -428,10 +428,10 @@ const RegistrationsView = ({ tournamentId }) => {
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
                               reg.status === 'CONFIRMED'
-                                ? 'bg-success-100 text-success-700'
+                                ? 'bg-green-100 text-green-700'
                                 : 'bg-gray-100 text-gray-700'
                             }`}>
-                              {reg.status === 'CONFIRMED' ? '✓ Confirmed' : reg.status}
+                              {reg.status === 'CONFIRMED' ? 'Confirmed' : reg.status}
                             </span>
                           </td>
                         </tr>

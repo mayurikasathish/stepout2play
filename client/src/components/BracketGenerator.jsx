@@ -99,7 +99,7 @@ const BracketGenerator = ({ eventId, eventName, eventFormat, registrationCount, 
                 className="mt-1 mr-4"
               />
               <div className="flex-1">
-                <div className="font-semibold text-gray-900 mb-2">🏆 Single Elimination (Knockout)</div>
+                <div className="font-semibold text-gray-900 mb-2">Single Elimination (Knockout)</div>
                 <p className="text-sm text-gray-600">
                   Traditional bracket. Lose once, you're out. Fast and exciting. Best for limited time or space.
                 </p>
@@ -123,7 +123,7 @@ const BracketGenerator = ({ eventId, eventName, eventFormat, registrationCount, 
                 className="mt-1 mr-4"
               />
               <div className="flex-1">
-                <div className="font-semibold text-gray-900 mb-2">🔄 Round Robin</div>
+                <div className="font-semibold text-gray-900 mb-2">Round Robin</div>
                 <p className="text-sm text-gray-600">
                   Everyone plays everyone. Fair ranking. More matches. Best for league play or small groups.
                 </p>
@@ -155,7 +155,7 @@ const BracketGenerator = ({ eventId, eventName, eventFormat, registrationCount, 
                 className="mt-1 mr-4"
               />
               <div className="flex-1">
-                <div className="font-semibold text-gray-900 mb-2">🎲 Random Draw</div>
+                <div className="font-semibold text-gray-900 mb-2">Random Draw</div>
                 <p className="text-sm text-gray-600">
                   Fair random shuffle. No bias. Great for first-time tournaments or when skills are unknown.
                 </p>
@@ -176,11 +176,11 @@ const BracketGenerator = ({ eventId, eventName, eventFormat, registrationCount, 
                 className="mt-1 mr-4"
               />
               <div className="flex-1">
-                <div className="font-semibold text-gray-900 mb-2">📋 Manual Seeding</div>
+                <div className="font-semibold text-gray-900 mb-2">Manual Seeding</div>
                 <p className="text-sm text-gray-600">
                   Use pre-assigned seed numbers. Stronger players seeded apart. Best when you know player skills.
                 </p>
-                <p className="text-xs text-warning-600 mt-2">
+                <p className="text-xs text-orange-600 mt-2">
                   Note: Requires seed numbers set in registrations
                 </p>
               </div>

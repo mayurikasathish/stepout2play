@@ -42,18 +42,38 @@ const SingleEliminationBracket = ({ matches, onMatchClick }) => {
 
   const getMatchStatusBadge = (match) => {
     if (match.status === 'COMPLETED') {
-      return <span className="text-xs text-success-600">✓ Complete</span>
+      return <span className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded-full font-medium">Complete</span>
     }
     if (match.status === 'BYE') {
-      return <span className="text-xs text-gray-500">BYE</span>
+      return <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded-full font-medium">BYE</span>
     }
     if (match.status === 'IN_PROGRESS') {
-      return <span className="text-xs text-warning-600">● Live</span>
+      return <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full font-medium">Live</span>
     }
     if (!match.participant1 || !match.participant2) {
-      return <span className="text-xs text-gray-400">TBD</span>
+      return <span className="text-xs px-2 py-1 bg-gray-100 text-gray-400 rounded-full font-medium">TBD</span>
     }
-    return <span className="text-xs text-gray-600">Pending</span>
+    if (match.scheduledAt) {
+      return <span className="text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded-full font-medium">Scheduled</span>
+    }
+    return <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded-full font-medium">Pending</span>
+  }
+
+  const formatSchedule = (match) => {
+    if (!match.scheduledAt) return null
+
+    const date = new Date(match.scheduledAt)
+    const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    const timeStr = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+
+    return (
+      <div className="mt-3 pt-3 border-t border-gray-200">
+        <div className="flex items-center justify-between text-xs text-gray-600">
+          <span>{dateStr}, {timeStr}</span>
+          {match.courtNumber && <span className="font-medium text-indigo-600">Court {match.courtNumber}</span>}
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -96,7 +116,7 @@ const SingleEliminationBracket = ({ matches, onMatchClick }) => {
                   {/* Participant 1 */}
                   <div className={`p-3 rounded-lg mb-2 ${
                     match.winnerId === match.participant1Id
-                      ? 'bg-warning-100 border-2 border-warning-400'
+                      ? 'bg-gradient-to-br from-yellow-50 to-amber-50 border-2 border-yellow-400'
                       : 'bg-gray-50 border border-gray-200'
                   }`}>
                     <div className="flex items-center justify-between">
@@ -104,7 +124,7 @@ const SingleEliminationBracket = ({ matches, onMatchClick }) => {
                         {getParticipantDisplay(match.participant1)}
                       </div>
                       {match.winnerId === match.participant1Id && (
-                        <span className="text-warning-600 ml-2">👑</span>
+                        <span className="text-xs px-2 py-0.5 bg-yellow-400 text-yellow-900 rounded-full font-bold ml-2">WINNER</span>
                       )}
                     </div>
                   </div>
@@ -115,7 +135,7 @@ const SingleEliminationBracket = ({ matches, onMatchClick }) => {
                   {/* Participant 2 */}
                   <div className={`p-3 rounded-lg ${
                     match.winnerId === match.participant2Id
-                      ? 'bg-warning-100 border-2 border-warning-400'
+                      ? 'bg-gradient-to-br from-yellow-50 to-amber-50 border-2 border-yellow-400'
                       : 'bg-gray-50 border border-gray-200'
                   }`}>
                     <div className="flex items-center justify-between">
@@ -123,7 +143,7 @@ const SingleEliminationBracket = ({ matches, onMatchClick }) => {
                         {getParticipantDisplay(match.participant2)}
                       </div>
                       {match.winnerId === match.participant2Id && (
-                        <span className="text-warning-600 ml-2">👑</span>
+                        <span className="text-xs px-2 py-0.5 bg-yellow-400 text-yellow-900 rounded-full font-bold ml-2">WINNER</span>
                       )}
                     </div>
                   </div>
@@ -136,6 +156,9 @@ const SingleEliminationBracket = ({ matches, onMatchClick }) => {
                       </p>
                     </div>
                   )}
+
+                  {/* Schedule Info */}
+                  {formatSchedule(match)}
                 </div>
               ))}
             </div>

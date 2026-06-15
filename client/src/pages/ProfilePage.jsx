@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import Navbar from '../components/Navbar'
+import Toast from '../components/Toast'
 import api from '../services/api'
 
 const UserIcon = (props) => (
@@ -28,6 +29,11 @@ const ProfilePage = () => {
   const [loading, setLoading] = useState(true)
   const [isEditing, setIsEditing] = useState(false)
   const [formData, setFormData] = useState({})
+  const [showToast, setShowToast] = useState(false)
+  const [toastMessage, setToastMessage] = useState('')
+  const [toastType, setToastType] = useState('success')
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     fetchProfile()
@@ -61,15 +67,28 @@ const ProfilePage = () => {
 
   const handleUpdateProfile = async (e) => {
     e.preventDefault()
+    setSaving(true)
     try {
+      console.log('Updating profile with data:', formData)
       const response = await api.patch('/auth/profile', formData)
+      console.log('Profile update response:', response.data)
       if (response.data.success) {
         setProfile(response.data.user)
+        setFormData(response.data.user)
         setIsEditing(false)
+        setToastMessage('Profile updated successfully')
+        setToastType('success')
+        setShowToast(true)
       }
     } catch (err) {
       console.error('Error updating profile:', err)
-      alert('Failed to update profile')
+      console.error('Error response:', err.response?.data)
+      const errorMessage = err.response?.data?.error || 'Failed to update profile'
+      setToastMessage(errorMessage)
+      setToastType('error')
+      setShowToast(true)
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -238,15 +257,27 @@ const ProfilePage = () => {
                 <button
                   type="button"
                   onClick={() => setIsEditing(false)}
-                  className="px-6 py-3 bg-white hover:bg-gray-50 text-gray-700 font-medium rounded-xl border border-gray-300 transition-all"
+                  disabled={saving}
+                  className="px-6 py-3 bg-white hover:bg-gray-50 text-gray-700 font-medium rounded-xl border border-gray-300 transition-all disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-xl transition-all shadow-sm hover:shadow-md"
+                  disabled={saving}
+                  className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold rounded-xl transition-all shadow-lg disabled:opacity-50 flex items-center gap-2"
                 >
-                  Save Changes
+                  {saving ? (
+                    <>
+                      <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                      Saving...
+                    </>
+                  ) : (
+                    'Save Changes'
+                  )}
                 </button>
               </div>
             </form>
@@ -270,8 +301,13 @@ const ProfilePage = () => {
                     try {
                       await api.patch('/auth/profile', { primaryRole: 'PLAYER' })
                       await fetchProfile()
+                      setToastMessage('Role updated to Player')
+                      setToastType('success')
+                      setShowToast(true)
                     } catch (err) {
-                      alert('Failed to update role')
+                      setToastMessage('Failed to update role')
+                      setToastType('error')
+                      setShowToast(true)
                     }
                   }}
                   className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-all"
@@ -283,11 +319,16 @@ const ProfilePage = () => {
                     try {
                       await api.patch('/auth/profile', { primaryRole: 'ORGANIZER' })
                       await fetchProfile()
+                      setToastMessage('Role updated to Organizer')
+                      setToastType('success')
+                      setShowToast(true)
                     } catch (err) {
-                      alert('Failed to update role')
+                      setToastMessage('Failed to update role')
+                      setToastType('error')
+                      setShowToast(true)
                     }
                   }}
-                  className="px-4 py-2 bg-success-600 hover:bg-success-700 text-white font-medium rounded-lg transition-all"
+                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-all"
                 >
                   Set as Organizer
                 </button>
@@ -301,17 +342,8 @@ const ProfilePage = () => {
                 Permanently delete your account and all associated data. This action cannot be undone.
               </p>
               <button
-                onClick={async () => {
-                  if (window.confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
-                    try {
-                      await api.delete('/auth/profile')
-                      window.location.href = '/'
-                    } catch (err) {
-                      alert('Failed to delete account')
-                    }
-                  }
-                }}
-                className="px-4 py-2 bg-danger-600 hover:bg-danger-700 text-white font-medium rounded-lg transition-all"
+                onClick={() => setShowDeleteConfirm(true)}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-all"
               >
                 Delete Account
               </button>
@@ -353,6 +385,59 @@ const ProfilePage = () => {
             </div>
           )}
         </div>
+
+        {/* Delete Confirmation Modal */}
+        {showDeleteConfirm && (
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+            <div className="fixed inset-0 bg-black/80 backdrop-blur-md" onClick={() => setShowDeleteConfirm(false)} />
+            <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-10 animate-slide-up">
+              <div className="text-center mb-6">
+                <div className="w-16 h-16 bg-gradient-to-br from-red-500 to-red-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">Delete Account?</h3>
+                <p className="text-gray-600">
+                  This will permanently delete your account and all associated data. This action cannot be undone.
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="flex-1 px-6 py-4 bg-gray-100 hover:bg-gray-200 text-gray-900 font-semibold rounded-xl transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={async () => {
+                    try {
+                      await api.delete('/auth/profile')
+                      window.location.href = '/'
+                    } catch (err) {
+                      setShowDeleteConfirm(false)
+                      setToastMessage('Failed to delete account')
+                      setToastType('error')
+                      setShowToast(true)
+                    }
+                  }}
+                  className="flex-1 px-6 py-4 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-semibold rounded-xl transition-all shadow-lg"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Toast */}
+        {showToast && (
+          <Toast
+            message={toastMessage}
+            type={toastType}
+            onClose={() => setShowToast(false)}
+          />
+        )}
       </main>
     </div>
   )

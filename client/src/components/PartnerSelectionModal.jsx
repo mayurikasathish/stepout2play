@@ -205,7 +205,7 @@ const PartnerSelectionModal = ({ isOpen, onClose, eventId, eventName, eventForma
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
                           <div>
-                            <h4 className="font-semibold text-success-900 mb-1">Both Players Eligible! ✓</h4>
+                            <h4 className="font-semibold text-success-900 mb-1">Both Players Eligible</h4>
                             <p className="text-sm text-success-800">
                               You and {verification.partner.firstName} meet all requirements for this event.
                             </p>

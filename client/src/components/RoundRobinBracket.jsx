@@ -67,20 +67,38 @@ const RoundRobinBracket = ({ matches, onMatchClick }) => {
 
   const getMatchStatusBadge = (match) => {
     if (match.status === 'COMPLETED') {
-      return <span className="px-2 py-1 bg-success-100 text-success-700 text-xs font-medium rounded">✓ Done</span>
+      return <span className="px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full">Complete</span>
     }
     if (match.status === 'IN_PROGRESS') {
-      return <span className="px-2 py-1 bg-warning-100 text-warning-700 text-xs font-medium rounded">● Live</span>
+      return <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">Live</span>
     }
-    return <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded">Pending</span>
+    if (match.scheduledAt) {
+      return <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">Scheduled</span>
+    }
+    return <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">Pending</span>
+  }
+
+  const formatScheduleInfo = (match) => {
+    if (!match.scheduledAt) return null
+
+    const date = new Date(match.scheduledAt)
+    const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    const timeStr = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+
+    return (
+      <div className="text-xs text-gray-600">
+        <div>{dateStr}, {timeStr}</div>
+        {match.courtNumber && <div className="font-medium text-indigo-600">Court {match.courtNumber}</div>}
+      </div>
+    )
   }
 
   return (
     <div className="space-y-8">
       {/* Standings Table */}
       <div className="glass-card rounded-xl overflow-hidden">
-        <div className="bg-gradient-to-r from-warning-500 to-warning-600 px-6 py-4">
-          <h3 className="text-xl font-bold text-white">🏆 Standings</h3>
+        <div className="bg-gradient-to-r from-yellow-500 to-amber-600 px-6 py-4">
+          <h3 className="text-xl font-bold text-white">Standings</h3>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -96,15 +114,17 @@ const RoundRobinBracket = ({ matches, onMatchClick }) => {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {standings.map((entry, index) => (
-                <tr key={entry.id} className={index === 0 ? 'bg-warning-50' : 'hover:bg-gray-50'}>
+                <tr key={entry.id} className={index === 0 ? 'bg-yellow-50' : 'hover:bg-gray-50'}>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center gap-2">
-                      {index === 0 && <span className="text-xl">🥇</span>}
-                      {index === 1 && <span className="text-xl">🥈</span>}
-                      {index === 2 && <span className="text-xl">🥉</span>}
-                      <span className="text-sm font-semibold text-gray-700">
-                        {index + 1}
-                      </span>
+                      {index === 0 && <span className="text-xs px-2 py-1 bg-yellow-400 text-yellow-900 rounded-full font-bold">1ST</span>}
+                      {index === 1 && <span className="text-xs px-2 py-1 bg-gray-300 text-gray-800 rounded-full font-bold">2ND</span>}
+                      {index === 2 && <span className="text-xs px-2 py-1 bg-orange-300 text-orange-900 rounded-full font-bold">3RD</span>}
+                      {index > 2 && (
+                        <span className="text-sm font-semibold text-gray-700">
+                          {index + 1}
+                        </span>
+                      )}
                     </div>
                   </td>
                   <td className="px-6 py-4">
@@ -129,9 +149,9 @@ const RoundRobinBracket = ({ matches, onMatchClick }) => {
 
       {/* Matches Table */}
       <div className="glass-card rounded-xl overflow-hidden">
-        <div className="bg-gradient-to-r from-primary-500 to-primary-600 px-6 py-4">
-          <h3 className="text-xl font-bold text-white">📋 All Matches</h3>
-          <p className="text-sm text-primary-100 mt-1">
+        <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-4">
+          <h3 className="text-xl font-bold text-white">All Matches</h3>
+          <p className="text-sm text-indigo-100 mt-1">
             {matches.filter(m => m.status === 'COMPLETED').length} of {matches.length} completed
           </p>
         </div>
@@ -155,16 +175,18 @@ const RoundRobinBracket = ({ matches, onMatchClick }) => {
                   {/* Participant 1 */}
                   <div className={`p-4 rounded-lg ${
                     match.winnerId === match.participant1Id
-                      ? 'bg-warning-100 border-2 border-warning-400'
+                      ? 'bg-gradient-to-br from-yellow-50 to-amber-50 border-2 border-yellow-400'
                       : 'bg-gray-50'
                   }`}>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-gray-900">
-                        {getParticipantDisplay(match.participant1)}
-                      </span>
-                      {match.winnerId === match.participant1Id && (
-                        <span className="text-warning-600">👑</span>
-                      )}
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-gray-900">
+                          {getParticipantDisplay(match.participant1)}
+                        </span>
+                        {match.winnerId === match.participant1Id && (
+                          <span className="text-xs px-2 py-0.5 bg-yellow-400 text-yellow-900 rounded-full font-bold">WIN</span>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -180,23 +202,26 @@ const RoundRobinBracket = ({ matches, onMatchClick }) => {
                   {/* Participant 2 */}
                   <div className={`p-4 rounded-lg ${
                     match.winnerId === match.participant2Id
-                      ? 'bg-warning-100 border-2 border-warning-400'
+                      ? 'bg-gradient-to-br from-yellow-50 to-amber-50 border-2 border-yellow-400'
                       : 'bg-gray-50'
                   }`}>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-gray-900">
-                        {getParticipantDisplay(match.participant2)}
-                      </span>
-                      {match.winnerId === match.participant2Id && (
-                        <span className="text-warning-600">👑</span>
-                      )}
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-gray-900">
+                          {getParticipantDisplay(match.participant2)}
+                        </span>
+                        {match.winnerId === match.participant2Id && (
+                          <span className="text-xs px-2 py-0.5 bg-yellow-400 text-yellow-900 rounded-full font-bold">WIN</span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Status Badge */}
-                <div className="flex-shrink-0">
+                {/* Status and Schedule */}
+                <div className="flex-shrink-0 text-right space-y-1">
                   {getMatchStatusBadge(match)}
+                  {formatScheduleInfo(match)}
                 </div>
               </div>
             </div>

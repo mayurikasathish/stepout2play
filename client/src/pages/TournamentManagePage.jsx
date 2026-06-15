@@ -347,6 +347,7 @@ const TournamentManagePage = () => {
                   eventFormat={event.format}
                   registrationCount={event.participantCount || 0}
                   isOrganizer={true}
+                  tournament={tournament}
                 />
               </div>
             ))}

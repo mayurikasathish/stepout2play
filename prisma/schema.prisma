@@ -77,6 +77,13 @@ model Tournament {
   createdAt            DateTime         @default(now())
   updatedAt            DateTime         @updatedAt
   format               TournamentFormat @default(BRACKET)
+  breakDuration        Int?             @default(15)
+  courtsAvailable      Int?             @default(4)
+  dailyEndTime         String?
+  dailyStartTime       String?
+  firstMatchDate       DateTime?
+  matchDuration        Int?             @default(45)
+  minRestTime          Int?             @default(30)
   events               Event[]
   organization         Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
@@ -84,24 +91,71 @@ model Tournament {
 }
 
 model Event {
-  id              String         @id @default(uuid())
-  tournamentId    String
-  name            String
-  format          EventFormat
-  maxParticipants Int?
-  registrationFee Decimal?       @db.Decimal(10, 2)
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
-  category        String?
-  gender          String?
-  bracketGenerated Boolean       @default(false)
-  bracketFormat   BracketFormat? // SINGLE_ELIMINATION or ROUND_ROBIN
-  seedingMethod   SeedingMethod? // RANDOM or MANUAL
-  tournament      Tournament     @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
-  registrations   Registration[]
-  matches         Match[]
+  id               String         @id @default(uuid())
+  tournamentId     String
+  name             String
+  format           EventFormat
+  maxParticipants  Int?
+  registrationFee  Decimal?       @db.Decimal(10, 2)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  category         String?
+  gender           String?
+  bracketFormat    BracketFormat?
+  bracketGenerated Boolean        @default(false)
+  seedingMethod    SeedingMethod?
+  tournament       Tournament     @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  matches          Match[]
+  registrations    Registration[]
 
   @@map("events")
+}
+
+model Registration {
+  id          String             @id @default(uuid())
+  userId      String
+  eventId     String
+  partnerId   String?
+  status      RegistrationStatus @default(CONFIRMED)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  seedNumber  Int?
+  matchesAsP1 Match[]            @relation("Match_Participant1")
+  matchesAsP2 Match[]            @relation("Match_Participant2")
+  matchesWon  Match[]            @relation("Match_Winner")
+  event       Event              @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  partner     User?              @relation("PartnerRegistrations", fields: [partnerId], references: [id])
+  user        User               @relation("UserRegistrations", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, eventId])
+  @@map("registrations")
+}
+
+model Match {
+  id             String        @id @default(uuid())
+  eventId        String
+  roundNumber    Int
+  matchNumber    Int
+  participant1Id String?
+  participant2Id String?
+  winnerId       String?
+  score          String?
+  status         MatchStatus   @default(PENDING)
+  scheduledAt    DateTime?
+  completedAt    DateTime?
+  courtNumber    Int?
+  notes          String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  courtName      String?
+  duration       Int?
+  isFinalsMatch  Boolean       @default(false)
+  event          Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  participant1   Registration? @relation("Match_Participant1", fields: [participant1Id], references: [id])
+  participant2   Registration? @relation("Match_Participant2", fields: [participant2Id], references: [id])
+  winner         Registration? @relation("Match_Winner", fields: [winnerId], references: [id])
+
+  @@map("matches")
 }
 
 enum BracketFormat {
@@ -112,26 +166,6 @@ enum BracketFormat {
 enum SeedingMethod {
   RANDOM
   MANUAL
-}
-
-model Registration {
-  id               String             @id @default(uuid())
-  userId           String
-  eventId          String
-  partnerId        String?
-  status           RegistrationStatus @default(CONFIRMED)
-  seedNumber       Int?               // For manual seeding
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
-  event            Event              @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  partner          User?              @relation("PartnerRegistrations", fields: [partnerId], references: [id])
-  user             User               @relation("UserRegistrations", fields: [userId], references: [id], onDelete: Cascade)
-  matchesAsP1      Match[]            @relation("Match_Participant1")
-  matchesAsP2      Match[]            @relation("Match_Participant2")
-  matchesWon       Match[]            @relation("Match_Winner")
-
-  @@unique([userId, eventId])
-  @@map("registrations")
 }
 
 enum OrgRole {
@@ -166,35 +200,10 @@ enum RegistrationStatus {
   CANCELLED
 }
 
-model Match {
-  id           String      @id @default(uuid())
-  eventId      String
-  roundNumber  Int         // 1 = Finals, 2 = Semifinals, 3 = Quarterfinals, etc.
-  matchNumber  Int         // Position within the round
-  participant1Id String?   // Registration ID
-  participant2Id String?   // Registration ID
-  winnerId     String?     // Registration ID of winner
-  score        String?     // e.g., "21-15, 21-18"
-  status       MatchStatus @default(PENDING)
-  scheduledAt  DateTime?
-  completedAt  DateTime?
-  courtNumber  Int?
-  notes        String?
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
-
-  event        Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  participant1 Registration? @relation("Match_Participant1", fields: [participant1Id], references: [id])
-  participant2 Registration? @relation("Match_Participant2", fields: [participant2Id], references: [id])
-  winner       Registration? @relation("Match_Winner", fields: [winnerId], references: [id])
-
-  @@map("matches")
-}
-
 enum MatchStatus {
-  PENDING      // Not yet played
-  IN_PROGRESS  // Currently being played
-  COMPLETED    // Finished
-  WALKOVER     // One player didn't show
-  BYE          // Automatic advance (odd number of players)
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  WALKOVER
+  BYE
 }
