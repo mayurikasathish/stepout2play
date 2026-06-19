@@ -183,16 +183,16 @@ const SingleEliminationBracket = ({ matches, onMatchClick, eventName, tournament
         data-match-id={match.id}
         className={`compact-match-card border-2 rounded-lg p-2 transition-all ${getStatusColor(match)}`}
       >
-        <div className="flex items-center justify-between mb-1">
+        <div className="flex items-center justify-between mb-1.5">
           <span className="text-[10px] font-bold text-gray-500">M{match.matchNumber}</span>
           {getStatusIndicator(match)}
         </div>
-        <div className="bg-white border border-green-400 rounded px-2 py-1.5">
-          <div className="flex items-center gap-1 mb-0.5">
+        <div className="bg-white border border-green-400 rounded px-2 py-1">
+          <div className="flex items-center gap-1">
             <div className="w-1 h-1 bg-green-500 rounded-full"></div>
             <span className="text-[9px] font-bold text-green-700 uppercase tracking-wide">Auto Advanced</span>
           </div>
-          <div className="text-xs font-medium text-gray-900 truncate">
+          <div className="text-xs font-medium text-gray-900 truncate mt-0.5">
             {participant ? (
               participant.partner ? (
                 <>{participant.user.firstName} {participant.user.lastName} / {participant.partner.firstName} {participant.partner.lastName}</>
@@ -232,7 +232,7 @@ const SingleEliminationBracket = ({ matches, onMatchClick, eventName, tournament
         {/* Participants - Compact */}
         <div className="space-y-1">
           {/* Participant 1 */}
-          <div className={`rounded px-2 py-1 flex items-center justify-between ${
+          <div className={`rounded px-2 py-0.5 flex items-center justify-between ${
             isP1Winner && match.status === 'COMPLETED'
               ? 'bg-gradient-to-r from-amber-100 to-yellow-100 border border-amber-400'
               : 'bg-white border border-gray-200'
@@ -248,7 +248,7 @@ const SingleEliminationBracket = ({ matches, onMatchClick, eventName, tournament
           </div>
 
           {/* Participant 2 */}
-          <div className={`rounded px-2 py-1 flex items-center justify-between ${
+          <div className={`rounded px-2 py-0.5 flex items-center justify-between ${
             isP2Winner && match.status === 'COMPLETED'
               ? 'bg-gradient-to-r from-amber-100 to-yellow-100 border border-amber-400'
               : 'bg-white border border-gray-200'
