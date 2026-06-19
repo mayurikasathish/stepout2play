@@ -4,7 +4,7 @@ import BracketGenerator from './BracketGenerator'
 import SingleEliminationBracket from './SingleEliminationBracket'
 import Toast from './Toast'
 
-const BracketView = ({ eventId, eventName, eventFormat, registrationCount, isOrganizer }) => {
+const BracketView = ({ eventId, eventName, eventFormat, registrationCount, isOrganizer, tournament }) => {
   const [bracket, setBracket] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -165,6 +165,8 @@ const BracketView = ({ eventId, eventName, eventFormat, registrationCount, isOrg
         <SingleEliminationBracket
           matches={bracket.matches}
           onMatchClick={isOrganizer ? handleMatchClick : null}
+          eventName={eventName}
+          tournamentName={tournament?.name || 'Tournament'}
         />
       </div>
 

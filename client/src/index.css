@@ -145,3 +145,110 @@ body {
 .animate-slide-up {
   animation: slideUp 0.6s ease-out;
 }
+
+/* Bracket Print Styles */
+@media print {
+  /* Hide non-essential elements */
+  .no-print {
+    display: none !important;
+  }
+
+  /* Show print-only elements */
+  .print-only {
+    display: block !important;
+  }
+
+  /* Reset page layout for printing */
+  body {
+    background: white;
+    margin: 0;
+    padding: 20px;
+  }
+
+  /* Bracket container */
+  .bracket-container {
+    transform: none !important;
+    width: 100% !important;
+    overflow: visible !important;
+  }
+
+  /* Ensure all rounds display */
+  .bracket-container > div {
+    transform: scale(1) !important;
+    width: auto !important;
+  }
+
+  /* Compact match cards for print */
+  .compact-match-card {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    border: 2px solid #000 !important;
+    background: white !important;
+  }
+
+  /* Make status indicators print-safe */
+  .compact-match-card [class*="bg-green"] {
+    background: #f0f0f0 !important;
+    border: 2px solid #000 !important;
+  }
+
+  .compact-match-card [class*="bg-blue"] {
+    background: #f5f5f5 !important;
+    border: 2px solid #333 !important;
+  }
+
+  .compact-match-card [class*="bg-amber"],
+  .compact-match-card [class*="bg-yellow"] {
+    background: white !important;
+    border: 2px dashed #666 !important;
+  }
+
+  /* Connector lines */
+  svg path {
+    stroke: #333 !important;
+    stroke-width: 1 !important;
+  }
+
+  /* Round headers */
+  [class*="bg-primary"] {
+    background: #333 !important;
+    color: white !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Winner indicators */
+  [class*="bg-amber-500"] {
+    background: #000 !important;
+    color: white !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+
+/* Compact match card sizing */
+.compact-match-card {
+  min-height: 72px;
+  max-height: 85px;
+}
+
+/* Bracket zoom container fix */
+.bracket-scroll-container {
+  position: relative;
+}
+
+.bracket-inner {
+  transform-origin: top left;
+  will-change: transform;
+  min-width: max-content;
+}
+
+/* Ensure SVG scales properly */
+.bracket-inner svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
