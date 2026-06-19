@@ -29,6 +29,12 @@ const EditIcon = (props) => (
   </svg>
 )
 
+const TrashIcon = (props) => (
+  <svg {...props} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+  </svg>
+)
+
 const GridIcon = (props) => (
   <svg {...props} fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h4a1 1 0 011 1v7a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v7a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 16a1 1 0 011-1h4a1 1 0 011 1v3a1 1 0 01-1 1H5a1 1 0 01-1-1v-3zM14 16a1 1 0 011-1h4a1 1 0 011 1v3a1 1 0 01-1 1h-4a1 1 0 01-1-1v-3z" />
@@ -44,6 +50,11 @@ const TournamentManagePage = () => {
   const [activeTab, setActiveTab] = useState('overview')
   const [showCreateEventModal, setShowCreateEventModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
+  const [showEditEventModal, setShowEditEventModal] = useState(false)
+  const [showDeleteEventModal, setShowDeleteEventModal] = useState(false)
+  const [showDeleteTournamentModal, setShowDeleteTournamentModal] = useState(false)
+  const [editingEvent, setEditingEvent] = useState(null)
+  const [deletingEvent, setDeletingEvent] = useState(null)
 
   useEffect(() => {
     loadTournament()
@@ -103,6 +114,47 @@ const TournamentManagePage = () => {
     }
   }
 
+  const handleUpdateEvent = async (eventData) => {
+    try {
+      const response = await api.patch(`/tournaments/events/${editingEvent.id}`, eventData)
+      if (response.data.success) {
+        setShowEditEventModal(false)
+        setEditingEvent(null)
+        loadEvents()
+      }
+    } catch (err) {
+      console.error('Error updating event:', err)
+      const errorMsg = err.response?.data?.errors?.join(', ') || err.response?.data?.error || 'Failed to update event'
+      alert(errorMsg)
+    }
+  }
+
+  const handleDeleteEvent = async () => {
+    try {
+      const response = await api.delete(`/tournaments/events/${deletingEvent.id}`)
+      if (response.data.success) {
+        setShowDeleteEventModal(false)
+        setDeletingEvent(null)
+        loadEvents()
+      }
+    } catch (err) {
+      console.error('Error deleting event:', err)
+      alert('Failed to delete event')
+    }
+  }
+
+  const handleDeleteTournament = async () => {
+    try {
+      const response = await api.delete(`/tournaments/${id}`)
+      if (response.data.success) {
+        navigate('/dashboard')
+      }
+    } catch (err) {
+      console.error('Error deleting tournament:', err)
+      alert('Failed to delete tournament')
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-primary-50/20">
@@ -145,6 +197,13 @@ const TournamentManagePage = () => {
                 Edit Details
               </button>
               <button
+                onClick={() => setShowDeleteTournamentModal(true)}
+                className="px-4 py-2 bg-white hover:bg-red-50 text-red-600 font-medium rounded-lg border border-red-300 flex items-center gap-2"
+              >
+                <TrashIcon className="w-4 h-4" />
+                Delete
+              </button>
+              <button
                 onClick={() => navigate(`/tournaments/${id}`)}
                 className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg"
               >
@@ -154,14 +213,10 @@ const TournamentManagePage = () => {
           </div>
 
           {/* Stats Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-3 gap-6">
             <div className="text-center">
               <div className="text-3xl font-bold text-primary-600">{events.length}</div>
               <div className="text-sm text-gray-600">Events</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-success-600">{tournament.participantCount || 0}</div>
-              <div className="text-sm text-gray-600">Participants</div>
             </div>
             <div className="text-center">
               <div className="text-3xl font-bold text-warning-600">{tournament.status}</div>
@@ -235,15 +290,17 @@ const TournamentManagePage = () => {
                 <label className="text-sm text-gray-600">Registration Deadline</label>
                 <p className="font-semibold">{new Date(tournament.registrationDeadline).toLocaleString()}</p>
               </div>
-              <div>
-                <label className="text-sm text-gray-600">Entry Fee</label>
-                <p className="font-semibold">₹{tournament.entryFee || 'Free'}</p>
-              </div>
             </div>
             {tournament.description && (
               <div className="mt-6">
                 <label className="text-sm text-gray-600">Description</label>
                 <p className="mt-2 text-gray-700">{tournament.description}</p>
+              </div>
+            )}
+            {tournament.rules && (
+              <div className="mt-6">
+                <label className="text-sm text-gray-600">Tournament Rules</label>
+                <p className="mt-2 text-gray-700 whitespace-pre-wrap">{tournament.rules}</p>
               </div>
             )}
           </div>
@@ -278,7 +335,7 @@ const TournamentManagePage = () => {
                 {events.map((event) => (
                   <div key={event.id} className="border border-gray-200 rounded-xl p-6">
                     <div className="flex justify-between items-start">
-                      <div>
+                      <div className="flex-1">
                         <h3 className="text-lg font-semibold mb-2">{event.name}</h3>
                         <div className="flex items-center gap-4 text-sm text-gray-600">
                           <span className="capitalize">{event.format.replace('_', ' ')}</span>
@@ -287,12 +344,28 @@ const TournamentManagePage = () => {
                           <span>, <UsersIcon className="w-4 h-4 inline" /> {event.participantCount}/{event.maxParticipants || 'unlimited'}</span>
                         </div>
                       </div>
-                      <button
-                        onClick={() => alert('View registrations for this event')}
-                        className="px-4 py-2 bg-white hover:bg-gray-50 border border-gray-300 rounded-lg text-sm"
-                      >
-                        View Registrations
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            setEditingEvent(event)
+                            setShowEditEventModal(true)
+                          }}
+                          className="px-3 py-2 bg-white hover:bg-gray-50 border border-gray-300 rounded-lg text-sm flex items-center gap-1"
+                        >
+                          <EditIcon className="w-4 h-4" />
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => {
+                            setDeletingEvent(event)
+                            setShowDeleteEventModal(true)
+                          }}
+                          className="px-3 py-2 bg-white hover:bg-red-50 border border-red-300 text-red-600 rounded-lg text-sm flex items-center gap-1"
+                        >
+                          <TrashIcon className="w-4 h-4" />
+                          Delete
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -320,8 +393,13 @@ const TournamentManagePage = () => {
                     <button
                       key={event.id}
                       onClick={() => {
-                        // Find the bracket view section and scroll to it
-                        document.getElementById(`bracket-${event.id}`)?.scrollIntoView({ behavior: 'smooth' })
+                        // Find the bracket view section and scroll to it with offset
+                        const element = document.getElementById(`bracket-${event.id}`)
+                        if (element) {
+                          const yOffset = -100 // Adjust this value: negative = scroll higher, positive = scroll lower
+                          const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset
+                          window.scrollTo({ top: y, behavior: 'smooth' })
+                        }
                       }}
                       className="p-4 border-2 border-gray-200 hover:border-primary-400 rounded-xl text-left transition-all hover:shadow-md"
                     >
@@ -370,6 +448,38 @@ const TournamentManagePage = () => {
             onSubmit={handleUpdateTournament}
           />
         )}
+
+        {/* Edit Event Modal */}
+        {showEditEventModal && editingEvent && (
+          <EditEventModal
+            event={editingEvent}
+            onClose={() => { setShowEditEventModal(false); setEditingEvent(null) }}
+            onSubmit={handleUpdateEvent}
+          />
+        )}
+
+        {/* Delete Event Modal */}
+        {showDeleteEventModal && deletingEvent && (
+          <DeleteConfirmModal
+            isOpen={showDeleteEventModal}
+            onClose={() => { setShowDeleteEventModal(false); setDeletingEvent(null) }}
+            onConfirm={handleDeleteEvent}
+            title="Delete Event?"
+            message={`Are you sure you want to delete "${deletingEvent.name}"? This will remove all registrations and matches for this event. This action cannot be undone.`}
+          />
+        )}
+
+        {/* Delete Tournament Modal */}
+        {showDeleteTournamentModal && (
+          <DeleteConfirmModal
+            isOpen={showDeleteTournamentModal}
+            onClose={() => setShowDeleteTournamentModal(false)}
+            onConfirm={handleDeleteTournament}
+            title="Delete Tournament?"
+            message={`Are you sure you want to delete "${tournament.name}"? This will permanently delete all events, registrations, and matches. This action cannot be undone.`}
+            isDangerous={true}
+          />
+        )}
       </main>
     </div>
   )
@@ -383,7 +493,8 @@ const CreateEventModal = ({ onClose, onSubmit }) => {
     category: '',
     gender: '',
     maxParticipants: '',
-    registrationFee: ''
+    registrationFee: '',
+    rules: ''
   })
 
   const handleSubmit = (e) => {
@@ -395,7 +506,8 @@ const CreateEventModal = ({ onClose, onSubmit }) => {
       category: formData.category.trim() || undefined,
       gender: formData.gender || undefined,
       maxParticipants: formData.maxParticipants ? parseInt(formData.maxParticipants) : undefined,
-      registrationFee: formData.registrationFee ? parseFloat(formData.registrationFee) : undefined
+      registrationFee: formData.registrationFee ? parseFloat(formData.registrationFee) : undefined,
+      rules: formData.rules.trim() || undefined
     }
     onSubmit(cleanData)
   }
@@ -447,16 +559,18 @@ const CreateEventModal = ({ onClose, onSubmit }) => {
 
             <div className="grid md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-2">Gender</label>
+                <label className="block text-sm font-medium mb-2">Gender *</label>
                 <select
                   value={formData.gender}
                   onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                  required
                 >
-                  <option value="">Any</option>
+                  <option value="">Select Gender</option>
                   <option value="Men">Men</option>
                   <option value="Women">Women</option>
                   <option value="Mixed">Mixed</option>
+                  <option value="Any">Any</option>
                 </select>
               </div>
 
@@ -478,7 +592,18 @@ const CreateEventModal = ({ onClose, onSubmit }) => {
                 type="number"
                 value={formData.registrationFee}
                 onChange={(e) => setFormData({ ...formData, registrationFee: e.target.value })}
-                placeholder="Leave empty if using tournament fee"
+                placeholder="Leave empty for free registration"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">Event-Specific Rules</label>
+              <textarea
+                value={formData.rules}
+                onChange={(e) => setFormData({ ...formData, rules: e.target.value })}
+                rows={4}
+                placeholder="Enter any specific rules for this event (optional)"
                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
               />
             </div>
@@ -517,10 +642,10 @@ const EditTournamentModal = ({ tournament, onClose, onSubmit }) => {
     venueAddress: tournament.venueAddress || '',
     city: tournament.city || '',
     registrationDeadline: tournament.registrationDeadline ? new Date(tournament.registrationDeadline).toISOString().slice(0, 16) : '',
-    entryFee: tournament.entryFee || '',
     description: tournament.description || '',
-    maxParticipants: tournament.maxParticipants || '',
-    status: tournament.status || 'DRAFT'
+    rules: tournament.rules || '',
+    // Only allow DRAFT/OPEN - map computed statuses back to OPEN
+    status: ['DRAFT', 'OPEN'].includes(tournament.status) ? tournament.status : 'OPEN'
   })
 
   const handleSubmit = (e) => {
@@ -643,29 +768,6 @@ const EditTournamentModal = ({ tournament, onClose, onSubmit }) => {
               />
             </div>
 
-            <div className="grid md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">Entry Fee (₹)</label>
-                <input
-                  type="number"
-                  value={formData.entryFee}
-                  onChange={(e) => setFormData({ ...formData, entryFee: e.target.value })}
-                  placeholder="Leave empty for free"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">Max Participants</label>
-                <input
-                  type="number"
-                  value={formData.maxParticipants}
-                  onChange={(e) => setFormData({ ...formData, maxParticipants: e.target.value })}
-                  placeholder="Leave empty for unlimited"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                />
-              </div>
-            </div>
 
             <div>
               <label className="block text-sm font-medium mb-2">Status</label>
@@ -676,10 +778,10 @@ const EditTournamentModal = ({ tournament, onClose, onSubmit }) => {
               >
                 <option value="DRAFT">Draft</option>
                 <option value="OPEN">Open</option>
-                <option value="CLOSED">Closed</option>
-                <option value="ONGOING">Ongoing</option>
-                <option value="COMPLETED">Completed</option>
               </select>
+              <p className="mt-1 text-xs text-gray-500">
+                Other statuses (Closed, Ongoing, Completed) are calculated automatically based on dates
+              </p>
             </div>
 
             <div>
@@ -688,6 +790,17 @@ const EditTournamentModal = ({ tournament, onClose, onSubmit }) => {
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={4}
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">Tournament Rules</label>
+              <textarea
+                value={formData.rules}
+                onChange={(e) => setFormData({ ...formData, rules: e.target.value })}
+                rows={6}
+                placeholder="Enter tournament rules, regulations, and guidelines..."
                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
               />
             </div>
@@ -708,6 +821,194 @@ const EditTournamentModal = ({ tournament, onClose, onSubmit }) => {
               </button>
             </div>
           </form>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Edit Event Modal Component
+const EditEventModal = ({ event, onClose, onSubmit }) => {
+  const [formData, setFormData] = useState({
+    name: event.name || '',
+    format: event.format || 'SINGLES',
+    category: event.category || '',
+    gender: event.gender || '',
+    maxParticipants: event.maxParticipants || '',
+    registrationFee: event.registrationFee || '',
+    rules: event.rules || ''
+  })
+
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    const cleanData = {
+      name: formData.name.trim(),
+      format: formData.format,
+      category: formData.category.trim() || undefined,
+      gender: formData.gender || undefined,
+      maxParticipants: formData.maxParticipants ? parseInt(formData.maxParticipants) : undefined,
+      registrationFee: formData.registrationFee ? parseFloat(formData.registrationFee) : undefined,
+      rules: formData.rules.trim() || undefined
+    }
+    onSubmit(cleanData)
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto">
+      <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="flex min-h-full items-center justify-center p-4">
+        <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl p-8">
+          <h2 className="text-2xl font-bold mb-6">Edit Event</h2>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">Event Name *</label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                required
+              />
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Format *</label>
+                <select
+                  value={formData.format}
+                  onChange={(e) => setFormData({ ...formData, format: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                >
+                  <option value="SINGLES">Singles</option>
+                  <option value="DOUBLES">Doubles</option>
+                  <option value="MIXED_DOUBLES">Mixed Doubles</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">Category</label>
+                <input
+                  type="text"
+                  value={formData.category}
+                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                  placeholder="e.g., Open, U19, Veterans 40+"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Gender *</label>
+                <select
+                  value={formData.gender}
+                  onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                  required
+                >
+                  <option value="">Select Gender</option>
+                  <option value="Men">Men</option>
+                  <option value="Women">Women</option>
+                  <option value="Mixed">Mixed</option>
+                  <option value="Any">Any</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">Max Participants</label>
+                <input
+                  type="number"
+                  value={formData.maxParticipants}
+                  onChange={(e) => setFormData({ ...formData, maxParticipants: e.target.value })}
+                  placeholder="Leave empty for unlimited"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">Registration Fee (₹)</label>
+              <input
+                type="number"
+                value={formData.registrationFee}
+                onChange={(e) => setFormData({ ...formData, registrationFee: e.target.value })}
+                placeholder="Leave empty for free registration"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">Event-Specific Rules</label>
+              <textarea
+                value={formData.rules}
+                onChange={(e) => setFormData({ ...formData, rules: e.target.value })}
+                rows={4}
+                placeholder="Enter any specific rules for this event (optional)"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              />
+            </div>
+
+            <div className="flex gap-3 pt-4">
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 px-6 py-3 bg-white hover:bg-gray-50 text-gray-700 font-medium rounded-xl border border-gray-300"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="flex-1 px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-xl"
+              >
+                Update Event
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Delete Confirmation Modal Component
+const DeleteConfirmModal = ({ isOpen, onClose, onConfirm, title, message, isDangerous = false }) => {
+  if (!isOpen) return null
+
+  return (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
+        <div className="text-center mb-6">
+          <div className="w-16 h-16 bg-gradient-to-br from-red-500 to-red-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <h3 className="text-2xl font-bold text-gray-900 mb-2">{title}</h3>
+          <p className="text-gray-600 leading-relaxed">{message}</p>
+        </div>
+
+        {isDangerous && (
+          <div className="p-4 bg-red-50 border border-red-200 rounded-xl mb-6">
+            <p className="text-sm text-red-800">
+              <strong>Warning:</strong> This will delete ALL associated data including events, registrations, and matches.
+            </p>
+          </div>
+        )}
+
+        <div className="flex gap-3">
+          <button
+            onClick={onClose}
+            className="flex-1 px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-900 font-semibold rounded-xl transition-all"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            className="flex-1 px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-semibold rounded-xl transition-all shadow-lg"
+          >
+            Delete
+          </button>
         </div>
       </div>
     </div>

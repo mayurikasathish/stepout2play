@@ -2,6 +2,46 @@ const prisma = require('../lib/prisma');
 
 class TournamentService {
   /**
+   * Calculate computed status based on dates
+   * Organizer can only set DRAFT or OPEN
+   * System calculates: CLOSED, ONGOING, COMPLETED
+   */
+  calculateStatus(tournament) {
+    const now = new Date();
+    const registrationDeadline = new Date(tournament.registrationDeadline);
+    const startDate = new Date(tournament.startDate);
+    const endDate = new Date(tournament.endDate);
+
+    // If organizer set it to DRAFT, keep it DRAFT
+    if (tournament.status === 'DRAFT') {
+      return 'DRAFT';
+    }
+
+    // If organizer set it to OPEN, calculate based on dates
+    if (tournament.status === 'OPEN') {
+      // Tournament ended
+      if (now > endDate) {
+        return 'COMPLETED';
+      }
+
+      // Tournament started
+      if (now >= startDate) {
+        return 'ONGOING';
+      }
+
+      // Registration deadline passed
+      if (now > registrationDeadline) {
+        return 'CLOSED';
+      }
+
+      // Still open for registration
+      return 'OPEN';
+    }
+
+    // Fallback to stored status (shouldn't happen)
+    return tournament.status;
+  }
+  /**
    * Create a new tournament
    */
   async createTournament(organizationId, tournamentData) {
@@ -106,6 +146,8 @@ class TournamentService {
             id: true,
             name: true,
             format: true,
+            category: true,
+            gender: true,
             maxParticipants: true,
             _count: {
               select: {
@@ -120,7 +162,7 @@ class TournamentService {
       }
     });
 
-    // Calculate participant counts
+    // Calculate participant counts and computed status
     const tournamentsWithCounts = tournaments.map(tournament => {
       const totalRegistrations = tournament.events.reduce(
         (sum, event) => sum + event._count.registrations,
@@ -133,7 +175,8 @@ class TournamentService {
       return {
         ...tournament,
         participantCount: totalRegistrations,
-        maxParticipants: maxParticipants || null
+        maxParticipants: maxParticipants || null,
+        status: this.calculateStatus(tournament)
       };
     });
 
@@ -160,8 +203,11 @@ class TournamentService {
             id: true,
             name: true,
             format: true,
+            category: true,
+            gender: true,
             maxParticipants: true,
             registrationFee: true,
+            rules: true,
             _count: {
               select: {
                 registrations: true
@@ -181,16 +227,7 @@ class TournamentService {
       throw error;
     }
 
-    // Calculate participant counts for tournament
-    const totalRegistrations = tournament.events.reduce(
-      (sum, event) => sum + event._count.registrations,
-      0
-    );
-
-    const maxParticipants = tournament.maxParticipants ||
-      tournament.events.reduce((sum, event) => sum + (event.maxParticipants || 0), 0);
-
-    // Add counts to events
+    // Add counts to events only
     const eventsWithCounts = tournament.events.map(event => ({
       ...event,
       participantCount: event._count.registrations,
@@ -202,9 +239,7 @@ class TournamentService {
     return {
       ...tournament,
       events: eventsWithCounts,
-      participantCount: totalRegistrations,
-      maxParticipants: maxParticipants || null,
-      spotsRemaining: maxParticipants ? maxParticipants - totalRegistrations : null
+      status: this.calculateStatus(tournament)
     };
   }
 

@@ -38,7 +38,6 @@ const RegistrationsView = ({ tournamentId }) => {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedEvent, setSelectedEvent] = useState('all')
   const [selectedFormat, setSelectedFormat] = useState('all')
-  const [groupBy, setGroupBy] = useState('event') // 'event' or 'format'
 
   useEffect(() => {
     loadData()
@@ -89,31 +88,18 @@ const RegistrationsView = ({ tournamentId }) => {
     return matchesSearch && matchesEvent && matchesFormat
   })
 
-  // Group registrations
+  // Group registrations by event
   const groupedRegistrations = {}
-  if (groupBy === 'event') {
-    filteredRegistrations.forEach(reg => {
-      const eventName = reg.event.name
-      if (!groupedRegistrations[eventName]) {
-        groupedRegistrations[eventName] = {
-          event: reg.event,
-          registrations: []
-        }
+  filteredRegistrations.forEach(reg => {
+    const eventName = reg.event.name
+    if (!groupedRegistrations[eventName]) {
+      groupedRegistrations[eventName] = {
+        event: reg.event,
+        registrations: []
       }
-      groupedRegistrations[eventName].registrations.push(reg)
-    })
-  } else {
-    filteredRegistrations.forEach(reg => {
-      const format = getFormatLabel(reg.event.format)
-      if (!groupedRegistrations[format]) {
-        groupedRegistrations[format] = {
-          format: reg.event.format,
-          registrations: []
-        }
-      }
-      groupedRegistrations[format].registrations.push(reg)
-    })
-  }
+    }
+    groupedRegistrations[eventName].registrations.push(reg)
+  })
 
   const getFormatLabel = (format) => {
     const labels = {
@@ -252,38 +238,42 @@ const RegistrationsView = ({ tournamentId }) => {
           </div>
 
           {/* Event Filter */}
-          <select
-            value={selectedEvent}
-            onChange={(e) => setSelectedEvent(e.target.value)}
-            className="px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all bg-white"
-          >
-            <option value="all">All Events</option>
-            {events.map(event => (
-              <option key={event.id} value={event.id}>{event.name}</option>
-            ))}
-          </select>
+          <div className="relative">
+            <select
+              value={selectedEvent}
+              onChange={(e) => setSelectedEvent(e.target.value)}
+              className="appearance-none px-4 py-2.5 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all bg-white cursor-pointer"
+            >
+              <option value="all">All Events</option>
+              {events.map(event => (
+                <option key={event.id} value={event.id}>{event.name}</option>
+              ))}
+            </select>
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+              <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+          </div>
 
           {/* Format Filter */}
-          <select
-            value={selectedFormat}
-            onChange={(e) => setSelectedFormat(e.target.value)}
-            className="px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all bg-white"
-          >
-            <option value="all">All Formats</option>
-            <option value="SINGLES">Singles</option>
-            <option value="DOUBLES">Doubles</option>
-            <option value="MIXED_DOUBLES">Mixed Doubles</option>
-          </select>
-
-          {/* Group By */}
-          <select
-            value={groupBy}
-            onChange={(e) => setGroupBy(e.target.value)}
-            className="px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all bg-white"
-          >
-            <option value="event">Group by Event</option>
-            <option value="format">Group by Format</option>
-          </select>
+          <div className="relative">
+            <select
+              value={selectedFormat}
+              onChange={(e) => setSelectedFormat(e.target.value)}
+              className="appearance-none px-4 py-2.5 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all bg-white cursor-pointer"
+            >
+              <option value="all">All Formats</option>
+              <option value="SINGLES">Singles</option>
+              <option value="DOUBLES">Doubles</option>
+              <option value="MIXED_DOUBLES">Mixed Doubles</option>
+            </select>
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+              <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+          </div>
 
           {/* Export Button */}
           <button
@@ -311,7 +301,6 @@ const RegistrationsView = ({ tournamentId }) => {
         <div className="space-y-6">
           {Object.keys(groupedRegistrations).map(groupKey => {
             const group = groupedRegistrations[groupKey]
-            const isEventGroup = groupBy === 'event'
 
             return (
               <div key={groupKey} className="glass-card rounded-xl overflow-hidden">
@@ -320,15 +309,13 @@ const RegistrationsView = ({ tournamentId }) => {
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="text-lg font-bold text-gray-900">
-                        {isEventGroup ? group.event.name : groupKey}
+                        {group.event.name}
                       </h3>
-                      {isEventGroup && (
-                        <p className="text-sm text-gray-600 mt-1">
-                          {getFormatLabel(group.event.format)}
-                          {group.event.category && ` • ${group.event.category}`}
-                          {group.event.gender && ` • ${group.event.gender}`}
-                        </p>
-                      )}
+                      <p className="text-sm text-gray-600 mt-1">
+                        {getFormatLabel(group.event.format)}
+                        {group.event.category && ` • ${group.event.category}`}
+                        {group.event.gender && ` • ${group.event.gender}`}
+                      </p>
                     </div>
                     <div className="text-right">
                       <p className="text-2xl font-bold text-primary-600">

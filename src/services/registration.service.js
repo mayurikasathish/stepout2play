@@ -45,14 +45,15 @@ class RegistrationService {
       throw error;
     }
 
-    // Check if user is already registered
+    // Check if user has any existing registration (confirmed or cancelled)
     const existingRegistration = await prisma.registration.findUnique({
       where: {
         userId_eventId: { userId, eventId }
       }
     });
 
-    if (existingRegistration) {
+    // If already confirmed, throw error
+    if (existingRegistration && existingRegistration.status === 'CONFIRMED') {
       const error = new Error('You are already registered for this event');
       error.statusCode = 409;
       throw error;
@@ -73,10 +74,11 @@ class RegistrationService {
           throw error;
         }
 
-        // Check if partner is already registered (as primary or partner)
+        // Check if partner is already registered (as primary or partner) and not cancelled
         const partnerRegistration = await prisma.registration.findFirst({
           where: {
             eventId,
+            status: 'CONFIRMED',
             OR: [
               { userId: registrationData.partnerId },
               { partnerId: registrationData.partnerId }
@@ -95,14 +97,32 @@ class RegistrationService {
       // For doubles, partnerId can be null if registering solo and will find partner later
     }
 
-    // Create registration
-    const registration = await prisma.registration.create({
-      data: {
-        userId,
-        eventId,
-        partnerId,
-        status: 'CONFIRMED'
-      },
+    // If there's a cancelled registration, update it. Otherwise create new
+    let registration;
+    if (existingRegistration && existingRegistration.status === 'CANCELLED') {
+      // Update the cancelled registration back to CONFIRMED
+      registration = await prisma.registration.update({
+        where: { id: existingRegistration.id },
+        data: {
+          partnerId,
+          status: 'CONFIRMED'
+        },
+      });
+    } else {
+      // Create new registration
+      registration = await prisma.registration.create({
+        data: {
+          userId,
+          eventId,
+          partnerId,
+          status: 'CONFIRMED'
+        },
+      });
+    }
+
+    // Fetch the complete registration with relations
+    registration = await prisma.registration.findUnique({
+      where: { id: registration.id },
       include: {
         event: {
           include: {
@@ -163,7 +183,8 @@ class RegistrationService {
                 endDate: true,
                 venueName: true,
                 city: true,
-                status: true
+                status: true,
+                registrationDeadline: true
               }
             }
           }

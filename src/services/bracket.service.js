@@ -4,8 +4,8 @@ class BracketService {
   /**
    * Generate bracket for an event
    * @param {string} eventId - Event ID
-   * @param {string} bracketFormat - SINGLE_ELIMINATION or ROUND_ROBIN
-   * @param {string} seedingMethod - RANDOM or MANUAL
+   * @param {string} bracketFormat - SINGLE_ELIMINATION only for now
+   * @param {string} seedingMethod - REGISTRATION_ORDER, RANDOM, or MANUAL
    */
   async generateBracket(eventId, bracketFormat, seedingMethod) {
     // Get event with registrations
@@ -13,7 +13,10 @@ class BracketService {
       where: { id: eventId },
       include: {
         registrations: {
-          where: { status: 'CONFIRMED' },
+          where: {
+            status: 'CONFIRMED',
+            isWithdrawn: false
+          },
           include: {
             user: {
               select: {
@@ -31,6 +34,9 @@ class BracketService {
                 email: true
               }
             }
+          },
+          orderBy: {
+            createdAt: 'asc' // For REGISTRATION_ORDER seeding
           }
         },
         matches: true
@@ -50,9 +56,20 @@ class BracketService {
       throw error;
     }
 
-    // Check minimum participants
-    if (event.registrations.length < 2) {
-      const error = new Error('At least 2 participants required to generate bracket');
+    // Check minimum participants (or teams for doubles/mixed doubles)
+    const participantCount = event.registrations.length;
+    const isTeamEvent = event.format === 'DOUBLES' || event.format === 'MIXED_DOUBLES';
+    const entityLabel = isTeamEvent ? 'teams' : 'participants';
+
+    if (participantCount < 2) {
+      const error = new Error(`At least 2 ${entityLabel} required to generate bracket`);
+      error.statusCode = 400;
+      throw error;
+    }
+
+    // Only support SINGLE_ELIMINATION for Phase 2
+    if (bracketFormat !== 'SINGLE_ELIMINATION') {
+      const error = new Error('Only SINGLE_ELIMINATION bracket format is currently supported');
       error.statusCode = 400;
       throw error;
     }
@@ -61,46 +78,259 @@ class BracketService {
     let seededParticipants = [];
     if (seedingMethod === 'MANUAL') {
       seededParticipants = this.applySeedingManual(event.registrations);
-    } else {
+    } else if (seedingMethod === 'RANDOM') {
       seededParticipants = this.applySeedingRandom(event.registrations);
+    } else {
+      // REGISTRATION_ORDER - already ordered by createdAt
+      seededParticipants = event.registrations;
     }
 
-    // Generate matches based on format
-    let matches = [];
-    if (bracketFormat === 'SINGLE_ELIMINATION') {
-      matches = this.generateSingleEliminationMatches(seededParticipants, eventId);
-    } else if (bracketFormat === 'ROUND_ROBIN') {
-      matches = this.generateRoundRobinMatches(seededParticipants, eventId);
-    }
+    // Generate single elimination bracket
+    const { matches, totalSlots, totalRounds, byeCount } =
+      this.generateSingleEliminationBracket(seededParticipants, eventId);
 
-    // Create matches in database
-    const createdMatches = await prisma.match.createMany({
-      data: matches
-    });
-
-    // Update event to mark bracket as generated
-    await prisma.event.update({
-      where: { id: eventId },
-      data: {
-        bracketGenerated: true,
-        bracketFormat,
-        seedingMethod
+    // Create matches in database using transaction
+    await prisma.$transaction(async (tx) => {
+      // Step 1: Create all matches without nextMatchId (we'll update these in step 2)
+      // matchData.nextMatchId at this point is still the "round-matchNum" KEY STRING
+      // (e.g. "2-1"), not a real ID — that's intentional, we resolve it below.
+      const createdMatches = [];
+      for (const matchData of matches) {
+        const { nextMatchId, ...matchDataWithoutNext } = matchData;
+        const created = await tx.match.create({
+          data: matchDataWithoutNext
+        });
+        createdMatches.push({
+          ...created,
+          nextMatchKey: nextMatchId // the "round-matchNum" string, e.g. "2-1"
+        });
       }
+
+      // Step 2: Build a map of (roundNumber, matchNumber) -> actual match ID
+      const matchKeyToId = new Map();
+      createdMatches.forEach(match => {
+        const key = `${match.roundNumber}-${match.matchNumber}`;
+        matchKeyToId.set(key, match.id);
+      });
+
+      // Step 3: Update matches with correct nextMatchId references
+      for (const match of createdMatches) {
+        if (match.nextMatchKey && typeof match.nextMatchKey === 'string' && match.nextMatchKey.includes('-')) {
+          const nextMatchId = matchKeyToId.get(match.nextMatchKey);
+          if (nextMatchId) {
+            await tx.match.update({
+              where: { id: match.id },
+              data: { nextMatchId }
+            });
+            // CRITICAL: Also update the match object in createdMatches array so Step 4 can use it
+            match.nextMatchId = nextMatchId;
+          }
+        }
+      }
+
+      // Step 4: Auto-advance BYE winners to next round
+      for (const match of createdMatches) {
+        if (match.status === 'BYE' && match.winnerId && match.feedsPosition && match.nextMatchId) {
+          const updateData = match.feedsPosition === 1
+            ? { participant1Id: match.winnerId }
+            : { participant2Id: match.winnerId };
+
+          await tx.match.update({
+            where: { id: match.nextMatchId },
+            data: updateData
+          });
+
+          // Check if next match is now READY
+          const nextMatch = await tx.match.findUnique({
+            where: { id: match.nextMatchId }
+          });
+          if (nextMatch.participant1Id && nextMatch.participant2Id) {
+            await tx.match.update({
+              where: { id: nextMatch.id },
+              data: { status: 'READY' }
+            });
+          }
+        }
+      }
+
+      // Step 5: Update event metadata
+      await tx.event.update({
+        where: { id: eventId },
+        data: {
+          bracketGenerated: true,
+          bracketFormat,
+          seedingMethod,
+          totalSlots,
+          totalRounds,
+          byeCount
+        }
+      });
     });
 
     return {
-      matchesCreated: createdMatches.count,
+      matchesCreated: matches.length,
       bracketFormat,
       seedingMethod,
-      participants: seededParticipants.length
+      participants: participantCount,
+      totalSlots,
+      totalRounds,
+      byeCount
     };
+  }
+
+  /**
+   * Generate standard tournament seeding order
+   * Creates balanced bracket: [1, 8, 4, 5, 2, 7, 3, 6] for 8 slots
+   * Ensures top seeds don't meet until later rounds
+   */
+  generateStandardSeeding(totalSlots) {
+    const rounds = Math.log2(totalSlots);
+    let seeds = [1];
+
+    for (let round = 1; round <= rounds; round++) {
+      const newSeeds = [];
+      const nextSize = Math.pow(2, round) + 1;
+
+      for (const seed of seeds) {
+        newSeeds.push(seed);
+        newSeeds.push(nextSize - seed);
+      }
+
+      seeds = newSeeds;
+    }
+
+    return seeds;
+  }
+
+  /**
+   * Generate Single Elimination bracket with explicit progression
+   */
+  generateSingleEliminationBracket(participants, eventId) {
+    const participantCount = participants.length;
+
+    // Calculate bracket parameters
+    const totalSlots = Math.pow(2, Math.ceil(Math.log2(participantCount)));
+    const totalRounds = Math.log2(totalSlots);
+    const byeCount = totalSlots - participantCount;
+
+    // Generate standard seeding order
+    const seedingOrder = this.generateStandardSeeding(totalSlots);
+
+    // Create a map to store all matches by (roundNumber, matchNumber)
+    const matchesMap = new Map();
+    const matches = [];
+
+    // Step 1: Create all matches.
+    // nextMatchId is set to the "round-matchNum" KEY STRING (e.g. "2-1") here.
+    // This string is resolved into a real DB id later, inside generateBracket's
+    // transaction (Step 2/3 above). It must NOT be nulled out before that —
+    // doing so was the bug that broke BYE auto-advancement and all later
+    // winner-advancement, since every match ended up with nextMatchId = null
+    // in the database.
+    for (let round = 1; round <= totalRounds; round++) {
+      const matchesInRound = Math.pow(2, round - 1);
+
+      for (let matchNum = 1; matchNum <= matchesInRound; matchNum++) {
+        const matchKey = `${round}-${matchNum}`;
+
+        // Calculate progression
+        let nextMatchId = null;
+        let feedsPosition = null;
+
+        if (round > 1) {
+          // Not the finals, so there's a next match
+          const nextRound = round - 1;
+          const nextMatchNumber = Math.ceil(matchNum / 2);
+          const nextMatchKey = `${nextRound}-${nextMatchNumber}`;
+
+          // Store the key for now — resolved to a real UUID inside the
+          // transaction in generateBracket()
+          nextMatchId = nextMatchKey;
+          feedsPosition = (matchNum % 2 === 1) ? 1 : 2; // Odd match → position 1, Even → position 2
+        }
+
+        const match = {
+          eventId,
+          roundNumber: round,
+          matchNumber: matchNum,
+          bracketPosition: `R${round}-M${matchNum}`,
+          participant1Id: null,
+          participant2Id: null,
+          winnerId: null,
+          score: null,
+          status: 'PENDING',
+          nextMatchId, // "round-matchNum" key string for now (e.g. "2-1"), or null for the final
+          feedsPosition,
+          isByeMatch: false,
+          isWalkover: false,
+          completedAt: null
+        };
+
+        matchesMap.set(matchKey, match);
+        matches.push(match);
+      }
+    }
+
+    // Build a lookup so we can assign participants in Step 3 below.
+    // NOTE: previously this section also nulled out nextMatchId on every
+    // match, which silently broke bracket progression entirely. That step
+    // has been removed — nextMatchId must stay as the key string until
+    // generateBracket()'s transaction resolves it to a real id.
+    const matchIdMap = new Map(); // matchKey → actual match object
+    matches.forEach(match => {
+      const key = `${match.roundNumber}-${match.matchNumber}`;
+      matchIdMap.set(key, match);
+    });
+
+    // Step 3: Assign participants to first round using seeding order
+    const firstRound = totalRounds;
+    const firstRoundMatches = Math.pow(2, firstRound - 1);
+
+    for (let matchNum = 1; matchNum <= firstRoundMatches; matchNum++) {
+      const matchKey = `${firstRound}-${matchNum}`;
+      const match = matchIdMap.get(matchKey);
+
+      // Get the two seed positions for this match
+      const seed1Position = (matchNum - 1) * 2;
+      const seed2Position = seed1Position + 1;
+
+      const seed1 = seedingOrder[seed1Position];
+      const seed2 = seedingOrder[seed2Position];
+
+      // Assign participant1
+      if (seed1 <= participantCount) {
+        match.participant1Id = participants[seed1 - 1].id;
+      }
+
+      // Assign participant2
+      if (seed2 <= participantCount) {
+        match.participant2Id = participants[seed2 - 1].id;
+      }
+
+      // Check if this is a BYE match
+      if (match.participant1Id && !match.participant2Id) {
+        match.isByeMatch = true;
+        match.status = 'BYE';
+        match.winnerId = match.participant1Id;
+        match.completedAt = new Date();
+      } else if (!match.participant1Id && match.participant2Id) {
+        // Should not happen with proper seeding, but handle it
+        match.isByeMatch = true;
+        match.status = 'BYE';
+        match.winnerId = match.participant2Id;
+        match.completedAt = new Date();
+      } else if (match.participant1Id && match.participant2Id) {
+        match.status = 'READY'; // Both participants known
+      }
+    }
+
+    return { matches, totalSlots, totalRounds, byeCount };
   }
 
   /**
    * Apply manual seeding (uses seedNumber from registration)
    */
   applySeedingManual(registrations) {
-    // Sort by seedNumber (nulls last)
     return [...registrations].sort((a, b) => {
       if (a.seedNumber === null) return 1;
       if (b.seedNumber === null) return -1;
@@ -119,101 +349,6 @@ class BracketService {
       [participants[i], participants[j]] = [participants[j], participants[i]];
     }
     return participants;
-  }
-
-  /**
-   * Generate Single Elimination bracket
-   * Round numbers: 1 = Finals, 2 = Semifinals, 3 = Quarterfinals, etc.
-   */
-  generateSingleEliminationMatches(participants, eventId) {
-    const n = participants.length;
-
-    // Find next power of 2 (bracket size)
-    const bracketSize = Math.pow(2, Math.ceil(Math.log2(n)));
-    const numByes = bracketSize - n;
-
-    // Calculate number of rounds
-    const numRounds = Math.log2(bracketSize);
-
-    const matches = [];
-
-    // First round
-    const firstRoundMatches = bracketSize / 2;
-    let participantIndex = 0;
-
-    for (let matchNum = 0; matchNum < firstRoundMatches; matchNum++) {
-      const match = {
-        eventId,
-        roundNumber: numRounds, // First round (highest number)
-        matchNumber: matchNum + 1,
-        participant1Id: null,
-        participant2Id: null,
-        status: 'PENDING'
-      };
-
-      // Assign participants or create BYE
-      if (participantIndex < participants.length) {
-        match.participant1Id = participants[participantIndex].id;
-        participantIndex++;
-      }
-
-      if (participantIndex < participants.length) {
-        match.participant2Id = participants[participantIndex].id;
-        participantIndex++;
-      }
-
-      // If only one participant, it's a BYE
-      if (match.participant1Id && !match.participant2Id) {
-        match.status = 'BYE';
-        match.winnerId = match.participant1Id;
-      }
-
-      matches.push(match);
-    }
-
-    // Create placeholder matches for subsequent rounds
-    for (let round = numRounds - 1; round >= 1; round--) {
-      const matchesInRound = Math.pow(2, round - 1);
-      for (let matchNum = 0; matchNum < matchesInRound; matchNum++) {
-        matches.push({
-          eventId,
-          roundNumber: round,
-          matchNumber: matchNum + 1,
-          participant1Id: null,
-          participant2Id: null,
-          status: 'PENDING'
-        });
-      }
-    }
-
-    return matches;
-  }
-
-  /**
-   * Generate Round Robin bracket
-   * Every participant plays every other participant once
-   */
-  generateRoundRobinMatches(participants, eventId) {
-    const n = participants.length;
-    const matches = [];
-    let matchNumber = 0;
-
-    // Round-robin: everyone plays everyone else once
-    for (let i = 0; i < n; i++) {
-      for (let j = i + 1; j < n; j++) {
-        matchNumber++;
-        matches.push({
-          eventId,
-          roundNumber: 1, // Round robin uses single round
-          matchNumber,
-          participant1Id: participants[i].id,
-          participant2Id: participants[j].id,
-          status: 'PENDING'
-        });
-      }
-    }
-
-    return matches;
   }
 
   /**
@@ -237,19 +372,23 @@ class BracketService {
       throw error;
     }
 
-    // Delete all matches
-    await prisma.match.deleteMany({
-      where: { eventId }
-    });
+    // Delete all matches and reset event in transaction
+    await prisma.$transaction(async (tx) => {
+      await tx.match.deleteMany({
+        where: { eventId }
+      });
 
-    // Reset bracket fields
-    await prisma.event.update({
-      where: { id: eventId },
-      data: {
-        bracketGenerated: false,
-        bracketFormat: null,
-        seedingMethod: null
-      }
+      await tx.event.update({
+        where: { id: eventId },
+        data: {
+          bracketGenerated: false,
+          bracketFormat: null,
+          seedingMethod: null,
+          totalSlots: null,
+          totalRounds: null,
+          byeCount: null
+        }
+      });
     });
 
     return { message: 'Bracket deleted successfully' };
@@ -344,14 +483,17 @@ class BracketService {
         format: event.format,
         bracketGenerated: event.bracketGenerated,
         bracketFormat: event.bracketFormat,
-        seedingMethod: event.seedingMethod
+        seedingMethod: event.seedingMethod,
+        totalSlots: event.totalSlots,
+        totalRounds: event.totalRounds,
+        byeCount: event.byeCount
       },
       matches: event.matches
     };
   }
 
   /**
-   * Update match result
+   * Update match result and advance winner
    */
   async updateMatchResult(matchId, winnerId, score) {
     const match = await prisma.match.findUnique({
@@ -376,56 +518,94 @@ class BracketService {
       throw error;
     }
 
-    // Update match
-    const updatedMatch = await prisma.match.update({
-      where: { id: matchId },
-      data: {
-        winnerId,
-        score,
-        status: 'COMPLETED',
-        completedAt: new Date()
+    // Update match and advance winner in transaction
+    await prisma.$transaction(async (tx) => {
+      // Update current match
+      await tx.match.update({
+        where: { id: matchId },
+        data: {
+          winnerId,
+          score,
+          status: 'COMPLETED',
+          completedAt: new Date()
+        }
+      });
+
+      // Advance winner to next match (if not finals)
+      if (match.nextMatchId) {
+        await this.advanceWinnerInBracket(tx, match, winnerId);
       }
     });
 
-    // If single elimination, advance winner to next round
-    if (match.event.bracketFormat === 'SINGLE_ELIMINATION') {
-      await this.advanceWinnerInBracket(match, winnerId);
-    }
-
-    return updatedMatch;
+    // Return updated match
+    return await prisma.match.findUnique({
+      where: { id: matchId },
+      include: {
+        participant1: {
+          include: {
+            user: true,
+            partner: true
+          }
+        },
+        participant2: {
+          include: {
+            user: true,
+            partner: true
+          }
+        },
+        winner: {
+          include: {
+            user: true,
+            partner: true
+          }
+        }
+      }
+    });
   }
 
   /**
    * Advance winner to next round in single elimination
+   * This uses the nextMatchId and feedsPosition fields
    */
-  async advanceWinnerInBracket(match, winnerId) {
-    if (match.roundNumber === 1) {
+  async advanceWinnerInBracket(tx, match, winnerId) {
+    if (!match.nextMatchId) {
       // Finals - no next match
       return;
     }
 
-    const nextRound = match.roundNumber - 1;
-    const nextMatchNumber = Math.ceil(match.matchNumber / 2);
-
-    // Determine if winner goes to participant1 or participant2 slot
-    const isOddMatch = match.matchNumber % 2 === 1;
-
-    // Find next match
-    const nextMatch = await prisma.match.findFirst({
-      where: {
-        eventId: match.eventId,
-        roundNumber: nextRound,
-        matchNumber: nextMatchNumber
-      }
+    // Find next match using explicit nextMatchId
+    const nextMatch = await tx.match.findUnique({
+      where: { id: match.nextMatchId }
     });
 
-    if (nextMatch) {
-      // Update next match with winner
-      await prisma.match.update({
-        where: { id: nextMatch.id },
-        data: isOddMatch
-          ? { participant1Id: winnerId }
-          : { participant2Id: winnerId }
+    if (!nextMatch) {
+      console.error(`Next match not found: ${match.nextMatchId}`);
+      return;
+    }
+
+    // Determine which participant slot to fill based on feedsPosition
+    const updateData = {};
+    if (match.feedsPosition === 1) {
+      updateData.participant1Id = winnerId;
+    } else if (match.feedsPosition === 2) {
+      updateData.participant2Id = winnerId;
+    }
+
+    // Update next match with winner
+    await tx.match.update({
+      where: { id: nextMatch.id },
+      data: updateData
+    });
+
+    // Check if next match is now READY (both participants filled)
+    const updatedNext = await tx.match.findUnique({
+      where: { id: nextMatch.id }
+    });
+
+    if (updatedNext.participant1Id && updatedNext.participant2Id && updatedNext.status === 'PENDING') {
+      await tx.match.update({
+        where: { id: updatedNext.id },
+        data: { status: 'READY' }
       });
     }
   }

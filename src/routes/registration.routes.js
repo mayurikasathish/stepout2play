@@ -28,6 +28,13 @@ router.get(
   registrationController.getMyRegistrations.bind(registrationController)
 );
 
+// DELETE /registrations/:registrationId - Cancel registration
+router.delete(
+  '/registrations/:registrationId',
+  authenticate,
+  registrationController.cancelRegistration.bind(registrationController)
+);
+
 // POST /events/:eventId/search-partner - Search for a partner by email
 router.post(
   '/events/:eventId/search-partner',

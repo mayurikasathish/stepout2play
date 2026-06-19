@@ -218,11 +218,12 @@ class EligibilityService {
       reasons.push(genderCheck.reason);
     }
 
-    // Check if already registered
+    // Check if already registered (and not cancelled)
     const existingRegistration = await prisma.registration.findFirst({
       where: {
         eventId: eventId,
-        userId: userId
+        userId: userId,
+        status: 'CONFIRMED'
       }
     });
 

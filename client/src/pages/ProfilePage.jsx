@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import Navbar from '../components/Navbar'
 import Toast from '../components/Toast'
+import CancelRegistrationModal from '../components/CancelRegistrationModal'
 import api from '../services/api'
 
 const UserIcon = (props) => (
@@ -34,6 +35,7 @@ const ProfilePage = () => {
   const [toastType, setToastType] = useState('success')
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [cancellingRegistration, setCancellingRegistration] = useState(null)
 
   useEffect(() => {
     fetchProfile()
@@ -366,22 +368,57 @@ const ProfilePage = () => {
             </div>
           ) : (
             <div className="space-y-4">
-              {registrations.map((reg) => (
-                <div key={reg.id} className="border border-gray-200 rounded-xl p-5 hover:border-primary-300 transition-all">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-semibold text-gray-900">{reg.event.tournament.name}</h3>
-                      <p className="text-sm text-gray-600">{reg.event.name}</p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {new Date(reg.event.tournament.startDate).toLocaleDateString()}
-                      </p>
+              {registrations.map((reg) => {
+                const registrationDeadline = new Date(reg.event.tournament.registrationDeadline)
+                const isDeadlinePassed = registrationDeadline < new Date()
+
+                return (
+                  <div key={reg.id} className="border border-gray-200 rounded-xl p-5 hover:border-primary-300 transition-all">
+                    <div className="flex justify-between items-start gap-4">
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-gray-900">{reg.event.tournament.name}</h3>
+                        <p className="text-sm text-gray-600">{reg.event.name}</p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {new Date(reg.event.tournament.startDate).toLocaleDateString()}
+                        </p>
+                        {isDeadlinePassed && reg.status === 'CONFIRMED' && (
+                          <p className="text-xs text-orange-600 mt-2 flex items-center gap-1">
+                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                            Registration deadline closed - Contact organizer to cancel
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className={`px-3 py-1 text-xs font-medium rounded-full ${
+                          reg.status === 'CONFIRMED'
+                            ? 'bg-green-100 text-green-700'
+                            : reg.status === 'CANCELLED'
+                            ? 'bg-gray-100 text-gray-600'
+                            : 'bg-gray-100 text-gray-600'
+                        }`}>
+                          {reg.status === 'CONFIRMED' ? 'Registered' : reg.status === 'CANCELLED' ? 'Cancelled' : reg.status}
+                        </span>
+                        {reg.status === 'CONFIRMED' && (
+                          <button
+                            onClick={() => !isDeadlinePassed && setCancellingRegistration(reg)}
+                            disabled={isDeadlinePassed}
+                            className={`px-3 py-1 text-xs font-medium rounded-lg transition-all ${
+                              isDeadlinePassed
+                                ? 'text-gray-400 bg-gray-100 cursor-not-allowed'
+                                : 'text-red-600 hover:text-red-700 hover:bg-red-50'
+                            }`}
+                            title={isDeadlinePassed ? 'Registration deadline has passed' : 'Cancel registration'}
+                          >
+                            Cancel
+                          </button>
+                        )}
+                      </div>
                     </div>
-                    <span className="px-3 py-1 bg-primary-50 text-primary-700 text-xs font-medium rounded-full">
-                      {reg.status}
-                    </span>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </div>
@@ -428,6 +465,17 @@ const ProfilePage = () => {
               </div>
             </div>
           </div>
+        )}
+
+        {/* Cancel Registration Modal */}
+        {cancellingRegistration && (
+          <CancelRegistrationModal
+            registration={cancellingRegistration}
+            onClose={() => setCancellingRegistration(null)}
+            onCancelled={() => {
+              fetchRegistrations()
+            }}
+          />
         )}
 
         {/* Toast */}

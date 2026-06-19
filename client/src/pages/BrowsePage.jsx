@@ -36,7 +36,7 @@ const BrowsePage = () => {
   const [error, setError] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [filterSport, setFilterSport] = useState('all')
-  const [filterStatus, setFilterStatus] = useState('OPEN')
+  const [filterStatus, setFilterStatus] = useState('all')
 
   useEffect(() => {
     fetchTournaments()
@@ -67,7 +67,9 @@ const BrowsePage = () => {
   const filteredTournaments = tournaments.filter(t => {
     const matchesSearch = t.name.toLowerCase().includes(searchQuery.toLowerCase())
     const matchesSport = filterSport === 'all' || t.sport === filterSport
-    return matchesSearch && matchesSport
+    // Exclude DRAFT tournaments unless specifically filtered
+    const matchesStatus = filterStatus === 'DRAFT' || t.status !== 'DRAFT'
+    return matchesSearch && matchesSport && matchesStatus
   })
 
   return (

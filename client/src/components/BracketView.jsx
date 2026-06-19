@@ -2,20 +2,14 @@ import { useState, useEffect } from 'react'
 import api from '../services/api'
 import BracketGenerator from './BracketGenerator'
 import SingleEliminationBracket from './SingleEliminationBracket'
-import RoundRobinBracket from './RoundRobinBracket'
-import AutoScheduleButton from './AutoScheduleButton'
-import ScheduleTimeline from './ScheduleTimeline'
-import ScheduleConfig from './ScheduleConfig'
 import Toast from './Toast'
 
-const BracketView = ({ eventId, eventName, eventFormat, registrationCount, isOrganizer, tournament }) => {
+const BracketView = ({ eventId, eventName, eventFormat, registrationCount, isOrganizer }) => {
   const [bracket, setBracket] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [selectedMatch, setSelectedMatch] = useState(null)
   const [showMatchModal, setShowMatchModal] = useState(false)
-  const [activeTab, setActiveTab] = useState('bracket') // bracket, schedule, config
-  const [scheduleRefresh, setScheduleRefresh] = useState(0)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showToast, setShowToast] = useState(false)
   const [toastMessage, setToastMessage] = useState('')
@@ -47,13 +41,8 @@ const BracketView = ({ eventId, eventName, eventFormat, registrationCount, isOrg
 
   const handleBracketGenerated = (result) => {
     console.log('Bracket generated:', result)
+    setShowToast(false) // Clear any previous toasts
     loadBracket() // Reload to show the new bracket
-  }
-
-  const handleScheduled = (result) => {
-    console.log('Matches scheduled:', result)
-    setScheduleRefresh(prev => prev + 1) // Force schedule timeline to refresh
-    setActiveTab('schedule') // Switch to schedule tab
   }
 
   const handleDeleteBracket = async () => {
@@ -119,13 +108,21 @@ const BracketView = ({ eventId, eventName, eventFormat, registrationCount, isOrg
     }
 
     return (
-      <BracketGenerator
-        eventId={eventId}
-        eventName={eventName}
-        eventFormat={eventFormat}
-        registrationCount={registrationCount}
-        onGenerated={handleBracketGenerated}
-      />
+      <div className="space-y-6">
+        {/* Event Title - Scroll Target */}
+        <div className="glass-card rounded-xl p-6">
+          <h3 className="text-xl font-bold text-gray-900">{eventName}</h3>
+          <p className="text-sm text-gray-600 mt-1">Generate your tournament bracket below</p>
+        </div>
+
+        <BracketGenerator
+          eventId={eventId}
+          eventName={eventName}
+          eventFormat={eventFormat}
+          registrationCount={registrationCount}
+          onGenerated={handleBracketGenerated}
+        />
+      </div>
     )
   }
 
@@ -140,21 +137,18 @@ const BracketView = ({ eventId, eventName, eventFormat, registrationCount, isOrg
               <h3 className="text-xl font-bold text-gray-900">{eventName}</h3>
               <div className="flex items-center gap-4 mt-2">
                 <span className="px-3 py-1 bg-indigo-100 text-indigo-700 text-sm font-medium rounded-full">
-                  {bracket.event.bracketFormat === 'SINGLE_ELIMINATION' ? 'Single Elimination' : 'Round Robin'}
+                  Single Elimination
                 </span>
                 <span className="px-3 py-1 bg-green-100 text-green-700 text-sm font-medium rounded-full">
-                  {bracket.event.seedingMethod === 'RANDOM' ? 'Random Draw' : 'Manual Seeding'}
+                  {bracket.event.seedingMethod === 'REGISTRATION_ORDER'
+                    ? 'Registration Order'
+                    : bracket.event.seedingMethod === 'RANDOM'
+                    ? 'Random Draw'
+                    : 'Manual Seeding'}
                 </span>
               </div>
             </div>
             <div className="flex items-center gap-3">
-              {activeTab === 'bracket' && (
-                <AutoScheduleButton
-                  eventId={eventId}
-                  eventName={eventName}
-                  onScheduled={handleScheduled}
-                />
-              )}
               <button
                 onClick={() => setShowDeleteConfirm(true)}
                 className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-all"
@@ -163,78 +157,16 @@ const BracketView = ({ eventId, eventName, eventFormat, registrationCount, isOrg
               </button>
             </div>
           </div>
-
-          {/* Tabs */}
-          <div className="flex gap-2 mt-6 border-b border-gray-200">
-            <button
-              onClick={() => setActiveTab('bracket')}
-              className={`px-4 py-2 font-medium text-sm transition-all border-b-2 ${
-                activeTab === 'bracket'
-                  ? 'border-indigo-600 text-indigo-600'
-                  : 'border-transparent text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              Bracket
-            </button>
-            <button
-              onClick={() => setActiveTab('schedule')}
-              className={`px-4 py-2 font-medium text-sm transition-all border-b-2 ${
-                activeTab === 'schedule'
-                  ? 'border-indigo-600 text-indigo-600'
-                  : 'border-transparent text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              Schedule
-            </button>
-            <button
-              onClick={() => setActiveTab('config')}
-              className={`px-4 py-2 font-medium text-sm transition-all border-b-2 ${
-                activeTab === 'config'
-                  ? 'border-indigo-600 text-indigo-600'
-                  : 'border-transparent text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              Configuration
-            </button>
-          </div>
         </div>
       )}
 
-      {/* Tab Content */}
-      {activeTab === 'bracket' && (
-        <div className="glass-card rounded-xl p-6">
-          {bracket.event.bracketFormat === 'SINGLE_ELIMINATION' ? (
-            <SingleEliminationBracket
-              matches={bracket.matches}
-              onMatchClick={isOrganizer ? handleMatchClick : null}
-            />
-          ) : (
-            <RoundRobinBracket
-              matches={bracket.matches}
-              onMatchClick={isOrganizer ? handleMatchClick : null}
-            />
-          )}
-        </div>
-      )}
-
-      {activeTab === 'schedule' && (
-        <div className="glass-card rounded-xl p-6">
-          <ScheduleTimeline
-            key={scheduleRefresh}
-            eventId={eventId}
-            onMatchClick={isOrganizer ? handleMatchClick : null}
-          />
-        </div>
-      )}
-
-      {activeTab === 'config' && tournament && (
-        <ScheduleConfig
-          tournament={tournament}
-          onSaved={(updatedTournament) => {
-            console.log('Configuration saved:', updatedTournament)
-          }}
+      {/* Bracket Display */}
+      <div className="glass-card rounded-xl p-6">
+        <SingleEliminationBracket
+          matches={bracket.matches}
+          onMatchClick={isOrganizer ? handleMatchClick : null}
         />
-      )}
+      </div>
 
       {/* Match Result Modal */}
       {showMatchModal && selectedMatch && (

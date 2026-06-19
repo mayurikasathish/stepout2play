@@ -102,10 +102,11 @@ class PartnerService {
 
     const reasons = [];
 
-    // Check if partner is already registered for this event
+    // Check if partner is already registered for this event (and not cancelled)
     const partnerRegistration = await prisma.registration.findFirst({
       where: {
         eventId,
+        status: 'CONFIRMED',
         OR: [
           { userId: partnerId },
           { partnerId: partnerId }

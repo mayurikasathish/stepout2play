@@ -8,7 +8,7 @@ class EventController {
   async createEvent(req, res, next) {
     try {
       const { tournamentId } = req.params;
-      const { name, format, category, gender, maxParticipants, registrationFee } = req.body;
+      const { name, format, category, gender, maxParticipants, registrationFee, rules } = req.body;
 
       // Validation
       const errors = [];
@@ -20,6 +20,10 @@ class EventController {
       const validFormats = ['SINGLES', 'DOUBLES', 'MIXED_DOUBLES'];
       if (!format || !validFormats.includes(format)) {
         errors.push(`Format must be one of: ${validFormats.join(', ')}`);
+      }
+
+      if (!gender || typeof gender !== 'string' || gender.trim().length === 0) {
+        errors.push('Gender is required');
       }
 
       if (maxParticipants !== undefined && maxParticipants !== null) {
@@ -46,7 +50,8 @@ class EventController {
         category: category?.trim() || null,
         gender: gender?.trim() || null,
         maxParticipants: maxParticipants ? parseInt(maxParticipants, 10) : null,
-        registrationFee: registrationFee ? parseFloat(registrationFee) : null
+        registrationFee: registrationFee ? parseFloat(registrationFee) : null,
+        rules: rules?.trim() || null
       });
 
       res.status(201).json({
@@ -79,6 +84,62 @@ class EventController {
         success: true,
         events,
         count: events.length
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Update an event
+   * PATCH /events/:eventId
+   */
+  async updateEvent(req, res, next) {
+    try {
+      const { eventId } = req.params;
+      const { name, format, category, gender, maxParticipants, registrationFee, rules } = req.body;
+
+      const updateData = {};
+
+      if (name !== undefined) updateData.name = name.trim();
+      if (format !== undefined) updateData.format = format;
+      if (category !== undefined) updateData.category = category?.trim() || null;
+      if (gender !== undefined) updateData.gender = gender?.trim() || null;
+      if (maxParticipants !== undefined) updateData.maxParticipants = maxParticipants ? parseInt(maxParticipants, 10) : null;
+      if (registrationFee !== undefined) updateData.registrationFee = registrationFee ? parseFloat(registrationFee) : null;
+      if (rules !== undefined) updateData.rules = rules?.trim() || null;
+
+      const prisma = require('../lib/prisma');
+      const event = await prisma.event.update({
+        where: { id: eventId },
+        data: updateData
+      });
+
+      res.status(200).json({
+        success: true,
+        event
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Delete an event
+   * DELETE /events/:eventId
+   */
+  async deleteEvent(req, res, next) {
+    try {
+      const { eventId } = req.params;
+
+      const prisma = require('../lib/prisma');
+      await prisma.event.delete({
+        where: { id: eventId }
+      });
+
+      res.status(200).json({
+        success: true,
+        message: 'Event deleted successfully'
       });
     } catch (error) {
       next(error);

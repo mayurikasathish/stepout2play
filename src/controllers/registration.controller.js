@@ -1,6 +1,7 @@
 const registrationService = require('../services/registration.service');
 const eligibilityService = require('../services/eligibility.service');
 const partnerService = require('../services/partner.service');
+const prisma = require('../lib/prisma');
 
 class RegistrationController {
   /**
@@ -170,6 +171,78 @@ class RegistrationController {
       res.status(200).json({
         success: true,
         ...verification
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Cancel registration
+   * DELETE /registrations/:registrationId
+   */
+  async cancelRegistration(req, res, next) {
+    try {
+      const { registrationId } = req.params;
+      const userId = req.user.id;
+
+      // Get registration with event and tournament details
+      const registration = await prisma.registration.findUnique({
+        where: { id: registrationId },
+        include: {
+          event: {
+            include: {
+              tournament: true
+            }
+          }
+        }
+      });
+
+      if (!registration) {
+        return res.status(404).json({
+          success: false,
+          error: 'Registration not found'
+        });
+      }
+
+      // Check if user owns this registration
+      if (registration.userId !== userId) {
+        return res.status(403).json({
+          success: false,
+          error: 'You can only cancel your own registrations'
+        });
+      }
+
+      // Check if already cancelled
+      if (registration.status === 'CANCELLED') {
+        return res.status(400).json({
+          success: false,
+          error: 'Registration already cancelled'
+        });
+      }
+
+      // Check if deadline has passed
+      const now = new Date();
+      const deadline = new Date(registration.event.tournament.registrationDeadline);
+
+      if (now > deadline) {
+        return res.status(400).json({
+          success: false,
+          error: 'Registration deadline has passed',
+          deadlinePassed: true,
+          deadline: deadline.toISOString()
+        });
+      }
+
+      // Cancel the registration
+      await prisma.registration.update({
+        where: { id: registrationId },
+        data: { status: 'CANCELLED' }
+      });
+
+      res.status(200).json({
+        success: true,
+        message: 'Registration cancelled successfully'
       });
     } catch (error) {
       next(error);

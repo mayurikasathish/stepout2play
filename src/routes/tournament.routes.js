@@ -49,4 +49,18 @@ router.post(
   eventController.createEvent.bind(eventController)
 );
 
+// PATCH /events/:eventId - Update event (OWNER/ADMIN of tournament's org only)
+router.patch(
+  '/events/:eventId',
+  authenticate,
+  eventController.updateEvent.bind(eventController)
+);
+
+// DELETE /events/:eventId - Delete event (OWNER/ADMIN of tournament's org only)
+router.delete(
+  '/events/:eventId',
+  authenticate,
+  eventController.deleteEvent.bind(eventController)
+);
+
 module.exports = router;

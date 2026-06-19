@@ -70,10 +70,9 @@ model Tournament {
   venueAddress         String?
   city                 String
   registrationDeadline DateTime
-  entryFee             Decimal?         @db.Decimal(10, 2)
   description          String?
-  maxParticipants      Int?
-  status               TournamentStatus @default(DRAFT)
+  rules                String?
+  status               TournamentStatus @default(DRAFT) // Organizer sets DRAFT/OPEN only. System calculates CLOSED/ONGOING/COMPLETED based on dates
   createdAt            DateTime         @default(now())
   updatedAt            DateTime         @updatedAt
   format               TournamentFormat @default(BRACKET)
@@ -97,6 +96,7 @@ model Event {
   format           EventFormat
   maxParticipants  Int?
   registrationFee  Decimal?       @db.Decimal(10, 2)
+  rules            String?
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
   category         String?
@@ -104,6 +104,9 @@ model Event {
   bracketFormat    BracketFormat?
   bracketGenerated Boolean        @default(false)
   seedingMethod    SeedingMethod?
+  totalSlots       Int?           // Next power of 2 (e.g., 13 → 16)
+  totalRounds      Int?           // log2(totalSlots)
+  byeCount         Int?           // totalSlots - participantCount
   tournament       Tournament     @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
   matches          Match[]
   registrations    Registration[]
@@ -120,6 +123,8 @@ model Registration {
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt
   seedNumber  Int?
+  isWithdrawn Boolean            @default(false)
+  withdrawnAt DateTime?
   matchesAsP1 Match[]            @relation("Match_Participant1")
   matchesAsP2 Match[]            @relation("Match_Participant2")
   matchesWon  Match[]            @relation("Match_Winner")
@@ -136,25 +141,33 @@ model Match {
   eventId        String
   roundNumber    Int
   matchNumber    Int
+  bracketPosition String?      // "R3-M1" for debugging/display
   participant1Id String?
   participant2Id String?
   winnerId       String?
   score          String?
   status         MatchStatus   @default(PENDING)
+  nextMatchId    String?       // ID of match winner advances to
+  feedsPosition  Int?          // 1 or 2 - which slot in nextMatch
+  isByeMatch     Boolean       @default(false)
+  isWalkover     Boolean       @default(false)
   scheduledAt    DateTime?
   completedAt    DateTime?
   courtNumber    Int?
+  courtName      String?
+  duration       Int?
   notes          String?
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
-  courtName      String?
-  duration       Int?
-  isFinalsMatch  Boolean       @default(false)
   event          Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
   participant1   Registration? @relation("Match_Participant1", fields: [participant1Id], references: [id])
   participant2   Registration? @relation("Match_Participant2", fields: [participant2Id], references: [id])
   winner         Registration? @relation("Match_Winner", fields: [winnerId], references: [id])
 
+  @@unique([eventId, roundNumber, matchNumber])
+  @@index([nextMatchId])
+  @@index([status])
+  @@index([scheduledAt])
   @@map("matches")
 }
 
@@ -164,6 +177,7 @@ enum BracketFormat {
 }
 
 enum SeedingMethod {
+  REGISTRATION_ORDER
   RANDOM
   MANUAL
 }
@@ -201,9 +215,11 @@ enum RegistrationStatus {
 }
 
 enum MatchStatus {
-  PENDING
-  IN_PROGRESS
-  COMPLETED
-  WALKOVER
-  BYE
+  PENDING      // Not yet played, waiting for participants
+  READY        // Both participants known, can be played
+  IN_PROGRESS  // Currently being played
+  COMPLETED    // Finished with winner
+  WALKOVER     // One player didn't show
+  BYE          // Automatic advancement
+  CANCELLED    // Match cancelled due to withdrawal
 }

@@ -364,9 +364,8 @@ const CreateTournamentModal = ({ onClose, onSubmit }) => {
     venueAddress: '',
     city: '',
     registrationDeadline: '',
-    entryFee: '',
     description: '',
-    maxParticipants: '',
+    rules: '',
     status: 'DRAFT'
   })
 
@@ -494,29 +493,6 @@ const CreateTournamentModal = ({ onClose, onSubmit }) => {
               />
             </div>
 
-            <div className="grid md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">Entry Fee (₹)</label>
-                <input
-                  type="number"
-                  value={formData.entryFee}
-                  onChange={(e) => setFormData({ ...formData, entryFee: e.target.value })}
-                  placeholder="Leave empty for free"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">Max Participants</label>
-                <input
-                  type="number"
-                  value={formData.maxParticipants}
-                  onChange={(e) => setFormData({ ...formData, maxParticipants: e.target.value })}
-                  placeholder="Leave empty for unlimited"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                />
-              </div>
-            </div>
 
             <div>
               <label className="block text-sm font-medium mb-2">Status</label>
@@ -527,10 +503,10 @@ const CreateTournamentModal = ({ onClose, onSubmit }) => {
               >
                 <option value="DRAFT">Draft</option>
                 <option value="OPEN">Open</option>
-                <option value="CLOSED">Closed</option>
-                <option value="ONGOING">Ongoing</option>
-                <option value="COMPLETED">Completed</option>
               </select>
+              <p className="mt-1 text-xs text-gray-500">
+                Other statuses (Closed, Ongoing, Completed) are calculated automatically based on dates
+              </p>
             </div>
 
             <div>
@@ -539,7 +515,18 @@ const CreateTournamentModal = ({ onClose, onSubmit }) => {
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={3}
-                placeholder="Tournament details and rules..."
+                placeholder="Tournament details..."
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">Tournament Rules</label>
+              <textarea
+                value={formData.rules}
+                onChange={(e) => setFormData({ ...formData, rules: e.target.value })}
+                rows={6}
+                placeholder="Enter tournament rules, regulations, and guidelines..."
                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
               />
             </div>

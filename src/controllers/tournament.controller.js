@@ -75,9 +75,9 @@ class TournamentController {
         }
       }
 
-      const validStatuses = ['DRAFT', 'OPEN', 'CLOSED', 'ONGOING', 'COMPLETED'];
+      const validStatuses = ['DRAFT', 'OPEN'];
       if (status && !validStatuses.includes(status)) {
-        errors.push(`Status must be one of: ${validStatuses.join(', ')}`);
+        errors.push(`Status must be one of: ${validStatuses.join(', ')} (other statuses are calculated automatically)`);
       }
 
       if (errors.length > 0) {
@@ -94,9 +94,8 @@ class TournamentController {
         venueAddress: venueAddress?.trim(),
         city: city.trim(),
         registrationDeadline,
-        entryFee: entryFee ? parseFloat(entryFee) : null,
         description: description?.trim(),
-        maxParticipants: maxParticipants ? parseInt(maxParticipants, 10) : null,
+        rules: req.body.rules?.trim(),
         status: status || 'DRAFT'
       });
 
@@ -126,11 +125,11 @@ class TournamentController {
         });
       }
 
-      const validStatuses = ['DRAFT', 'OPEN', 'CLOSED', 'ONGOING', 'COMPLETED'];
+      const validStatuses = ['DRAFT', 'OPEN'];
       if (status && !validStatuses.includes(status)) {
         return res.status(400).json({
           success: false,
-          error: `Invalid status. Must be one of: ${validStatuses.join(', ')}`
+          error: `Invalid status. Must be one of: ${validStatuses.join(', ')} (other statuses are calculated automatically)`
         });
       }
 
@@ -194,9 +193,8 @@ class TournamentController {
         venueAddress,
         city,
         registrationDeadline,
-        entryFee,
         description,
-        maxParticipants,
+        rules,
         status
       } = req.body;
 
@@ -211,10 +209,20 @@ class TournamentController {
       if (venueAddress !== undefined) updateData.venueAddress = venueAddress?.trim() || null;
       if (city !== undefined) updateData.city = city.trim();
       if (registrationDeadline !== undefined) updateData.registrationDeadline = new Date(registrationDeadline);
-      if (entryFee !== undefined) updateData.entryFee = entryFee ? parseFloat(entryFee) : null;
       if (description !== undefined) updateData.description = description?.trim() || null;
-      if (maxParticipants !== undefined) updateData.maxParticipants = maxParticipants ? parseInt(maxParticipants, 10) : null;
-      if (status !== undefined) updateData.status = status;
+      if (rules !== undefined) updateData.rules = rules?.trim() || null;
+
+      // Only allow DRAFT or OPEN status
+      if (status !== undefined) {
+        const validStatuses = ['DRAFT', 'OPEN'];
+        if (!validStatuses.includes(status)) {
+          return res.status(400).json({
+            success: false,
+            error: `Status must be one of: ${validStatuses.join(', ')} (other statuses are calculated automatically)`
+          });
+        }
+        updateData.status = status;
+      }
 
       const prisma = require('../lib/prisma');
       const tournament = await prisma.tournament.update({
@@ -232,9 +240,16 @@ class TournamentController {
         }
       });
 
+      // Apply computed status
+      const tournamentService = require('../services/tournament.service');
+      const tournamentWithComputedStatus = {
+        ...tournament,
+        status: tournamentService.calculateStatus(tournament)
+      };
+
       res.status(200).json({
         success: true,
-        tournament
+        tournament: tournamentWithComputedStatus
       });
     } catch (error) {
       next(error);

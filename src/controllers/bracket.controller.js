@@ -17,8 +17,8 @@ class BracketController {
         errors.push('bracketFormat must be either SINGLE_ELIMINATION or ROUND_ROBIN');
       }
 
-      if (!seedingMethod || !['RANDOM', 'MANUAL'].includes(seedingMethod)) {
-        errors.push('seedingMethod must be either RANDOM or MANUAL');
+      if (!seedingMethod || !['REGISTRATION_ORDER', 'RANDOM', 'MANUAL'].includes(seedingMethod)) {
+        errors.push('seedingMethod must be REGISTRATION_ORDER, RANDOM, or MANUAL');
       }
 
       if (errors.length > 0) {
