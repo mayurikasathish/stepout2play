@@ -1,43 +1,20 @@
 const prisma = require('../lib/prisma');
 
 class BracketService {
-  /**
-   * Generate bracket for an event
-   * @param {string} eventId - Event ID
-   * @param {string} bracketFormat - SINGLE_ELIMINATION only for now
-   * @param {string} seedingMethod - REGISTRATION_ORDER, RANDOM, or MANUAL
-   */
-  async generateBracket(eventId, bracketFormat, seedingMethod) {
-    // Get event with registrations
+  // ─────────────────────────────────────────────────────────────────
+  // PUBLIC: Generate bracket (routes to single-elim or round robin)
+  // ─────────────────────────────────────────────────────────────────
+  async generateBracket(eventId, bracketFormat, seedingMethod, options = {}) {
     const event = await prisma.event.findUnique({
       where: { id: eventId },
       include: {
         registrations: {
-          where: {
-            status: 'CONFIRMED',
-            isWithdrawn: false
-          },
+          where: { status: 'CONFIRMED', isWithdrawn: false },
           include: {
-            user: {
-              select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-                email: true
-              }
-            },
-            partner: {
-              select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-                email: true
-              }
-            }
+            user: { select: { id: true, firstName: true, lastName: true, email: true } },
+            partner: { select: { id: true, firstName: true, lastName: true, email: true } }
           },
-          orderBy: {
-            createdAt: 'asc' // For REGISTRATION_ORDER seeding
-          }
+          orderBy: { createdAt: 'asc' }
         },
         matches: true
       }
@@ -49,14 +26,12 @@ class BracketService {
       throw error;
     }
 
-    // Check if bracket already exists
     if (event.bracketGenerated) {
       const error = new Error('Bracket already generated for this event. Delete existing bracket first.');
       error.statusCode = 400;
       throw error;
     }
 
-    // Check minimum participants (or teams for doubles/mixed doubles)
     const participantCount = event.registrations.length;
     const isTeamEvent = event.format === 'DOUBLES' || event.format === 'MIXED_DOUBLES';
     const entityLabel = isTeamEvent ? 'teams' : 'participants';
@@ -67,293 +42,369 @@ class BracketService {
       throw error;
     }
 
-    // Only support SINGLE_ELIMINATION for Phase 2
-    if (bracketFormat !== 'SINGLE_ELIMINATION') {
-      const error = new Error('Only SINGLE_ELIMINATION bracket format is currently supported');
-      error.statusCode = 400;
-      throw error;
-    }
-
     // Apply seeding
-    let seededParticipants = [];
+    let seededParticipants;
     if (seedingMethod === 'MANUAL') {
       seededParticipants = this.applySeedingManual(event.registrations);
     } else if (seedingMethod === 'RANDOM') {
       seededParticipants = this.applySeedingRandom(event.registrations);
+    } else if (seedingMethod === 'SNAKE') {
+      seededParticipants = this.applySeedingSnake(event.registrations, options.groupSize || 4);
     } else {
-      // REGISTRATION_ORDER - already ordered by createdAt
-      seededParticipants = event.registrations;
+      seededParticipants = event.registrations; // REGISTRATION_ORDER
     }
 
-    // Generate single elimination bracket
-    const { matches, totalSlots, totalRounds, byeCount } =
-      this.generateSingleEliminationBracket(seededParticipants, eventId);
+    if (bracketFormat === 'ROUND_ROBIN') {
+      return await this.generateRoundRobinBracket(eventId, seededParticipants, seedingMethod, options);
+    }
 
-    // Create matches in database using transaction
-    await prisma.$transaction(async (tx) => {
-      // Step 1: Create all matches without nextMatchId (we'll update these in step 2)
-      // matchData.nextMatchId at this point is still the "round-matchNum" KEY STRING
-      // (e.g. "2-1"), not a real ID — that's intentional, we resolve it below.
-      const createdMatches = [];
-      for (const matchData of matches) {
-        const { nextMatchId, ...matchDataWithoutNext } = matchData;
-        const created = await tx.match.create({
-          data: matchDataWithoutNext
-        });
-        createdMatches.push({
-          ...created,
-          nextMatchKey: nextMatchId // the "round-matchNum" string, e.g. "2-1"
-        });
-      }
+    if (bracketFormat === 'SINGLE_ELIMINATION') {
+      return await this.generateSingleEliminationFlow(eventId, seededParticipants, seedingMethod, participantCount);
+    }
 
-      // Step 2: Build a map of (roundNumber, matchNumber) -> actual match ID
-      const matchKeyToId = new Map();
-      createdMatches.forEach(match => {
-        const key = `${match.roundNumber}-${match.matchNumber}`;
-        matchKeyToId.set(key, match.id);
+    if (bracketFormat === 'LEAGUE_CUM_KNOCKOUT') {
+      return await this.generateHybridBracket(eventId, seededParticipants, seedingMethod, options);
+    }
+
+    const error = new Error('bracketFormat must be SINGLE_ELIMINATION, ROUND_ROBIN, or LEAGUE_CUM_KNOCKOUT');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  // ─────────────────────────────────────────────────────────────────
+  // ROUND ROBIN: Main generator
+  // ─────────────────────────────────────────────────────────────────
+  async generateRoundRobinBracket(eventId, participants, seedingMethod, options) {
+    const participantCount = participants.length;
+    // Default group size: aim for groups of 4, min 3
+    const groupSize = options.groupSize
+      ? parseInt(options.groupSize)
+      : participantCount <= 6 ? participantCount : 4;
+
+    const groupCount = Math.ceil(participantCount / groupSize);
+
+    // Divide participants into groups using round-robin distribution
+    // This ensures even distribution: for 55 players in 7 groups → 6 groups of 8, 1 group of 7
+    const groups = Array.from({ length: groupCount }, (_, i) => ({
+      name: `Group ${String.fromCharCode(65 + i)}`, // A, B, C...
+      participants: []
+    }));
+
+    // Use snake seeding only if explicitly requested, otherwise use round-robin distribution
+    if (seedingMethod === 'SNAKE') {
+      // Snake distribution: zigzag pattern to avoid clustering strong seeds
+      participants.forEach((p, idx) => {
+        const groupIdx = this._snakeIndex(idx, groupCount);
+        groups[groupIdx].participants.push(p);
       });
+    } else {
+      // Round-robin distribution: fill groups evenly (1→A, 2→B, 3→C, ..., 8→A, 9→B...)
+      participants.forEach((p, idx) => {
+        const groupIdx = idx % groupCount;
+        groups[groupIdx].participants.push(p);
+      });
+    }
 
-      // Step 3: Update matches with correct nextMatchId references
-      for (const match of createdMatches) {
-        if (match.nextMatchKey && typeof match.nextMatchKey === 'string' && match.nextMatchKey.includes('-')) {
-          const nextMatchId = matchKeyToId.get(match.nextMatchKey);
-          if (nextMatchId) {
-            await tx.match.update({
-              where: { id: match.id },
-              data: { nextMatchId }
+    await prisma.$transaction(async (tx) => {
+      let globalMatchNumber = 1;
+
+      for (const groupDef of groups) {
+        // Create Group record
+        const group = await tx.group.create({
+          data: {
+            eventId,
+            name: groupDef.name,
+            status: 'PENDING'
+          }
+        });
+
+        // Create standings rows for each participant in this group
+        await tx.groupStanding.createMany({
+          data: groupDef.participants.map(p => ({
+            id: require('crypto').randomUUID(),
+            groupId: group.id,
+            registrationId: p.id
+          }))
+        });
+
+        // Generate round-robin fixtures using the rotation algorithm
+        // For N participants: N-1 rounds, each round has floor(N/2) matches
+        const fixtures = this._generateRoundRobinFixtures(groupDef.participants);
+
+        for (let roundIdx = 0; roundIdx < fixtures.length; roundIdx++) {
+          const round = fixtures[roundIdx];
+          for (let matchIdx = 0; matchIdx < round.length; matchIdx++) {
+            const [p1, p2] = round[matchIdx];
+            await tx.match.create({
+              data: {
+                eventId,
+                groupId: group.id,
+                roundNumber: roundIdx + 1,
+                matchNumber: globalMatchNumber++,
+                bracketPosition: `${group.name}-R${roundIdx + 1}-M${matchIdx + 1}`,
+                participant1Id: p1 ? p1.id : null,
+                participant2Id: p2 ? p2.id : null,
+                status: (p1 && p2) ? 'READY' : 'PENDING',
+                nextMatchId: null,
+                feedsPosition: null,
+                isByeMatch: false,
+                isWalkover: false
+              }
             });
-            // CRITICAL: Also update the match object in createdMatches array so Step 4 can use it
-            match.nextMatchId = nextMatchId;
           }
         }
       }
 
-      // Step 4: Auto-advance BYE winners to next round
-      for (const match of createdMatches) {
-        if (match.status === 'BYE' && match.winnerId && match.feedsPosition && match.nextMatchId) {
-          const updateData = match.feedsPosition === 1
-            ? { participant1Id: match.winnerId }
-            : { participant2Id: match.winnerId };
-
-          await tx.match.update({
-            where: { id: match.nextMatchId },
-            data: updateData
-          });
-
-          // Check if next match is now READY
-          const nextMatch = await tx.match.findUnique({
-            where: { id: match.nextMatchId }
-          });
-          if (nextMatch.participant1Id && nextMatch.participant2Id) {
-            await tx.match.update({
-              where: { id: nextMatch.id },
-              data: { status: 'READY' }
-            });
-          }
-        }
-      }
-
-      // Step 5: Update event metadata
+      // Update event metadata
       await tx.event.update({
         where: { id: eventId },
         data: {
           bracketGenerated: true,
-          bracketFormat,
+          bracketFormat: 'ROUND_ROBIN',
           seedingMethod,
-          totalSlots,
-          totalRounds,
-          byeCount
+          groupCount,
+          groupSize,
+          totalRounds: groups[0] ? this._rrRounds(groups[0].participants.length) : 0
         }
       });
     });
 
+    // Calculate actual group sizes for return
+    const actualGroupSizes = groups.map(g => g.participants.length);
+    const minGroupSize = Math.min(...actualGroupSizes);
+    const maxGroupSize = Math.max(...actualGroupSizes);
+
     return {
-      matchesCreated: matches.length,
-      bracketFormat,
+      bracketFormat: 'ROUND_ROBIN',
       seedingMethod,
       participants: participantCount,
-      totalSlots,
-      totalRounds,
-      byeCount
+      groupCount,
+      groupSize: `${minGroupSize}${minGroupSize !== maxGroupSize ? `-${maxGroupSize}` : ''} per group`
     };
   }
 
-  /**
-   * Generate standard tournament seeding order
-   * Creates balanced bracket: [1, 8, 4, 5, 2, 7, 3, 6] for 8 slots
-   * Ensures top seeds don't meet until later rounds
-   */
-  generateStandardSeeding(totalSlots) {
-    const rounds = Math.log2(totalSlots);
-    let seeds = [1];
+  // Round-robin rotation scheduling algorithm
+  // Returns: array of rounds, each round is array of [p1, p2] pairs
+  _generateRoundRobinFixtures(participants) {
+    const n = participants.length;
+    // If odd number, add a BYE placeholder
+    const list = n % 2 === 0 ? [...participants] : [...participants, null];
+    const size = list.length;
+    const rounds = size - 1;
+    const fixtures = [];
 
-    for (let round = 1; round <= rounds; round++) {
-      const newSeeds = [];
-      const nextSize = Math.pow(2, round) + 1;
+    const rotatable = list.slice(1); // everything except the first (fixed) participant
 
-      for (const seed of seeds) {
-        newSeeds.push(seed);
-        newSeeds.push(nextSize - seed);
-      }
+    for (let round = 0; round < rounds; round++) {
+      const roundFixtures = [];
+      const current = [list[0], ...rotatable];
 
-      seeds = newSeeds;
-    }
-
-    return seeds;
-  }
-
-  /**
-   * Generate Single Elimination bracket with explicit progression
-   */
-  generateSingleEliminationBracket(participants, eventId) {
-    const participantCount = participants.length;
-
-    // Calculate bracket parameters
-    const totalSlots = Math.pow(2, Math.ceil(Math.log2(participantCount)));
-    const totalRounds = Math.log2(totalSlots);
-    const byeCount = totalSlots - participantCount;
-
-    // Generate standard seeding order
-    const seedingOrder = this.generateStandardSeeding(totalSlots);
-
-    // Create a map to store all matches by (roundNumber, matchNumber)
-    const matchesMap = new Map();
-    const matches = [];
-
-    // Step 1: Create all matches.
-    // nextMatchId is set to the "round-matchNum" KEY STRING (e.g. "2-1") here.
-    // This string is resolved into a real DB id later, inside generateBracket's
-    // transaction (Step 2/3 above). It must NOT be nulled out before that —
-    // doing so was the bug that broke BYE auto-advancement and all later
-    // winner-advancement, since every match ended up with nextMatchId = null
-    // in the database.
-    for (let round = 1; round <= totalRounds; round++) {
-      const matchesInRound = Math.pow(2, round - 1);
-
-      for (let matchNum = 1; matchNum <= matchesInRound; matchNum++) {
-        const matchKey = `${round}-${matchNum}`;
-
-        // Calculate progression
-        let nextMatchId = null;
-        let feedsPosition = null;
-
-        if (round > 1) {
-          // Not the finals, so there's a next match
-          const nextRound = round - 1;
-          const nextMatchNumber = Math.ceil(matchNum / 2);
-          const nextMatchKey = `${nextRound}-${nextMatchNumber}`;
-
-          // Store the key for now — resolved to a real UUID inside the
-          // transaction in generateBracket()
-          nextMatchId = nextMatchKey;
-          feedsPosition = (matchNum % 2 === 1) ? 1 : 2; // Odd match → position 1, Even → position 2
+      for (let i = 0; i < size / 2; i++) {
+        const p1 = current[i];
+        const p2 = current[size - 1 - i];
+        if (p1 !== null && p2 !== null) {
+          roundFixtures.push([p1, p2]);
         }
-
-        const match = {
-          eventId,
-          roundNumber: round,
-          matchNumber: matchNum,
-          bracketPosition: `R${round}-M${matchNum}`,
-          participant1Id: null,
-          participant2Id: null,
-          winnerId: null,
-          score: null,
-          status: 'PENDING',
-          nextMatchId, // "round-matchNum" key string for now (e.g. "2-1"), or null for the final
-          feedsPosition,
-          isByeMatch: false,
-          isWalkover: false,
-          completedAt: null
-        };
-
-        matchesMap.set(matchKey, match);
-        matches.push(match);
       }
+      fixtures.push(roundFixtures);
+
+      // Rotate: move last element to front of rotatable
+      rotatable.unshift(rotatable.pop());
     }
 
-    // Build a lookup so we can assign participants in Step 3 below.
-    // NOTE: previously this section also nulled out nextMatchId on every
-    // match, which silently broke bracket progression entirely. That step
-    // has been removed — nextMatchId must stay as the key string until
-    // generateBracket()'s transaction resolves it to a real id.
-    const matchIdMap = new Map(); // matchKey → actual match object
-    matches.forEach(match => {
-      const key = `${match.roundNumber}-${match.matchNumber}`;
-      matchIdMap.set(key, match);
+    return fixtures;
+  }
+
+  // Number of rounds for N participants in round robin
+  _rrRounds(n) {
+    return n % 2 === 0 ? n - 1 : n;
+  }
+
+  // Snake index: distributes participants across groups in zigzag
+  // e.g. 6 participants, 3 groups: 0→0, 1→1, 2→2, 3→2, 4→1, 5→0
+  _snakeIndex(idx, groupCount) {
+    const cycle = groupCount * 2 - 2;
+    const pos = idx % cycle;
+    return pos < groupCount ? pos : cycle - pos;
+  }
+
+  // ─────────────────────────────────────────────────────────────────
+  // ROUND ROBIN: Update match result + recalculate standings
+  // ─────────────────────────────────────────────────────────────────
+  async updateRoundRobinMatchResult(matchId, winnerId, score) {
+    const match = await prisma.match.findUnique({
+      where: { id: matchId },
+      include: { event: true }
     });
 
-    // Step 3: Assign participants to first round using seeding order
-    const firstRound = totalRounds;
-    const firstRoundMatches = Math.pow(2, firstRound - 1);
-
-    for (let matchNum = 1; matchNum <= firstRoundMatches; matchNum++) {
-      const matchKey = `${firstRound}-${matchNum}`;
-      const match = matchIdMap.get(matchKey);
-
-      // Get the two seed positions for this match
-      const seed1Position = (matchNum - 1) * 2;
-      const seed2Position = seed1Position + 1;
-
-      const seed1 = seedingOrder[seed1Position];
-      const seed2 = seedingOrder[seed2Position];
-
-      // Assign participant1
-      if (seed1 <= participantCount) {
-        match.participant1Id = participants[seed1 - 1].id;
-      }
-
-      // Assign participant2
-      if (seed2 <= participantCount) {
-        match.participant2Id = participants[seed2 - 1].id;
-      }
-
-      // Check if this is a BYE match
-      if (match.participant1Id && !match.participant2Id) {
-        match.isByeMatch = true;
-        match.status = 'BYE';
-        match.winnerId = match.participant1Id;
-        match.completedAt = new Date();
-      } else if (!match.participant1Id && match.participant2Id) {
-        // Should not happen with proper seeding, but handle it
-        match.isByeMatch = true;
-        match.status = 'BYE';
-        match.winnerId = match.participant2Id;
-        match.completedAt = new Date();
-      } else if (match.participant1Id && match.participant2Id) {
-        match.status = 'READY'; // Both participants known
-      }
+    if (!match) {
+      const error = new Error('Match not found');
+      error.statusCode = 404;
+      throw error;
     }
 
-    return { matches, totalSlots, totalRounds, byeCount };
-  }
+    if (!match.groupId) {
+      // Not a group match — delegate to single elim handler
+      return this.updateMatchResult(matchId, winnerId, score);
+    }
 
-  /**
-   * Apply manual seeding (uses seedNumber from registration)
-   */
-  applySeedingManual(registrations) {
-    return [...registrations].sort((a, b) => {
-      if (a.seedNumber === null) return 1;
-      if (b.seedNumber === null) return -1;
-      return a.seedNumber - b.seedNumber;
+    // Validate winner
+    if (winnerId && winnerId !== match.participant1Id && winnerId !== match.participant2Id) {
+      const error = new Error('Winner must be one of the match participants');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const isDraw = !winnerId; // null winnerId = draw
+
+    await prisma.$transaction(async (tx) => {
+      // Update match
+      await tx.match.update({
+        where: { id: matchId },
+        data: {
+          winnerId: winnerId || null,
+          score,
+          status: 'COMPLETED',
+          completedAt: new Date()
+        }
+      });
+
+      const loserId = winnerId === match.participant1Id
+        ? match.participant2Id
+        : match.participant1Id;
+
+      if (!isDraw && winnerId) {
+        // Win = 3 pts, Loss = 0 pts
+        await tx.groupStanding.updateMany({
+          where: { groupId: match.groupId, registrationId: winnerId },
+          data: { wins: { increment: 1 }, points: { increment: 3 }, matchesPlayed: { increment: 1 } }
+        });
+        await tx.groupStanding.updateMany({
+          where: { groupId: match.groupId, registrationId: loserId },
+          data: { losses: { increment: 1 }, matchesPlayed: { increment: 1 } }
+        });
+      } else {
+        // Draw = 1 pt each
+        if (match.participant1Id) {
+          await tx.groupStanding.updateMany({
+            where: { groupId: match.groupId, registrationId: match.participant1Id },
+            data: { draws: { increment: 1 }, points: { increment: 1 }, matchesPlayed: { increment: 1 } }
+          });
+        }
+        if (match.participant2Id) {
+          await tx.groupStanding.updateMany({
+            where: { groupId: match.groupId, registrationId: match.participant2Id },
+            data: { draws: { increment: 1 }, points: { increment: 1 }, matchesPlayed: { increment: 1 } }
+          });
+        }
+      }
+
+      // Check if all group matches are done → mark group COMPLETED
+      const pendingMatches = await tx.match.count({
+        where: { groupId: match.groupId, status: { not: 'COMPLETED' } }
+      });
+      if (pendingMatches === 0) {
+        await tx.group.update({
+          where: { id: match.groupId },
+          data: { status: 'COMPLETED' }
+        });
+      } else {
+        // Mark IN_PROGRESS if not already
+        await tx.group.updateMany({
+          where: { id: match.groupId, status: 'PENDING' },
+          data: { status: 'IN_PROGRESS' }
+        });
+      }
+    });
+
+    return await prisma.match.findUnique({
+      where: { id: matchId },
+      include: {
+        participant1: { include: { user: true, partner: true } },
+        participant2: { include: { user: true, partner: true } },
+        winner: { include: { user: true, partner: true } }
+      }
     });
   }
 
-  /**
-   * Apply random seeding (shuffle)
-   */
-  applySeedingRandom(registrations) {
-    const participants = [...registrations];
-    // Fisher-Yates shuffle
-    for (let i = participants.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [participants[i], participants[j]] = [participants[j], participants[i]];
+  // ─────────────────────────────────────────────────────────────────
+  // GET bracket (handles both formats)
+  // ─────────────────────────────────────────────────────────────────
+  async getBracket(eventId) {
+    // First fetch the event without groups to check bracketFormat safely
+    const event = await prisma.event.findUnique({
+      where: { id: eventId },
+      include: {
+        matches: {
+          include: {
+            participant1: { include: { user: { select: { id: true, firstName: true, lastName: true, email: true } }, partner: { select: { id: true, firstName: true, lastName: true, email: true } } } },
+            participant2: { include: { user: { select: { id: true, firstName: true, lastName: true, email: true } }, partner: { select: { id: true, firstName: true, lastName: true, email: true } } } },
+            winner: { include: { user: { select: { id: true, firstName: true, lastName: true } }, partner: { select: { id: true, firstName: true, lastName: true } } } }
+          },
+          orderBy: [{ roundNumber: 'asc' }, { matchNumber: 'asc' }]
+        }
+      }
+    });
+
+    if (!event) {
+      const error = new Error('Event not found');
+      error.statusCode = 404;
+      throw error;
     }
-    return participants;
+
+    // Only fetch groups if this is a round robin bracket AND migration has run
+    let groups = [];
+    if (event.bracketFormat === 'ROUND_ROBIN') {
+      try {
+        groups = await prisma.group.findMany({
+          where: { eventId },
+          include: {
+            standings: {
+              include: {
+                registration: { include: { user: { select: { id: true, firstName: true, lastName: true, email: true } }, partner: { select: { id: true, firstName: true, lastName: true } } } }
+              },
+              orderBy: [{ points: 'desc' }, { wins: 'desc' }]
+            },
+            matches: {
+              include: {
+                participant1: { include: { user: { select: { id: true, firstName: true, lastName: true } }, partner: { select: { id: true, firstName: true, lastName: true } } } },
+                participant2: { include: { user: { select: { id: true, firstName: true, lastName: true } }, partner: { select: { id: true, firstName: true, lastName: true } } } },
+                winner: { include: { user: { select: { id: true, firstName: true, lastName: true } } } }
+              },
+              orderBy: [{ roundNumber: 'asc' }, { matchNumber: 'asc' }]
+            }
+          },
+          orderBy: { name: 'asc' }
+        });
+      } catch (groupErr) {
+        // Migration not yet applied — return empty groups, frontend handles gracefully
+        console.warn('Groups table not available yet (migration pending):', groupErr.message);
+        groups = [];
+      }
+    }
+
+    return {
+      event: {
+        id: event.id,
+        name: event.name,
+        format: event.format,
+        bracketGenerated: event.bracketGenerated,
+        bracketFormat: event.bracketFormat,
+        seedingMethod: event.seedingMethod,
+        totalSlots: event.totalSlots,
+        totalRounds: event.totalRounds,
+        byeCount: event.byeCount,
+        groupCount: event.groupCount || null,
+        groupSize: event.groupSize || null
+      },
+      matches: event.matches,
+      groups
+    };
   }
 
-  /**
-   * Delete bracket for an event
-   */
+  // ─────────────────────────────────────────────────────────────────
+  // DELETE bracket (handles both formats)
+  // ─────────────────────────────────────────────────────────────────
   async deleteBracket(eventId) {
     const event = await prisma.event.findUnique({
       where: { id: eventId },
@@ -372,180 +423,220 @@ class BracketService {
       throw error;
     }
 
-    // Delete all matches and reset event in transaction
     await prisma.$transaction(async (tx) => {
-      await tx.match.deleteMany({
-        where: { eventId }
-      });
+      await tx.match.deleteMany({ where: { eventId } });
+      // Groups cascade-delete their standings via FK
+      // Wrapped in try/catch in case migration hasn't been applied yet
+      try {
+        await tx.group.deleteMany({ where: { eventId } });
+      } catch (groupErr) {
+        console.warn('Groups table not available yet (migration pending) — skipping group delete:', groupErr.message);
+      }
 
-      await tx.event.update({
-        where: { id: eventId },
-        data: {
-          bracketGenerated: false,
-          bracketFormat: null,
-          seedingMethod: null,
-          totalSlots: null,
-          totalRounds: null,
-          byeCount: null
-        }
-      });
+      // Reset event metadata — try with new RR columns first, fall back without them
+      try {
+        await tx.event.update({
+          where: { id: eventId },
+          data: {
+            bracketGenerated: false, bracketFormat: null, seedingMethod: null,
+            totalSlots: null, totalRounds: null, byeCount: null,
+            groupCount: null, groupSize: null
+          }
+        });
+      } catch (colErr) {
+        // groupCount/groupSize columns don't exist yet — reset without them
+        await tx.event.update({
+          where: { id: eventId },
+          data: {
+            bracketGenerated: false, bracketFormat: null, seedingMethod: null,
+            totalSlots: null, totalRounds: null, byeCount: null
+          }
+        });
+      }
     });
 
     return { message: 'Bracket deleted successfully' };
   }
 
-  /**
-   * Get bracket for an event
-   */
-  async getBracket(eventId) {
-    const event = await prisma.event.findUnique({
-      where: { id: eventId },
-      include: {
-        matches: {
-          include: {
-            participant1: {
-              include: {
-                user: {
-                  select: {
-                    id: true,
-                    firstName: true,
-                    lastName: true,
-                    email: true
-                  }
-                },
-                partner: {
-                  select: {
-                    id: true,
-                    firstName: true,
-                    lastName: true,
-                    email: true
-                  }
-                }
-              }
-            },
-            participant2: {
-              include: {
-                user: {
-                  select: {
-                    id: true,
-                    firstName: true,
-                    lastName: true,
-                    email: true
-                  }
-                },
-                partner: {
-                  select: {
-                    id: true,
-                    firstName: true,
-                    lastName: true,
-                    email: true
-                  }
-                }
-              }
-            },
-            winner: {
-              include: {
-                user: {
-                  select: {
-                    id: true,
-                    firstName: true,
-                    lastName: true
-                  }
-                },
-                partner: {
-                  select: {
-                    id: true,
-                    firstName: true,
-                    lastName: true
-                  }
-                }
-              }
-            }
-          },
-          orderBy: [
-            { roundNumber: 'desc' },
-            { matchNumber: 'asc' }
-          ]
+  // ─────────────────────────────────────────────────────────────────
+  // SINGLE ELIMINATION (unchanged logic, refactored into sub-method)
+  // ─────────────────────────────────────────────────────────────────
+  async generateSingleEliminationFlow(eventId, seededParticipants, seedingMethod, participantCount) {
+    const { matches, totalSlots, totalRounds, byeCount } =
+      this.generateSingleEliminationBracket(seededParticipants, eventId);
+
+    await prisma.$transaction(async (tx) => {
+      const createdMatches = [];
+      for (const matchData of matches) {
+        const { nextMatchId, ...rest } = matchData;
+        const created = await tx.match.create({ data: rest });
+        createdMatches.push({ ...created, nextMatchKey: nextMatchId });
+      }
+
+      const matchKeyToId = new Map();
+      createdMatches.forEach(m => matchKeyToId.set(`${m.roundNumber}-${m.matchNumber}`, m.id));
+
+      for (const match of createdMatches) {
+        if (match.nextMatchKey && typeof match.nextMatchKey === 'string' && match.nextMatchKey.includes('-')) {
+          const nextMatchId = matchKeyToId.get(match.nextMatchKey);
+          if (nextMatchId) {
+            await tx.match.update({ where: { id: match.id }, data: { nextMatchId } });
+            match.nextMatchId = nextMatchId;
+          }
         }
       }
+
+      for (const match of createdMatches) {
+        if (match.status === 'BYE' && match.winnerId && match.feedsPosition && match.nextMatchId) {
+          const updateData = match.feedsPosition === 1
+            ? { participant1Id: match.winnerId }
+            : { participant2Id: match.winnerId };
+          await tx.match.update({ where: { id: match.nextMatchId }, data: updateData });
+          const nextMatch = await tx.match.findUnique({ where: { id: match.nextMatchId } });
+          if (nextMatch.participant1Id && nextMatch.participant2Id) {
+            await tx.match.update({ where: { id: nextMatch.id }, data: { status: 'READY' } });
+          }
+        }
+      }
+
+      await tx.event.update({
+        where: { id: eventId },
+        data: { bracketGenerated: true, bracketFormat: 'SINGLE_ELIMINATION', seedingMethod, totalSlots, totalRounds, byeCount }
+      });
     });
 
-    if (!event) {
-      const error = new Error('Event not found');
-      error.statusCode = 404;
-      throw error;
-    }
-
-    return {
-      event: {
-        id: event.id,
-        name: event.name,
-        format: event.format,
-        bracketGenerated: event.bracketGenerated,
-        bracketFormat: event.bracketFormat,
-        seedingMethod: event.seedingMethod,
-        totalSlots: event.totalSlots,
-        totalRounds: event.totalRounds,
-        byeCount: event.byeCount
-      },
-      matches: event.matches
-    };
+    return { matchesCreated: matches.length, bracketFormat: 'SINGLE_ELIMINATION', seedingMethod, participants: participantCount, totalSlots, totalRounds, byeCount };
   }
 
-  /**
-   * Update seed numbers for manual seeding
-   */
-  async updateSeedNumbers(eventId, seeds) {
-    const event = await prisma.event.findUnique({
-      where: { id: eventId },
-      include: { registrations: true }
-    });
+  generateStandardSeeding(totalSlots) {
+    const rounds = Math.log2(totalSlots);
+    let seeds = [1];
+    for (let round = 1; round <= rounds; round++) {
+      const newSeeds = [];
+      const nextSize = Math.pow(2, round) + 1;
+      for (const seed of seeds) {
+        newSeeds.push(seed);
+        newSeeds.push(nextSize - seed);
+      }
+      seeds = newSeeds;
+    }
+    return seeds;
+  }
 
-    if (!event) {
-      const error = new Error('Event not found');
-      error.statusCode = 404;
-      throw error;
+  generateSingleEliminationBracket(participants, eventId) {
+    const participantCount = participants.length;
+    const totalSlots = Math.pow(2, Math.ceil(Math.log2(participantCount)));
+    const totalRounds = Math.log2(totalSlots);
+    const byeCount = totalSlots - participantCount;
+    const seedingOrder = this.generateStandardSeeding(totalSlots);
+    const matchesMap = new Map();
+    const matches = [];
+
+    for (let round = 1; round <= totalRounds; round++) {
+      const matchesInRound = Math.pow(2, round - 1);
+      for (let matchNum = 1; matchNum <= matchesInRound; matchNum++) {
+        let nextMatchId = null;
+        let feedsPosition = null;
+        if (round > 1) {
+          const nextRound = round - 1;
+          const nextMatchNumber = Math.ceil(matchNum / 2);
+          nextMatchId = `${nextRound}-${nextMatchNumber}`;
+          feedsPosition = (matchNum % 2 === 1) ? 1 : 2;
+        }
+        const match = {
+          eventId, roundNumber: round, matchNumber: matchNum,
+          bracketPosition: `R${round}-M${matchNum}`,
+          participant1Id: null, participant2Id: null, winnerId: null,
+          score: null, status: 'PENDING', nextMatchId, feedsPosition,
+          isByeMatch: false, isWalkover: false, completedAt: null
+        };
+        matchesMap.set(`${round}-${matchNum}`, match);
+        matches.push(match);
+      }
     }
 
-    if (event.bracketGenerated) {
-      const error = new Error('Cannot update seed numbers after bracket has been generated');
+    const matchIdMap = new Map();
+    matches.forEach(m => matchIdMap.set(`${m.roundNumber}-${m.matchNumber}`, m));
+
+    const firstRound = totalRounds;
+    const firstRoundMatches = Math.pow(2, firstRound - 1);
+
+    for (let matchNum = 1; matchNum <= firstRoundMatches; matchNum++) {
+      const match = matchIdMap.get(`${firstRound}-${matchNum}`);
+      const seed1Position = (matchNum - 1) * 2;
+      const seed2Position = seed1Position + 1;
+      const seed1 = seedingOrder[seed1Position];
+      const seed2 = seedingOrder[seed2Position];
+      if (seed1 <= participantCount) match.participant1Id = participants[seed1 - 1].id;
+      if (seed2 <= participantCount) match.participant2Id = participants[seed2 - 1].id;
+
+      if (match.participant1Id && !match.participant2Id) {
+        match.isByeMatch = true; match.status = 'BYE';
+        match.winnerId = match.participant1Id; match.completedAt = new Date();
+      } else if (!match.participant1Id && match.participant2Id) {
+        match.isByeMatch = true; match.status = 'BYE';
+        match.winnerId = match.participant2Id; match.completedAt = new Date();
+      } else if (match.participant1Id && match.participant2Id) {
+        match.status = 'READY';
+      }
+    }
+    return { matches, totalSlots, totalRounds, byeCount };
+  }
+
+  // ─────────────────────────────────────────────────────────────────
+  // SEEDING METHODS
+  // ─────────────────────────────────────────────────────────────────
+  applySeedingManual(registrations) {
+    // Validate that all participants have seed numbers
+    const withoutSeeds = registrations.filter(r => r.seedNumber === null || r.seedNumber === undefined);
+
+    if (withoutSeeds.length > 0) {
+      const error = new Error(
+        `Manual seeding requires all participants to have seed numbers. ` +
+        `${withoutSeeds.length} participant(s) are missing seed numbers. ` +
+        `Please set seed numbers in the Registrations tab first.`
+      );
       error.statusCode = 400;
       throw error;
     }
 
-    // Validate seed numbers
-    const seedNumbers = seeds.map(s => s.seedNumber);
+    // Check for duplicate seed numbers
+    const seedNumbers = registrations.map(r => r.seedNumber).filter(s => s !== null);
     const uniqueSeeds = new Set(seedNumbers);
     if (uniqueSeeds.size !== seedNumbers.length) {
-      const error = new Error('Duplicate seed numbers found');
+      const error = new Error('Duplicate seed numbers found. Each participant must have a unique seed number.');
       error.statusCode = 400;
       throw error;
     }
 
-    // Update all registrations in a transaction
-    await prisma.$transaction(
-      seeds.map(({ registrationId, seedNumber }) =>
-        prisma.registration.update({
-          where: { id: registrationId },
-          data: { seedNumber }
-        })
-      )
-    );
-
-    return { updated: seeds.length };
+    return [...registrations].sort((a, b) => a.seedNumber - b.seedNumber);
   }
 
-  /**
-   * Update match result and advance winner
-   */
+  applySeedingRandom(registrations) {
+    const participants = [...registrations];
+    for (let i = participants.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [participants[i], participants[j]] = [participants[j], participants[i]];
+    }
+    return participants;
+  }
+
+  // Snake seeding: distributes strongest seeds to different groups
+  // Input already ordered by registration/manual seed; snake just reorders
+  // for group assignment (called inside generateRoundRobinBracket)
+  applySeedingSnake(registrations, groupCount) {
+    // For snake seeding, keep original order — actual distribution is done
+    // by _snakeIndex() during group assignment in generateRoundRobinBracket
+    return [...registrations];
+  }
+
+  // ─────────────────────────────────────────────────────────────────
+  // SINGLE ELIM: Update match result + advance winner
+  // ─────────────────────────────────────────────────────────────────
   async updateMatchResult(matchId, winnerId, score) {
     const match = await prisma.match.findUnique({
       where: { id: matchId },
-      include: {
-        event: true,
-        participant1: true,
-        participant2: true
-      }
+      include: { event: true, participant1: true, participant2: true }
     });
 
     if (!match) {
@@ -554,103 +645,82 @@ class BracketService {
       throw error;
     }
 
-    // Validate winner is one of the participants
+    // If this is a group match, delegate to round robin handler
+    if (match.groupId) {
+      return this.updateRoundRobinMatchResult(matchId, winnerId, score);
+    }
+
     if (winnerId !== match.participant1Id && winnerId !== match.participant2Id) {
       const error = new Error('Winner must be one of the match participants');
       error.statusCode = 400;
       throw error;
     }
 
-    // Update match and advance winner in transaction
     await prisma.$transaction(async (tx) => {
-      // Update current match
       await tx.match.update({
         where: { id: matchId },
-        data: {
-          winnerId,
-          score,
-          status: 'COMPLETED',
-          completedAt: new Date()
-        }
+        data: { winnerId, score, status: 'COMPLETED', completedAt: new Date() }
       });
-
-      // Advance winner to next match (if not finals)
       if (match.nextMatchId) {
         await this.advanceWinnerInBracket(tx, match, winnerId);
       }
     });
 
-    // Return updated match
     return await prisma.match.findUnique({
       where: { id: matchId },
       include: {
-        participant1: {
-          include: {
-            user: true,
-            partner: true
-          }
-        },
-        participant2: {
-          include: {
-            user: true,
-            partner: true
-          }
-        },
-        winner: {
-          include: {
-            user: true,
-            partner: true
-          }
-        }
+        participant1: { include: { user: true, partner: true } },
+        participant2: { include: { user: true, partner: true } },
+        winner: { include: { user: true, partner: true } }
       }
     });
   }
 
-  /**
-   * Advance winner to next round in single elimination
-   * This uses the nextMatchId and feedsPosition fields
-   */
   async advanceWinnerInBracket(tx, match, winnerId) {
-    if (!match.nextMatchId) {
-      // Finals - no next match
-      return;
-    }
+    if (!match.nextMatchId) return;
+    const nextMatch = await tx.match.findUnique({ where: { id: match.nextMatchId } });
+    if (!nextMatch) return;
 
-    // Find next match using explicit nextMatchId
-    const nextMatch = await tx.match.findUnique({
-      where: { id: match.nextMatchId }
-    });
+    const updateData = match.feedsPosition === 1
+      ? { participant1Id: winnerId }
+      : { participant2Id: winnerId };
 
-    if (!nextMatch) {
-      console.error(`Next match not found: ${match.nextMatchId}`);
-      return;
-    }
+    await tx.match.update({ where: { id: nextMatch.id }, data: updateData });
 
-    // Determine which participant slot to fill based on feedsPosition
-    const updateData = {};
-    if (match.feedsPosition === 1) {
-      updateData.participant1Id = winnerId;
-    } else if (match.feedsPosition === 2) {
-      updateData.participant2Id = winnerId;
-    }
-
-    // Update next match with winner
-    await tx.match.update({
-      where: { id: nextMatch.id },
-      data: updateData
-    });
-
-    // Check if next match is now READY (both participants filled)
-    const updatedNext = await tx.match.findUnique({
-      where: { id: nextMatch.id }
-    });
-
+    const updatedNext = await tx.match.findUnique({ where: { id: nextMatch.id } });
     if (updatedNext.participant1Id && updatedNext.participant2Id && updatedNext.status === 'PENDING') {
-      await tx.match.update({
-        where: { id: updatedNext.id },
-        data: { status: 'READY' }
-      });
+      await tx.match.update({ where: { id: updatedNext.id }, data: { status: 'READY' } });
     }
+  }
+
+  // ─────────────────────────────────────────────────────────────────
+  // SEED NUMBERS (unchanged)
+  // ─────────────────────────────────────────────────────────────────
+  async updateSeedNumbers(eventId, seeds) {
+    const event = await prisma.event.findUnique({ where: { id: eventId }, include: { registrations: true } });
+    if (!event) {
+      const error = new Error('Event not found');
+      error.statusCode = 404;
+      throw error;
+    }
+    if (event.bracketGenerated) {
+      const error = new Error('Cannot update seed numbers after bracket has been generated');
+      error.statusCode = 400;
+      throw error;
+    }
+    const seedNumbers = seeds.map(s => s.seedNumber);
+    const uniqueSeeds = new Set(seedNumbers);
+    if (uniqueSeeds.size !== seedNumbers.length) {
+      const error = new Error('Duplicate seed numbers found');
+      error.statusCode = 400;
+      throw error;
+    }
+    await prisma.$transaction(
+      seeds.map(({ registrationId, seedNumber }) =>
+        prisma.registration.update({ where: { id: registrationId }, data: { seedNumber } })
+      )
+    );
+    return { updated: seeds.length };
   }
 }
 

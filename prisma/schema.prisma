@@ -71,8 +71,7 @@ model Tournament {
   city                 String
   registrationDeadline DateTime
   description          String?
-  rules                String?
-  status               TournamentStatus @default(DRAFT) // Organizer sets DRAFT/OPEN only. System calculates CLOSED/ONGOING/COMPLETED based on dates
+  status               TournamentStatus @default(DRAFT)
   createdAt            DateTime         @default(now())
   updatedAt            DateTime         @updatedAt
   format               TournamentFormat @default(BRACKET)
@@ -83,6 +82,9 @@ model Tournament {
   firstMatchDate       DateTime?
   matchDuration        Int?             @default(45)
   minRestTime          Int?             @default(30)
+  rules                String?
+  entryFee             Decimal?         @db.Decimal(10, 2)
+  maxParticipants      Int?
   events               Event[]
   organization         Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
@@ -95,8 +97,6 @@ model Event {
   name             String
   format           EventFormat
   maxParticipants  Int?
-  registrationFee  Decimal?       @db.Decimal(10, 2)
-  rules            String?
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
   category         String?
@@ -104,82 +104,135 @@ model Event {
   bracketFormat    BracketFormat?
   bracketGenerated Boolean        @default(false)
   seedingMethod    SeedingMethod?
-  totalSlots       Int?           // Next power of 2 (e.g., 13 → 16)
-  totalRounds      Int?           // log2(totalSlots)
-  byeCount         Int?           // totalSlots - participantCount
+  registrationFee  Decimal?       @db.Decimal(10, 2)
+  rules            String?
+  byeCount         Int?
+  totalRounds      Int?
+  totalSlots       Int?
+  // Round Robin & Hybrid fields
+  groupSize        Int?           // target participants per group (e.g. 4)
+  groupCount       Int?           // actual number of groups created
+  advanceCount     Int?           // top N per group advance to knockout (hybrid only)
+  hasBronzeMatch   Boolean?       @default(false) // whether to include 3rd place match (hybrid only)
   tournament       Tournament     @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
   matches          Match[]
   registrations    Registration[]
+  groups           Group[]
 
   @@map("events")
 }
 
+model Group {
+  id        String           @id @default(uuid())
+  eventId   String
+  name      String           // "Group A", "Group B" ...
+  status    GroupStatus      @default(PENDING)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  event     Event            @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  matches   Match[]
+  standings GroupStanding[]
+
+  @@map("groups")
+}
+
+model GroupStanding {
+  id             String       @id @default(uuid())
+  groupId        String
+  registrationId String
+  wins           Int          @default(0)
+  losses         Int          @default(0)
+  draws          Int          @default(0)
+  points         Int          @default(0)
+  matchesPlayed  Int          @default(0)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  group          Group        @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  registration   Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, registrationId])
+  @@map("group_standings")
+}
+
 model Registration {
-  id          String             @id @default(uuid())
-  userId      String
-  eventId     String
-  partnerId   String?
-  status      RegistrationStatus @default(CONFIRMED)
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @updatedAt
-  seedNumber  Int?
-  isWithdrawn Boolean            @default(false)
-  withdrawnAt DateTime?
-  matchesAsP1 Match[]            @relation("Match_Participant1")
-  matchesAsP2 Match[]            @relation("Match_Participant2")
-  matchesWon  Match[]            @relation("Match_Winner")
-  event       Event              @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  partner     User?              @relation("PartnerRegistrations", fields: [partnerId], references: [id])
-  user        User               @relation("UserRegistrations", fields: [userId], references: [id], onDelete: Cascade)
+  id             String          @id @default(uuid())
+  userId         String
+  eventId        String
+  partnerId      String?
+  status         RegistrationStatus @default(CONFIRMED)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  seedNumber     Int?
+  isWithdrawn    Boolean         @default(false)
+  withdrawnAt    DateTime?
+  matchesAsP1    Match[]         @relation("Match_Participant1")
+  matchesAsP2    Match[]         @relation("Match_Participant2")
+  matchesWon     Match[]         @relation("Match_Winner")
+  groupStandings GroupStanding[]
+  event          Event           @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  partner        User?           @relation("PartnerRegistrations", fields: [partnerId], references: [id])
+  user           User            @relation("UserRegistrations", fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, eventId])
   @@map("registrations")
 }
 
 model Match {
-  id             String        @id @default(uuid())
-  eventId        String
-  roundNumber    Int
-  matchNumber    Int
-  bracketPosition String?      // "R3-M1" for debugging/display
-  participant1Id String?
-  participant2Id String?
-  winnerId       String?
-  score          String?
-  status         MatchStatus   @default(PENDING)
-  nextMatchId    String?       // ID of match winner advances to
-  feedsPosition  Int?          // 1 or 2 - which slot in nextMatch
-  isByeMatch     Boolean       @default(false)
-  isWalkover     Boolean       @default(false)
-  scheduledAt    DateTime?
-  completedAt    DateTime?
-  courtNumber    Int?
-  courtName      String?
-  duration       Int?
-  notes          String?
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
-  event          Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  participant1   Registration? @relation("Match_Participant1", fields: [participant1Id], references: [id])
-  participant2   Registration? @relation("Match_Participant2", fields: [participant2Id], references: [id])
-  winner         Registration? @relation("Match_Winner", fields: [winnerId], references: [id])
+  id              String        @id @default(uuid())
+  eventId         String
+  roundNumber     Int
+  matchNumber     Int
+  bracketPosition String?
+  participant1Id  String?
+  participant2Id  String?
+  winnerId        String?
+  score           String?
+  status          MatchStatus   @default(PENDING)
+  nextMatchId     String?
+  feedsPosition   Int?
+  isByeMatch      Boolean       @default(false)
+  isWalkover      Boolean       @default(false)
+  scheduledAt     DateTime?
+  completedAt     DateTime?
+  courtNumber     Int?
+  courtName       String?
+  duration        Int?
+  notes           String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  // Round Robin: groupId is set for group stage matches, null for knockout
+  groupId         String?
+  event           Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  group           Group?        @relation(fields: [groupId], references: [id])
+  participant1    Registration? @relation("Match_Participant1", fields: [participant1Id], references: [id])
+  participant2    Registration? @relation("Match_Participant2", fields: [participant2Id], references: [id])
+  winner          Registration? @relation("Match_Winner", fields: [winnerId], references: [id])
 
   @@unique([eventId, roundNumber, matchNumber])
   @@index([nextMatchId])
   @@index([status])
   @@index([scheduledAt])
+  @@index([groupId])
   @@map("matches")
 }
 
 enum BracketFormat {
   SINGLE_ELIMINATION
   ROUND_ROBIN
+  LEAGUE_CUM_KNOCKOUT
 }
 
 enum SeedingMethod {
   REGISTRATION_ORDER
   RANDOM
   MANUAL
+  SNAKE
+}
+
+enum GroupStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
 }
 
 enum OrgRole {
@@ -215,11 +268,11 @@ enum RegistrationStatus {
 }
 
 enum MatchStatus {
-  PENDING      // Not yet played, waiting for participants
-  READY        // Both participants known, can be played
-  IN_PROGRESS  // Currently being played
-  COMPLETED    // Finished with winner
-  WALKOVER     // One player didn't show
-  BYE          // Automatic advancement
-  CANCELLED    // Match cancelled due to withdrawal
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  WALKOVER
+  BYE
+  READY
+  CANCELLED
 }

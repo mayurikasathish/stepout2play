@@ -2,135 +2,96 @@ const bracketService = require('../services/bracket.service');
 
 class BracketController {
   /**
-   * Generate bracket for an event
    * POST /events/:eventId/generate-bracket
+   * Body: { bracketFormat, seedingMethod, groupSize? }
    */
   async generateBracket(req, res, next) {
     try {
       const { eventId } = req.params;
-      const { bracketFormat, seedingMethod } = req.body;
+      const { bracketFormat, seedingMethod, groupSize } = req.body;
 
-      // Validation
       const errors = [];
 
       if (!bracketFormat || !['SINGLE_ELIMINATION', 'ROUND_ROBIN'].includes(bracketFormat)) {
-        errors.push('bracketFormat must be either SINGLE_ELIMINATION or ROUND_ROBIN');
+        errors.push('bracketFormat must be SINGLE_ELIMINATION or ROUND_ROBIN');
       }
 
-      if (!seedingMethod || !['REGISTRATION_ORDER', 'RANDOM', 'MANUAL'].includes(seedingMethod)) {
-        errors.push('seedingMethod must be REGISTRATION_ORDER, RANDOM, or MANUAL');
+      if (!seedingMethod || !['REGISTRATION_ORDER', 'RANDOM', 'MANUAL', 'SNAKE'].includes(seedingMethod)) {
+        errors.push('seedingMethod must be REGISTRATION_ORDER, RANDOM, MANUAL, or SNAKE');
       }
 
       if (errors.length > 0) {
-        return res.status(400).json({
-          success: false,
-          errors
-        });
+        return res.status(400).json({ success: false, errors });
       }
 
-      const result = await bracketService.generateBracket(eventId, bracketFormat, seedingMethod);
+      const options = {};
+      if (groupSize) options.groupSize = groupSize;
 
-      res.status(201).json({
-        success: true,
-        message: 'Bracket generated successfully',
-        ...result
-      });
+      const result = await bracketService.generateBracket(eventId, bracketFormat, seedingMethod, options);
+
+      res.status(201).json({ success: true, message: 'Bracket generated successfully', ...result });
     } catch (error) {
       next(error);
     }
   }
 
   /**
-   * Get bracket for an event
    * GET /events/:eventId/bracket
    */
   async getBracket(req, res, next) {
     try {
       const { eventId } = req.params;
-
       const bracket = await bracketService.getBracket(eventId);
-
-      res.status(200).json({
-        success: true,
-        ...bracket
-      });
+      res.status(200).json({ success: true, ...bracket });
     } catch (error) {
       next(error);
     }
   }
 
   /**
-   * Delete bracket for an event
    * DELETE /events/:eventId/bracket
    */
   async deleteBracket(req, res, next) {
     try {
       const { eventId } = req.params;
-
       const result = await bracketService.deleteBracket(eventId);
-
-      res.status(200).json({
-        success: true,
-        ...result
-      });
+      res.status(200).json({ success: true, ...result });
     } catch (error) {
       next(error);
     }
   }
 
   /**
-   * Update seed numbers for manual seeding
    * PATCH /events/:eventId/seed-numbers
    */
   async updateSeedNumbers(req, res, next) {
     try {
       const { eventId } = req.params;
       const { seeds } = req.body;
-
-      // Validation
       if (!seeds || !Array.isArray(seeds)) {
-        return res.status(400).json({
-          success: false,
-          error: 'seeds array is required'
-        });
+        return res.status(400).json({ success: false, error: 'seeds array is required' });
       }
-
       const result = await bracketService.updateSeedNumbers(eventId, seeds);
-
-      res.status(200).json({
-        success: true,
-        message: 'Seed numbers updated successfully',
-        ...result
-      });
+      res.status(200).json({ success: true, message: 'Seed numbers updated successfully', ...result });
     } catch (error) {
       next(error);
     }
   }
 
   /**
-   * Update match result
    * PATCH /matches/:matchId/result
+   * Works for both single-elimination and round-robin matches.
+   * For round robin: winnerId can be null to record a draw.
    */
   async updateMatchResult(req, res, next) {
     try {
       const { matchId } = req.params;
       const { winnerId, score } = req.body;
 
-      // Validation
-      if (!winnerId) {
-        return res.status(400).json({
-          success: false,
-          error: 'winnerId is required'
-        });
-      }
+      // winnerId is optional for round robin (draw support)
+      const match = await bracketService.updateMatchResult(matchId, winnerId || null, score);
 
-      const match = await bracketService.updateMatchResult(matchId, winnerId, score);
-
-      res.status(200).json({
-        success: true,
-        message: 'Match result updated successfully',
-        match
-      });
+      res.status(200).json({ success: true, message: 'Match result updated successfully', match });
     } catch (error) {
       next(error);
     }
