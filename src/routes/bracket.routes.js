@@ -30,6 +30,14 @@ router.delete(
   bracketController.deleteBracket.bind(bracketController)
 );
 
+// PATCH /events/:eventId/seed-numbers - Update seed numbers for manual seeding
+router.patch(
+  '/events/:eventId/seed-numbers',
+  authenticate,
+  requireEventOrgRole(['OWNER', 'ADMIN']),
+  bracketController.updateSeedNumbers.bind(bracketController)
+);
+
 /**
  * Match result routes (organizer only)
  */

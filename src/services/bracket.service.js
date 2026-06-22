@@ -493,6 +493,49 @@ class BracketService {
   }
 
   /**
+   * Update seed numbers for manual seeding
+   */
+  async updateSeedNumbers(eventId, seeds) {
+    const event = await prisma.event.findUnique({
+      where: { id: eventId },
+      include: { registrations: true }
+    });
+
+    if (!event) {
+      const error = new Error('Event not found');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    if (event.bracketGenerated) {
+      const error = new Error('Cannot update seed numbers after bracket has been generated');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    // Validate seed numbers
+    const seedNumbers = seeds.map(s => s.seedNumber);
+    const uniqueSeeds = new Set(seedNumbers);
+    if (uniqueSeeds.size !== seedNumbers.length) {
+      const error = new Error('Duplicate seed numbers found');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    // Update all registrations in a transaction
+    await prisma.$transaction(
+      seeds.map(({ registrationId, seedNumber }) =>
+        prisma.registration.update({
+          where: { id: registrationId },
+          data: { seedNumber }
+        })
+      )
+    );
+
+    return { updated: seeds.length };
+  }
+
+  /**
    * Update match result and advance winner
    */
   async updateMatchResult(matchId, winnerId, score) {

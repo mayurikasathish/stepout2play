@@ -69,6 +69,10 @@ const BracketView = ({ eventId, eventName, eventFormat, registrationCount, isOrg
 
   const handleMatchUpdate = async (winnerId, score) => {
     try {
+      // Save current scroll position
+      const scrollX = window.scrollX
+      const scrollY = window.scrollY
+
       await api.patch(`/matches/${selectedMatch.id}/result`, {
         winnerId,
         score
@@ -76,7 +80,15 @@ const BracketView = ({ eventId, eventName, eventFormat, registrationCount, isOrg
 
       setShowMatchModal(false)
       setSelectedMatch(null)
-      loadBracket() // Reload to show updated bracket
+
+      // Reload bracket and restore scroll position after state update
+      await loadBracket()
+
+      // Restore scroll position after React has re-rendered
+      requestAnimationFrame(() => {
+        window.scrollTo(scrollX, scrollY)
+      })
+
       setToastMessage('Match result updated successfully')
       setToastType('success')
       setShowToast(true)

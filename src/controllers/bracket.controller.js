@@ -79,6 +79,35 @@ class BracketController {
   }
 
   /**
+   * Update seed numbers for manual seeding
+   * PATCH /events/:eventId/seed-numbers
+   */
+  async updateSeedNumbers(req, res, next) {
+    try {
+      const { eventId } = req.params;
+      const { seeds } = req.body;
+
+      // Validation
+      if (!seeds || !Array.isArray(seeds)) {
+        return res.status(400).json({
+          success: false,
+          error: 'seeds array is required'
+        });
+      }
+
+      const result = await bracketService.updateSeedNumbers(eventId, seeds);
+
+      res.status(200).json({
+        success: true,
+        message: 'Seed numbers updated successfully',
+        ...result
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * Update match result
    * PATCH /matches/:matchId/result
    */

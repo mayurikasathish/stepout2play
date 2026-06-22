@@ -166,8 +166,8 @@ const BracketGenerator = ({ eventId, eventName, eventFormat, registrationCount, 
                 <p className="text-sm text-gray-600">
                   Use custom seed numbers from registrations.
                 </p>
-                <p className="text-xs text-orange-600 mt-2">
-                  Requires seed numbers
+                <p className="text-xs text-orange-600 mt-2 font-medium">
+                  ⚠️ Set seed numbers in Registrations tab first
                 </p>
               </div>
             </label>
