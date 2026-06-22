@@ -3,17 +3,17 @@ const bracketService = require('../services/bracket.service');
 class BracketController {
   /**
    * POST /events/:eventId/generate-bracket
-   * Body: { bracketFormat, seedingMethod, groupSize? }
+   * Body: { bracketFormat, seedingMethod, groupSize?, groupCount?, advanceCount?, hasBronzeMatch? }
    */
   async generateBracket(req, res, next) {
     try {
       const { eventId } = req.params;
-      const { bracketFormat, seedingMethod, groupSize } = req.body;
+      const { bracketFormat, seedingMethod, groupSize, groupCount, advanceCount, hasBronzeMatch } = req.body;
 
       const errors = [];
 
-      if (!bracketFormat || !['SINGLE_ELIMINATION', 'ROUND_ROBIN'].includes(bracketFormat)) {
-        errors.push('bracketFormat must be SINGLE_ELIMINATION or ROUND_ROBIN');
+      if (!bracketFormat || !['SINGLE_ELIMINATION', 'ROUND_ROBIN', 'LEAGUE_CUM_KNOCKOUT'].includes(bracketFormat)) {
+        errors.push('bracketFormat must be SINGLE_ELIMINATION, ROUND_ROBIN, or LEAGUE_CUM_KNOCKOUT');
       }
 
       if (!seedingMethod || !['REGISTRATION_ORDER', 'RANDOM', 'MANUAL', 'SNAKE'].includes(seedingMethod)) {
@@ -26,6 +26,9 @@ class BracketController {
 
       const options = {};
       if (groupSize) options.groupSize = groupSize;
+      if (groupCount) options.groupCount = groupCount;
+      if (advanceCount) options.advanceCount = advanceCount;
+      if (hasBronzeMatch !== undefined) options.hasBronzeMatch = hasBronzeMatch;
 
       const result = await bracketService.generateBracket(eventId, bracketFormat, seedingMethod, options);
 

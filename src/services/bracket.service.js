@@ -183,6 +183,212 @@ class BracketService {
     };
   }
 
+  // ─────────────────────────────────────────────────────────────────
+  // HYBRID: League-cum-Knockout (Group Stage + Knockout)
+  // ─────────────────────────────────────────────────────────────────
+  async generateHybridBracket(eventId, participants, seedingMethod, options) {
+    const participantCount = participants.length;
+    const groupCount = options.groupCount || 4;
+    const advanceCount = options.advanceCount || 2;
+    const hasBronzeMatch = options.hasBronzeMatch !== false; // default true
+
+    // Validation
+    const minParticipants = groupCount * 2;
+    if (participantCount < minParticipants) {
+      const error = new Error(`Need at least ${minParticipants} participants for ${groupCount} groups (minimum 2 per group)`);
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const knockoutSize = groupCount * advanceCount;
+    if (!Number.isInteger(Math.log2(knockoutSize))) {
+      const error = new Error(
+        `Knockout participants (${knockoutSize}) must be a power of 2. ` +
+        `Try ${groupCount} groups × ${Math.pow(2, Math.ceil(Math.log2(groupCount)))} qualifiers, or adjust group count.`
+      );
+      error.statusCode = 400;
+      throw error;
+    }
+
+    // Phase 1: Create groups and group stage matches (same as round robin)
+    const groups = Array.from({ length: groupCount }, (_, i) => ({
+      name: `Group ${String.fromCharCode(65 + i)}`,
+      participants: []
+    }));
+
+    // Distribute participants to groups
+    if (seedingMethod === 'SNAKE') {
+      participants.forEach((p, idx) => {
+        const groupIdx = this._snakeIndex(idx, groupCount);
+        groups[groupIdx].participants.push(p);
+      });
+    } else {
+      participants.forEach((p, idx) => {
+        const groupIdx = idx % groupCount;
+        groups[groupIdx].participants.push(p);
+      });
+    }
+
+    await prisma.$transaction(async (tx) => {
+      let globalMatchNumber = 1;
+
+      // Create groups and group stage matches
+      for (const groupDef of groups) {
+        const group = await tx.group.create({
+          data: {
+            eventId,
+            name: groupDef.name,
+            status: 'PENDING'
+          }
+        });
+
+        await tx.groupStanding.createMany({
+          data: groupDef.participants.map(p => ({
+            id: require('crypto').randomUUID(),
+            groupId: group.id,
+            registrationId: p.id
+          }))
+        });
+
+        const fixtures = this._generateRoundRobinFixtures(groupDef.participants);
+
+        for (let roundIdx = 0; roundIdx < fixtures.length; roundIdx++) {
+          const round = fixtures[roundIdx];
+          for (let matchIdx = 0; matchIdx < round.length; matchIdx++) {
+            const [p1, p2] = round[matchIdx];
+            await tx.match.create({
+              data: {
+                eventId,
+                groupId: group.id,
+                roundNumber: roundIdx + 1,
+                matchNumber: globalMatchNumber++,
+                bracketPosition: `${group.name}-R${roundIdx + 1}-M${matchIdx + 1}`,
+                participant1Id: p1 ? p1.id : null,
+                participant2Id: p2 ? p2.id : null,
+                status: (p1 && p2) ? 'READY' : 'PENDING',
+                nextMatchId: null,
+                feedsPosition: null,
+                isByeMatch: false,
+                isWalkover: false
+              }
+            });
+          }
+        }
+      }
+
+      // Phase 2: Create knockout bracket structure (empty, to be filled after group stage)
+      const knockoutRounds = Math.log2(knockoutSize);
+      const knockoutMatches = [];
+      const maxGroupRound = groups.reduce((max, g) => Math.max(max, this._rrRounds(g.participants.length)), 0);
+
+      for (let round = 1; round <= knockoutRounds; round++) {
+        const matchesInRound = Math.pow(2, knockoutRounds - round);
+        for (let matchNum = 1; matchNum <= matchesInRound; matchNum++) {
+          let nextMatchId = null;
+          let feedsPosition = null;
+
+          if (round < knockoutRounds) {
+            const nextRound = round + 1;
+            const nextMatchNumber = Math.ceil(matchNum / 2);
+            nextMatchId = `KO-R${nextRound}-M${nextMatchNumber}`;
+            feedsPosition = (matchNum % 2 === 1) ? 1 : 2;
+          }
+
+          knockoutMatches.push({
+            eventId,
+            groupId: null, // knockout matches have no group
+            roundNumber: maxGroupRound + round, // start after group rounds
+            matchNumber: globalMatchNumber++,
+            bracketPosition: `KO-R${round}-M${matchNum}`,
+            participant1Id: null,
+            participant2Id: null,
+            winnerId: null,
+            score: null,
+            status: 'PENDING',
+            nextMatchId,
+            feedsPosition,
+            isByeMatch: false,
+            isWalkover: false,
+            completedAt: null
+          });
+        }
+      }
+
+      // Create bronze match if requested
+      if (hasBronzeMatch) {
+        knockoutMatches.push({
+          eventId,
+          groupId: null,
+          roundNumber: maxGroupRound + knockoutRounds, // same round as final
+          matchNumber: globalMatchNumber++,
+          bracketPosition: 'Bronze',
+          participant1Id: null,
+          participant2Id: null,
+          winnerId: null,
+          score: null,
+          status: 'PENDING',
+          nextMatchId: null,
+          feedsPosition: null,
+          isByeMatch: false,
+          isWalkover: false,
+          completedAt: null
+        });
+      }
+
+      // Insert knockout matches and resolve nextMatchId references
+      const createdMatches = [];
+      for (const matchData of knockoutMatches) {
+        const { nextMatchId, ...rest } = matchData;
+        const created = await tx.match.create({ data: rest });
+        createdMatches.push({ ...created, nextMatchKey: nextMatchId });
+      }
+
+      const matchKeyToId = new Map();
+      createdMatches.forEach(m => {
+        const key = m.bracketPosition;
+        matchKeyToId.set(key, m.id);
+      });
+
+      for (const match of createdMatches) {
+        if (match.nextMatchKey && matchKeyToId.has(match.nextMatchKey)) {
+          const nextMatchId = matchKeyToId.get(match.nextMatchKey);
+          await tx.match.update({
+            where: { id: match.id },
+            data: { nextMatchId }
+          });
+        }
+      }
+
+      // Update event metadata
+      const groupStageRounds = groups[0] ? this._rrRounds(groups[0].participants.length) : 0;
+      await tx.event.update({
+        where: { id: eventId },
+        data: {
+          bracketGenerated: true,
+          bracketFormat: 'LEAGUE_CUM_KNOCKOUT',
+          seedingMethod,
+          groupCount,
+          groupSize: Math.ceil(participantCount / groupCount),
+          advanceCount,
+          hasBronzeMatch,
+          totalRounds: groupStageRounds + knockoutRounds + (hasBronzeMatch ? 1 : 0),
+          totalSlots: knockoutSize,
+          byeCount: 0
+        }
+      });
+    });
+
+    return {
+      bracketFormat: 'LEAGUE_CUM_KNOCKOUT',
+      seedingMethod,
+      participants: participantCount,
+      groupCount,
+      advanceCount,
+      knockoutParticipants: knockoutSize,
+      hasBronzeMatch
+    };
+  }
+
   // Round-robin rotation scheduling algorithm
   // Returns: array of rounds, each round is array of [p1, p2] pairs
   _generateRoundRobinFixtures(participants) {
@@ -352,9 +558,9 @@ class BracketService {
       throw error;
     }
 
-    // Only fetch groups if this is a round robin bracket AND migration has run
+    // Only fetch groups if this is a round robin or hybrid bracket AND migration has run
     let groups = [];
-    if (event.bracketFormat === 'ROUND_ROBIN') {
+    if (event.bracketFormat === 'ROUND_ROBIN' || event.bracketFormat === 'LEAGUE_CUM_KNOCKOUT') {
       try {
         groups = await prisma.group.findMany({
           where: { eventId },
@@ -395,7 +601,9 @@ class BracketService {
         totalRounds: event.totalRounds,
         byeCount: event.byeCount,
         groupCount: event.groupCount || null,
-        groupSize: event.groupSize || null
+        groupSize: event.groupSize || null,
+        advanceCount: event.advanceCount || null,
+        hasBronzeMatch: event.hasBronzeMatch || false
       },
       matches: event.matches,
       groups
@@ -433,18 +641,18 @@ class BracketService {
         console.warn('Groups table not available yet (migration pending) — skipping group delete:', groupErr.message);
       }
 
-      // Reset event metadata — try with new RR columns first, fall back without them
+      // Reset event metadata — try with all columns first, fall back without new ones
       try {
         await tx.event.update({
           where: { id: eventId },
           data: {
             bracketGenerated: false, bracketFormat: null, seedingMethod: null,
             totalSlots: null, totalRounds: null, byeCount: null,
-            groupCount: null, groupSize: null
+            groupCount: null, groupSize: null, advanceCount: null, hasBronzeMatch: null
           }
         });
       } catch (colErr) {
-        // groupCount/groupSize columns don't exist yet — reset without them
+        // New columns don't exist yet — reset without them
         await tx.event.update({
           where: { id: eventId },
           data: {

@@ -1,0 +1,236 @@
+# 🏆 Hybrid Tournament Visual Flow
+
+## Complete Tournament Simulation: Men's Singles (16 Players)
+
+---
+
+## 📊 GROUP STAGE (Tab 1)
+
+### Group A
+```
+┌─────────────────────────────────────────────────────────────┐
+│ Group A                              3/6 matches complete   │
+│                                      Top 2 Qualifiers       │
+├────┬─────────────────┬────┬───┬───┬───┬──────┬─────────────┤
+│ #  │ Team            │ P  │ W │ L │ D │ Pts  │ Status      │
+├────┼─────────────────┼────┼───┼───┼───┼──────┼─────────────┤
+│ 1  │ 🏅 Nadal        │ 3  │ 3 │ 0 │ 0 │  9   │ ✅ Q        │  ← Qualified!
+│ 2  │ 🏅 Murray       │ 3  │ 2 │ 1 │ 0 │  6   │ ✅ Q        │  ← Qualified!
+│ 3  │ Sinner          │ 3  │ 1 │ 2 │ 0 │  3   │             │
+│ 4  │ Fritz           │ 3  │ 0 │ 3 │ 0 │  0   │             │
+└────┴─────────────────┴────┴───┴───┴───┴──────┴─────────────┘
+
+Matches:
+✅ Nadal vs Murray    [6-4, 7-5]    Nadal wins
+✅ Nadal vs Sinner    [6-3, 6-2]    Nadal wins
+✅ Nadal vs Fritz     [6-1, 6-0]    Nadal wins
+✅ Murray vs Sinner   [7-6, 6-4]    Murray wins
+✅ Murray vs Fritz    [6-3, 6-4]    Murray wins
+✅ Sinner vs Fritz    [6-4, 7-5]    Sinner wins
+```
+
+### Group B
+```
+┌─────────────────────────────────────────────────────────────┐
+│ Group B                              3/6 matches complete   │
+├────┬─────────────────┬────┬───┬───┬───┬──────┬─────────────┤
+│ 1  │ 🏅 Djokovic     │ 3  │ 3 │ 0 │ 0 │  9   │ ✅ Q        │
+│ 2  │ 🏅 Medvedev     │ 3  │ 2 │ 1 │ 0 │  6   │ ✅ Q        │
+│ 3  │ Rune            │ 3  │ 1 │ 2 │ 0 │  3   │             │
+│ 4  │ Ruud            │ 3  │ 0 │ 3 │ 0 │  0   │             │
+└────┴─────────────────┴────┴───┴───┴───┴──────┴─────────────┘
+```
+
+### Group C
+```
+┌─────────────────────────────────────────────────────────────┐
+│ Group C                              3/6 matches complete   │
+├────┬─────────────────┬────┬───┬───┬───┬──────┬─────────────┤
+│ 1  │ 🏅 Federer      │ 3  │ 2 │ 1 │ 0 │  6   │ ✅ Q        │
+│ 2  │ 🏅 Alcaraz      │ 3  │ 2 │ 1 │ 0 │  6   │ ✅ Q        │
+│ 3  │ Rublev          │ 3  │ 1 │ 2 │ 0 │  3   │             │
+│ 4  │ Hurkacz         │ 3  │ 1 │ 2 │ 0 │  3   │             │
+└────┴─────────────────┴────┴───┴───┴───┴──────┴─────────────┘
+```
+
+### Group D
+```
+┌─────────────────────────────────────────────────────────────┐
+│ Group D                              3/6 matches complete   │
+├────┬─────────────────┬────┬───┬───┬───┬──────┬─────────────┤
+│ 1  │ 🏅 Zverev       │ 3  │ 3 │ 0 │ 0 │  9   │ ✅ Q        │
+│ 2  │ 🏅 Tsitsipas    │ 3  │ 2 │ 1 │ 0 │  6   │ ✅ Q        │
+│ 3  │ Auger-Aliassime │ 3  │ 1 │ 2 │ 0 │  3   │             │
+│ 4  │ Norrie          │ 3  │ 0 │ 3 │ 0 │  0   │             │
+└────┴─────────────────┴────┴───┴───┴───┴──────┴─────────────┘
+```
+
+**Summary:** 8 players qualified (Top 2 from each group)
+
+---
+
+## 🏆 KNOCKOUT STAGE (Tab 2)
+
+### Horizontal Bracket View (Left to Right):
+
+```
+QUARTERFINALS           SEMIFINALS              FINAL               CHAMPION
+(4 matches)             (2 matches)           (1 match)
+
+┌──────────────┐
+│ Nadal        │─┐
+│ [A1]         │ │ 6-4, 7-5
+└──────────────┘ │
+                 ├────────┐
+┌──────────────┐ │        │
+│ Medvedev     │─┘        │
+│ [B2]         │          │
+└──────────────┘          │
+                          ├────────┐
+┌──────────────┐          │        │
+│ Djokovic     │─┐        │        │
+│ [B1]         │ │ 6-3    │        │
+└──────────────┘ │        │        │
+                 ├────────┘        │
+┌──────────────┐ │                 │
+│ Murray       │─┘                 │
+│ [A2]         │                   │
+└──────────────┘                   │
+                                   ├──────────►  🥇 Nadal
+┌──────────────┐                   │            CHAMPION
+│ Federer      │─┐                 │
+│ [C1]         │ │ 7-6            │
+└──────────────┘ │                 │
+                 ├────────┐        │
+┌──────────────┐ │        │        │
+│ Tsitsipas    │─┘        │        │
+│ [D2]         │          │        │
+└──────────────┘          ├────────┘
+                          │
+┌──────────────┐          │
+│ Zverev       │─┐        │
+│ [D1]         │ │ 6-7,   │
+└──────────────┘ │ 6-4    │
+                 ├────────┘
+┌──────────────┐ │
+│ Alcaraz      │─┘
+│ [C2]         │
+└──────────────┘
+
+
+───────────────────────────────────────────────────────────────
+
+BRONZE MATCH (3rd Place):
+
+┌──────────────┐
+│ Djokovic     │─┐
+│ (SF1 Loser)  │ │ 6-3, 7-5  →  🥉 Djokovic (3rd Place)
+└──────────────┘ │
+                 │
+┌──────────────┐ │
+│ Federer      │─┘
+│ (SF2 Loser)  │
+└──────────────┘
+```
+
+---
+
+## 🏅 FINAL STANDINGS
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                   TOURNAMENT RESULTS                    │
+├─────────┬───────────────────────┬───────────────────────┤
+│ Place   │ Player                │ Prize                 │
+├─────────┼───────────────────────┼───────────────────────┤
+│ 🥇 1st  │ Rafael Nadal          │ CHAMPION              │
+│ 🥈 2nd  │ Carlos Alcaraz        │ Runner-up             │
+│ 🥉 3rd  │ Novak Djokovic        │ Bronze Medal          │
+│ 4th     │ Roger Federer         │ Semifinalist          │
+│ 5-8th   │ Murray, Medvedev,     │ Quarterfinalists      │
+│         │ Tsitsipas, Zverev     │                       │
+│ 9-16th  │ (Other 8 players)     │ Group Stage Exit      │
+└─────────┴───────────────────────┴───────────────────────┘
+```
+
+---
+
+## 📊 TOURNAMENT STATISTICS
+
+**Total Matches:** 32
+- Group Stage: 24 matches (4 groups × 6 matches each)
+- Knockout Stage: 8 matches (QF + SF + F + Bronze)
+
+**Match Breakdown:**
+- Quarterfinals: 4 matches
+- Semifinals: 2 matches
+- Final: 1 match
+- Bronze Match: 1 match
+
+**Tournament Path for Champion (Nadal):**
+1. Group A: 3 wins, 0 losses (Qualified 1st)
+2. QF1: Beat Medvedev
+3. SF1: Beat Djokovic
+4. Final: Beat Alcaraz
+**Total:** 7 wins, 0 losses
+
+---
+
+## 🎨 UI FEATURES DEMONSTRATED
+
+### Group Stage Tab
+✅ Professional standings tables with IPL-style design
+✅ Q badges show only when qualified (not before)
+✅ Color-coded rows (green for qualifiers)
+✅ Match results listed below each group
+✅ Real-time progress (X/Y matches complete)
+
+### Knockout Stage Tab
+✅ Horizontal bracket tree (left to right progression)
+✅ Clear round labels (Quarterfinals → Semifinals → Final)
+✅ Winner highlighting (green background)
+✅ Score display on completed matches
+✅ Separate bronze match section at bottom
+
+### Overall Design
+✅ Tab-based navigation (Group Stage / Knockout Stage)
+✅ Summary header with progress stats
+✅ Professional purple/indigo color scheme
+✅ Responsive layout
+✅ Click to update match results
+
+---
+
+## ⚠️ CURRENT LIMITATION
+
+**Automatic Advancement:** Not yet implemented
+
+Currently:
+- Knockout bracket created with empty slots (TBD)
+- Organizer must manually enter qualified players after groups complete
+
+**Future Enhancement:**
+- Auto-detect when group stage completes
+- Automatically seed top 2 from each group into knockout
+- Update knockout match participants
+- Set matches to READY status
+
+---
+
+## 🎯 HOW TO TEST IN YOUR APP
+
+1. **Create Event:** Men's Singles
+2. **Register 16 players** (or use test script to create them)
+3. **Generate Bracket:** League-cum-Knockout, 4 groups, 2 qualifiers
+4. **Group Stage Tab:**
+   - Play all 24 group matches
+   - Watch standings update
+   - Q badges appear when teams qualify
+5. **Knockout Stage Tab:**
+   - View empty bracket structure
+   - (Manual step: Note qualified teams)
+   - Play knockout matches
+   - Bronze match at end
+6. **Final result:** Clear champion!
+
+This is the **full IPL-style tournament experience** you requested! 🏆

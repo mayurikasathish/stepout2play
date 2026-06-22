@@ -3,6 +3,7 @@ import api from '../services/api'
 import BracketGenerator from './BracketGenerator'
 import SingleEliminationBracket from './SingleEliminationBracket'
 import RoundRobinBracket from './RoundRobinBracket'
+import HybridBracket from './HybridBracket'
 import Toast from './Toast'
 
 const BracketView = ({ eventId, eventName, eventFormat, registrationCount, isOrganizer, tournament }) => {
@@ -173,7 +174,8 @@ const BracketView = ({ eventId, eventName, eventFormat, registrationCount, isOrg
 
   // ── Bracket exists ──
   const isRoundRobin = bracket.event.bracketFormat === 'ROUND_ROBIN'
-  const formatLabel  = isRoundRobin ? 'Round Robin' : 'Single Elimination'
+  const isHybrid = bracket.event.bracketFormat === 'LEAGUE_CUM_KNOCKOUT'
+  const formatLabel  = isHybrid ? 'League-cum-Knockout' : isRoundRobin ? 'Round Robin' : 'Single Elimination'
 
   const seedingLabel = {
     REGISTRATION_ORDER: 'Registration Order',
@@ -197,9 +199,14 @@ const BracketView = ({ eventId, eventName, eventFormat, registrationCount, isOrg
                 <span className="px-3 py-1 bg-green-100 text-green-700 text-sm font-medium rounded-full">
                   {seedingLabel}
                 </span>
-                {isRoundRobin && bracket.event.groupCount && (
+                {(isRoundRobin || isHybrid) && bracket.event.groupCount && (
                   <span className="px-3 py-1 bg-amber-100 text-amber-700 text-sm font-medium rounded-full">
                     {bracket.event.groupCount} Group{bracket.event.groupCount !== 1 ? 's' : ''}
+                  </span>
+                )}
+                {isHybrid && bracket.event.advanceCount && (
+                  <span className="px-3 py-1 bg-purple-100 text-purple-700 text-sm font-medium rounded-full">
+                    Top {bracket.event.advanceCount} Qualify
                   </span>
                 )}
               </div>
@@ -215,24 +222,32 @@ const BracketView = ({ eventId, eventName, eventFormat, registrationCount, isOrg
       )}
 
       {/* Bracket Display */}
-      <div className="glass-card rounded-xl p-6">
-        {isRoundRobin ? (
-          <RoundRobinBracket
-            groups={bracket.groups || []}
-            isOrganizer={isOrganizer}
-            onMatchClick={isOrganizer ? handleMatchClick : null}
-            eventName={eventName}
-            tournamentName={tournament?.name || 'Tournament'}
-          />
-        ) : (
-          <SingleEliminationBracket
-            matches={bracket.matches}
-            onMatchClick={isOrganizer ? handleMatchClick : null}
-            eventName={eventName}
-            tournamentName={tournament?.name || 'Tournament'}
-          />
-        )}
-      </div>
+      {isHybrid ? (
+        <HybridBracket
+          bracket={bracket}
+          onMatchClick={isOrganizer ? handleMatchClick : null}
+          isOrganizer={isOrganizer}
+        />
+      ) : (
+        <div className="glass-card rounded-xl p-6">
+          {isRoundRobin ? (
+            <RoundRobinBracket
+              groups={bracket.groups || []}
+              isOrganizer={isOrganizer}
+              onMatchClick={isOrganizer ? handleMatchClick : null}
+              eventName={eventName}
+              tournamentName={tournament?.name || 'Tournament'}
+            />
+          ) : (
+            <SingleEliminationBracket
+              matches={bracket.matches}
+              onMatchClick={isOrganizer ? handleMatchClick : null}
+              eventName={eventName}
+              tournamentName={tournament?.name || 'Tournament'}
+            />
+          )}
+        </div>
+      )}
 
       {/* Match Result Modal */}
       {showMatchModal && selectedMatch && (
