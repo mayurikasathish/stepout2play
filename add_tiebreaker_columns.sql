@@ -1,0 +1,7 @@
+-- Add tie-breaker columns to group_standings
+
+ALTER TABLE group_standings
+ADD COLUMN IF NOT EXISTS "gamesWon" INTEGER DEFAULT 0,
+ADD COLUMN IF NOT EXISTS "gamesLost" INTEGER DEFAULT 0,
+ADD COLUMN IF NOT EXISTS "pointsFor" INTEGER DEFAULT 0,
+ADD COLUMN IF NOT EXISTS "pointsAgainst" INTEGER DEFAULT 0;

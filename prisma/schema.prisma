@@ -145,6 +145,10 @@ model GroupStanding {
   draws          Int          @default(0)
   points         Int          @default(0)
   matchesPlayed  Int          @default(0)
+  gamesWon       Int          @default(0)  // for game difference
+  gamesLost      Int          @default(0)  // for game difference
+  pointsFor      Int          @default(0)  // for point difference
+  pointsAgainst  Int          @default(0)  // for point difference
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
   group          Group        @relation(fields: [groupId], references: [id], onDelete: Cascade)

@@ -170,6 +170,9 @@ const HybridBracket = ({ bracket, onMatchClick, isOrganizer }) => {
                         <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">
                           D
                         </th>
+                        <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase" title="Game Difference">
+                          GD
+                        </th>
                         <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">
                           Pts
                         </th>
@@ -179,6 +182,8 @@ const HybridBracket = ({ bracket, onMatchClick, isOrganizer }) => {
                       {groupStandings.map((standing, idx) => {
                         const { name, subtext } = getParticipantDisplay(standing.registration)
                         const isQualifier = idx < event.advanceCount
+                        const gameDiff = (standing.gamesWon || 0) - (standing.gamesLost || 0)
+                        const gameDiffDisplay = gameDiff > 0 ? `+${gameDiff}` : gameDiff
 
                         return (
                           <tr
@@ -214,6 +219,9 @@ const HybridBracket = ({ bracket, onMatchClick, isOrganizer }) => {
                             </td>
                             <td className="px-4 py-3 text-center text-sm text-gray-600">
                               {standing.draws}
+                            </td>
+                            <td className="px-4 py-3 text-center text-sm font-semibold text-gray-700" title={`Games: ${standing.gamesWon || 0}-${standing.gamesLost || 0}`}>
+                              {gameDiffDisplay}
                             </td>
                             <td className="px-4 py-3 text-center">
                               <span className="font-bold text-primary-600 text-base">

@@ -1,4 +1,5 @@
 const prisma = require('../lib/prisma');
+const { parseScore } = require('../utils/scoreParser');
 
 class BracketService {
   // ─────────────────────────────────────────────────────────────────
@@ -454,53 +455,106 @@ class BracketService {
       return this.updateMatchResult(matchId, winnerId, score);
     }
 
+    // Score is mandatory for round robin (for tie-breaking)
+    if (!score || score.trim() === '') {
+      const error = new Error('Score is required for round robin matches (needed for tie-breaking)');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    // Parse score to get games/points and determine winner
+    let scoreData;
+    try {
+      scoreData = parseScore(score, match.participant1Id, match.participant2Id);
+    } catch (parseError) {
+      const error = new Error(`Invalid score format: ${parseError.message}`);
+      error.statusCode = 400;
+      throw error;
+    }
+
+    // Use parsed winner if winnerId not provided
+    const actualWinnerId = winnerId || scoreData.winnerId;
+
     // Validate winner
-    if (winnerId && winnerId !== match.participant1Id && winnerId !== match.participant2Id) {
+    if (actualWinnerId && actualWinnerId !== match.participant1Id && actualWinnerId !== match.participant2Id) {
       const error = new Error('Winner must be one of the match participants');
       error.statusCode = 400;
       throw error;
     }
 
-    const isDraw = !winnerId; // null winnerId = draw
+    const isDraw = !actualWinnerId; // null winnerId = draw
 
     await prisma.$transaction(async (tx) => {
       // Update match
       await tx.match.update({
         where: { id: matchId },
         data: {
-          winnerId: winnerId || null,
+          winnerId: actualWinnerId || null,
           score,
           status: 'COMPLETED',
           completedAt: new Date()
         }
       });
 
-      const loserId = winnerId === match.participant1Id
+      const loserId = actualWinnerId === match.participant1Id
         ? match.participant2Id
         : match.participant1Id;
 
-      if (!isDraw && winnerId) {
+      if (!isDraw && actualWinnerId) {
         // Win = 3 pts, Loss = 0 pts
+        // Update winner standing
         await tx.groupStanding.updateMany({
-          where: { groupId: match.groupId, registrationId: winnerId },
-          data: { wins: { increment: 1 }, points: { increment: 3 }, matchesPlayed: { increment: 1 } }
+          where: { groupId: match.groupId, registrationId: actualWinnerId },
+          data: {
+            wins: { increment: 1 },
+            points: { increment: 3 },
+            matchesPlayed: { increment: 1 },
+            gamesWon: { increment: actualWinnerId === match.participant1Id ? scoreData.gamesWon1 : scoreData.gamesWon2 },
+            gamesLost: { increment: actualWinnerId === match.participant1Id ? scoreData.gamesLost1 : scoreData.gamesLost2 },
+            pointsFor: { increment: actualWinnerId === match.participant1Id ? scoreData.pointsFor1 : scoreData.pointsFor2 },
+            pointsAgainst: { increment: actualWinnerId === match.participant1Id ? scoreData.pointsAgainst1 : scoreData.pointsAgainst2 }
+          }
         });
+        // Update loser standing
         await tx.groupStanding.updateMany({
           where: { groupId: match.groupId, registrationId: loserId },
-          data: { losses: { increment: 1 }, matchesPlayed: { increment: 1 } }
+          data: {
+            losses: { increment: 1 },
+            matchesPlayed: { increment: 1 },
+            gamesWon: { increment: loserId === match.participant1Id ? scoreData.gamesWon1 : scoreData.gamesWon2 },
+            gamesLost: { increment: loserId === match.participant1Id ? scoreData.gamesLost1 : scoreData.gamesLost2 },
+            pointsFor: { increment: loserId === match.participant1Id ? scoreData.pointsFor1 : scoreData.pointsFor2 },
+            pointsAgainst: { increment: loserId === match.participant1Id ? scoreData.pointsAgainst1 : scoreData.pointsAgainst2 }
+          }
         });
       } else {
         // Draw = 1 pt each
         if (match.participant1Id) {
           await tx.groupStanding.updateMany({
             where: { groupId: match.groupId, registrationId: match.participant1Id },
-            data: { draws: { increment: 1 }, points: { increment: 1 }, matchesPlayed: { increment: 1 } }
+            data: {
+              draws: { increment: 1 },
+              points: { increment: 1 },
+              matchesPlayed: { increment: 1 },
+              gamesWon: { increment: scoreData.gamesWon1 },
+              gamesLost: { increment: scoreData.gamesLost1 },
+              pointsFor: { increment: scoreData.pointsFor1 },
+              pointsAgainst: { increment: scoreData.pointsAgainst1 }
+            }
           });
         }
         if (match.participant2Id) {
           await tx.groupStanding.updateMany({
             where: { groupId: match.groupId, registrationId: match.participant2Id },
-            data: { draws: { increment: 1 }, points: { increment: 1 }, matchesPlayed: { increment: 1 } }
+            data: {
+              draws: { increment: 1 },
+              points: { increment: 1 },
+              matchesPlayed: { increment: 1 },
+              gamesWon: { increment: scoreData.gamesWon2 },
+              gamesLost: { increment: scoreData.gamesLost2 },
+              pointsFor: { increment: scoreData.pointsFor2 },
+              pointsAgainst: { increment: scoreData.pointsAgainst2 }
+            }
           });
         }
       }

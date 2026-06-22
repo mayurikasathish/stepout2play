@@ -253,7 +253,7 @@ const BracketView = ({ eventId, eventName, eventFormat, registrationCount, isOrg
       {showMatchModal && selectedMatch && (
         <MatchResultModal
           match={selectedMatch}
-          isRoundRobin={isRoundRobin}
+          isRoundRobin={isRoundRobin || (isHybrid && selectedMatch.groupId !== null)}
           onClose={() => setShowMatchModal(false)}
           onSubmit={handleMatchUpdate}
         />
@@ -306,6 +306,7 @@ const MatchResultModal = ({ match, isRoundRobin, onClose, onSubmit }) => {
   const [winnerId, setWinnerId] = useState(match.winnerId || '')
   const [score, setScore]       = useState(match.score || '')
   const [isDraw, setIsDraw]     = useState(false)
+  const [errors, setErrors]     = useState({})
 
   const getParticipantName = (participant) => {
     if (!participant) return 'TBD'
@@ -316,8 +317,33 @@ const MatchResultModal = ({ match, isRoundRobin, onClose, onSubmit }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    if (!isDraw && !winnerId) return
-    // For draws, pass null winnerId; backend handles points for both players
+    const newErrors = {}
+
+    // Validate: winner must be selected (unless draw in round robin)
+    if (!isDraw && !winnerId) {
+      newErrors.winner = 'Please select a winner'
+    }
+
+    // Validate: score is mandatory for round robin
+    if (isRoundRobin && (!score || score.trim() === '')) {
+      newErrors.score = 'Score is required for round robin matches (needed for tie-breaking)'
+    }
+
+    // Validate score format if provided
+    if (score && score.trim() !== '') {
+      const scorePattern = /^\d+-\d+([,\s]+\d+-\d+)*$/
+      if (!scorePattern.test(score.trim())) {
+        newErrors.score = 'Invalid format. Use: "6-4, 6-3" or "21-19, 21-18"'
+      }
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors)
+      return
+    }
+
+    // Clear errors and submit
+    setErrors({})
     onSubmit(isDraw ? null : winnerId, score)
   }
 
@@ -351,7 +377,11 @@ const MatchResultModal = ({ match, isRoundRobin, onClose, onSubmit }) => {
                     name="winner"
                     value={match.participant1Id}
                     checked={!isDraw && winnerId === match.participant1Id}
-                    onChange={(e) => { setIsDraw(false); setWinnerId(e.target.value) }}
+                    onChange={(e) => {
+                      setIsDraw(false);
+                      setWinnerId(e.target.value);
+                      if (errors.winner) setErrors({ ...errors, winner: null })
+                    }}
                     className="mr-3"
                   />
                   <span className="font-medium">{getParticipantName(match.participant1)}</span>
@@ -368,7 +398,11 @@ const MatchResultModal = ({ match, isRoundRobin, onClose, onSubmit }) => {
                     name="winner"
                     value={match.participant2Id}
                     checked={!isDraw && winnerId === match.participant2Id}
-                    onChange={(e) => { setIsDraw(false); setWinnerId(e.target.value) }}
+                    onChange={(e) => {
+                      setIsDraw(false);
+                      setWinnerId(e.target.value);
+                      if (errors.winner) setErrors({ ...errors, winner: null })
+                    }}
                     className="mr-3"
                   />
                   <span className="font-medium">{getParticipantName(match.participant2)}</span>
@@ -383,26 +417,59 @@ const MatchResultModal = ({ match, isRoundRobin, onClose, onSubmit }) => {
                       type="radio"
                       name="winner"
                       checked={isDraw}
-                      onChange={() => { setIsDraw(true); setWinnerId('') }}
+                      onChange={() => { setIsDraw(true); setWinnerId(''); if (errors.winner) setErrors({ ...errors, winner: null }) }}
                       className="mr-3"
                     />
                     <span className="font-medium text-gray-700">Draw (1 point each)</span>
                   </label>
                 )}
               </div>
+              {errors.winner && (
+                <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  {errors.winner}
+                </p>
+              )}
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-900 mb-2">
-                Score (optional)
+                Score
+                {isRoundRobin && (
+                  <>
+                    <span className="text-red-600 text-base ml-1">*</span>
+                    <span className="text-xs text-gray-600 ml-2 font-normal">(required for tie-breaking)</span>
+                  </>
+                )}
               </label>
               <input
                 type="text"
-                placeholder="e.g., 21-15, 21-18"
+                placeholder="e.g., 6-4, 6-3 or 21-15, 21-18"
                 value={score}
-                onChange={(e) => setScore(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                onChange={(e) => {
+                  setScore(e.target.value)
+                  if (errors.score) setErrors({ ...errors, score: null })
+                }}
+                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none ${
+                  errors.score ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                }`}
+                required={isRoundRobin}
               />
+              {errors.score && (
+                <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  {errors.score}
+                </p>
+              )}
+              {!errors.score && isRoundRobin && (
+                <p className="mt-2 text-xs text-gray-600">
+                  Format: "6-4, 6-3" or "21-19, 21-18" (sets/games separated by comma or space)
+                </p>
+              )}
             </div>
 
             <div className="flex gap-3">
