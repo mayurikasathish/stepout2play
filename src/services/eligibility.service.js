@@ -27,8 +27,9 @@ class EligibilityService {
       return { type: 'UNDER', min: null, max: maxAge };
     }
 
-    // Veterans/Seniors (40+, 50+, 60+, etc)
-    const veteransMatch = categoryLower.match(/(?:veterans?|seniors?)\s*(\d+)\+/);
+    // Veterans/Seniors (40+, 50+, 60+, etc) or just "40+", "50+"
+    // Match patterns: "Veterans 40+", "40+", "Seniors 50+", etc.
+    const veteransMatch = categoryLower.match(/(?:(?:veterans?|seniors?)\s*)?(\d+)\+/);
     if (veteransMatch) {
       const minAge = parseInt(veteransMatch[1]);
       return { type: 'VETERANS', min: minAge, max: null };
@@ -86,12 +87,12 @@ class EligibilityService {
 
     // Under age category (U19, U15, etc)
     if (ageReqs.type === 'UNDER') {
-      if (age < ageReqs.max) {
+      if (age <= ageReqs.max) {
         return { eligible: true };
       }
       return {
         eligible: false,
-        reason: `This event is for players under ${ageReqs.max} years old. You will be ${age} years old on the tournament date.`
+        reason: `This event is for players ${ageReqs.max} years and under. You will be ${age} years old on the tournament date.`
       };
     }
 

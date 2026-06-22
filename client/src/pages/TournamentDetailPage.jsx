@@ -128,19 +128,54 @@ const TournamentDetailPage = () => {
     setShowRegistrationConfirm(true)
   }
 
-  const handleRegistrationConfirmed = () => {
+  const handleRegistrationConfirmed = async () => {
     setShowRegistrationConfirm(false)
 
     if (!pendingRegistration) return
 
     const { eventId, eventName, eventFormat } = pendingRegistration
 
-    // For doubles/mixed doubles, show partner selection modal
+    // For doubles/mixed doubles, check user's eligibility first
     if (eventFormat === 'DOUBLES' || eventFormat === 'MIXED_DOUBLES') {
-      setCurrentEvent({ id: eventId, name: eventName, format: eventFormat })
-      setShowPartnerModal(true)
-      setPendingRegistration(null)
-      return
+      try {
+        setRegistering(true)
+
+        // Check if the user themselves is eligible
+        const eligibilityCheck = await api.get(`/events/${eventId}/check-eligibility`)
+
+        if (!eligibilityCheck.data.eligible) {
+          // Show not eligible modal - don't proceed to partner selection
+          setEligibilityData({
+            reasons: eligibilityCheck.data.reasons || [],
+            userAge: eligibilityCheck.data.userAge,
+            eventCategory: eligibilityCheck.data.eventCategory,
+            eventGender: eligibilityCheck.data.eventGender
+          })
+          setShowNotEligibleModal(true)
+          setRegistering(false)
+          setPendingRegistration(null)
+          return
+        }
+
+        // User is eligible, now show partner selection modal
+        setRegistering(false)
+        setCurrentEvent({ id: eventId, name: eventName, format: eventFormat })
+        setShowPartnerModal(true)
+        setPendingRegistration(null)
+        return
+      } catch (err) {
+        console.error('Error checking eligibility:', err)
+        setRegistering(false)
+
+        // Show error
+        setSuccessMessage({
+          title: 'Error',
+          message: 'Failed to verify eligibility. Please try again.'
+        })
+        setShowSuccessModal(true)
+        setPendingRegistration(null)
+        return
+      }
     }
 
     // For singles, proceed directly
@@ -607,13 +642,15 @@ const EventCard = ({ event, tournament, canRegister, onRegister, onCancelRegistr
 
             {/* Warning for deadline passed */}
             {isRegistered && isDeadlinePassed && (
-              <div className="mt-3 p-2 bg-orange-50 border border-orange-200 rounded-lg">
-                <p className="text-xs text-orange-700 flex items-center gap-1">
-                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
-                  Registration deadline passed - Contact organizer if you want to cancel the registration.
-                </p>
+              <div className="mt-3 inline-block">
+                <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                  <p className="text-xs text-orange-700 flex items-center gap-1.5">
+                    <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <span>Registration deadline passed - Contact organizer if you want to cancel the registration.</span>
+                  </p>
+                </div>
               </div>
             )}
           </div>

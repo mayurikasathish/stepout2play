@@ -105,11 +105,19 @@ const PartnerSelectionModal = ({ isOpen, onClose, eventId, eventName, eventForma
               // Step 1: Search for partner
               <div>
                 <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
-                  <p className="text-sm text-blue-800">
-                    {eventFormat === 'MIXED_DOUBLES'
-                      ? 'Enter your partner\'s email address. For Mixed Doubles, you need one male and one female player.'
-                      : 'Enter your partner\'s email address. Both players will be verified for eligibility.'}
-                  </p>
+                  <div className="flex items-start gap-2">
+                    <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div>
+                      <p className="text-sm text-blue-900 font-medium mb-1">You are eligible for this event! ✓</p>
+                      <p className="text-sm text-blue-800">
+                        {eventFormat === 'MIXED_DOUBLES'
+                          ? 'Enter your partner\'s email address. For Mixed Doubles, you need one male and one female player.'
+                          : 'Enter your partner\'s email address. Your partner will also be verified for eligibility.'}
+                      </p>
+                    </div>
+                  </div>
                 </div>
 
                 {error && (

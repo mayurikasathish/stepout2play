@@ -106,7 +106,18 @@ class AuthController {
           orgMemberships: {
             include: {
               org: {
-                select: { id: true, name: true, slug: true, logoUrl: true }
+                select: {
+                  id: true,
+                  name: true,
+                  slug: true,
+                  logoUrl: true,
+                  _count: {
+                    select: {
+                      tournaments: true,
+                      members: true
+                    }
+                  }
+                }
               }
             }
           }
@@ -119,7 +130,9 @@ class AuthController {
         name: m.org.name,
         slug: m.org.slug,
         logoUrl: m.org.logoUrl,
-        myRole: m.role
+        myRole: m.role,
+        tournamentCount: m.org._count.tournaments,
+        memberCount: m.org._count.members
       }));
 
       res.status(200).json({

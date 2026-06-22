@@ -65,7 +65,11 @@ const BrowsePage = () => {
   }
 
   const filteredTournaments = tournaments.filter(t => {
-    const matchesSearch = t.name.toLowerCase().includes(searchQuery.toLowerCase())
+    const query = searchQuery.toLowerCase()
+    const matchesSearch =
+      t.name.toLowerCase().includes(query) ||
+      (t.organization?.name || '').toLowerCase().includes(query) ||
+      t.city.toLowerCase().includes(query)
     const matchesSport = filterSport === 'all' || t.sport === filterSport
     // Exclude DRAFT tournaments unless specifically filtered
     const matchesStatus = filterStatus === 'DRAFT' || t.status !== 'DRAFT'
@@ -93,7 +97,7 @@ const BrowsePage = () => {
             <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
               type="text"
-              placeholder="Search tournaments..."
+              placeholder="Search by tournament name, organization, or city..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full h-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all bg-white shadow-sm"
