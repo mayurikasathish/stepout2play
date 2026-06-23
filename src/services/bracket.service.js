@@ -657,7 +657,9 @@ class BracketService {
         groupCount: event.groupCount || null,
         groupSize: event.groupSize || null,
         advanceCount: event.advanceCount || null,
-        hasBronzeMatch: event.hasBronzeMatch || false
+        hasBronzeMatch: event.hasBronzeMatch || false,
+        bestOf: event.bestOf || null,
+        pointsPerSet: event.pointsPerSet || null
       },
       matches: event.matches,
       groups
