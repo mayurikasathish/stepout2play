@@ -903,31 +903,17 @@ const EditEventModal = ({ event, onClose, onSubmit }) => {
   }, [])
 
   const handleSportChange = (sportId) => {
-    if (sportId === 'custom') {
-      // User wants custom rules
-      setShowCustomRules(true)
-      setSelectedSport(null)
+    const sport = sports.find(s => s.id === sportId)
+    setSelectedSport(sport)
+
+    if (sport) {
+      // Auto-fill scoring rules from selected sport
       setFormData({
         ...formData,
-        sportId: '',
-        bestOf: '',
-        pointsPerSet: ''
+        sportId: sport.id,
+        bestOf: sport.rules.bestOf,
+        pointsPerSet: sport.rules.pointsPerSet
       })
-    } else {
-      // User selected a sport
-      const sport = sports.find(s => s.id === sportId)
-      setSelectedSport(sport)
-      setShowCustomRules(false)
-
-      if (sport) {
-        // Auto-fill scoring rules from selected sport
-        setFormData({
-          ...formData,
-          sportId: sport.id,
-          bestOf: sport.rules.bestOf,
-          pointsPerSet: sport.rules.pointsPerSet
-        })
-      }
     }
   }
 
@@ -988,16 +974,16 @@ const EditEventModal = ({ event, onClose, onSubmit }) => {
                 Sport *
               </label>
               <select
-                value={showCustomRules ? 'custom' : formData.sportId}
+                value={formData.sportId}
                 onChange={(e) => handleSportChange(e.target.value)}
                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                disabled={showCustomRules}
               >
                 {sports.map(sport => (
                   <option key={sport.id} value={sport.id}>
                     {sport.icon} {sport.name}
                   </option>
                 ))}
-                <option value="custom">⚙️ Custom Match Scoring Config</option>
               </select>
             </div>
 
@@ -1016,6 +1002,45 @@ const EditEventModal = ({ event, onClose, onSubmit }) => {
                 </div>
               </div>
             )}
+
+            {/* Custom Rules Checkbox */}
+            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+              <input
+                type="checkbox"
+                id="customRules"
+                checked={showCustomRules}
+                onChange={(e) => {
+                  const checked = e.target.checked
+                  setShowCustomRules(checked)
+                  if (checked) {
+                    // Clear sport data and enable custom fields
+                    setFormData({
+                      ...formData,
+                      sportId: '',
+                      bestOf: '',
+                      pointsPerSet: ''
+                    })
+                    setSelectedSport(null)
+                  } else {
+                    // Restore default sport (badminton)
+                    const badminton = sports.find(s => s.id === 'badminton')
+                    if (badminton) {
+                      setSelectedSport(badminton)
+                      setFormData({
+                        ...formData,
+                        sportId: 'badminton',
+                        bestOf: badminton.rules.bestOf,
+                        pointsPerSet: badminton.rules.pointsPerSet
+                      })
+                    }
+                  }
+                }}
+                className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+              />
+              <label htmlFor="customRules" className="text-sm font-medium text-gray-700 cursor-pointer">
+                ⚙️ Use custom match scoring configuration
+              </label>
+            </div>
 
             <div className="grid md:grid-cols-2 gap-4">
               <div>
