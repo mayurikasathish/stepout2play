@@ -459,11 +459,13 @@ const MatchResultModal = ({ match, event, isRoundRobin, onClose, onSubmit }) => 
 
             {/* Match Info */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="flex items-center justify-between text-sm">
-                <span className="font-medium text-blue-900">Format:</span>
-                <span className="text-blue-700">Best of {bestOf} sets • {pointsPerSet} points per set</span>
+              <div className="text-center">
+                <p className="text-sm font-medium text-blue-900 mb-1">Match Format</p>
+                <p className="text-base font-semibold text-blue-700">
+                  Best of {bestOf} • {pointsPerSet} points per set
+                </p>
               </div>
-              <p className="text-xs text-blue-600 mt-2">
+              <p className="text-xs text-blue-600 mt-3 text-center">
                 ✨ Winner will be automatically determined based on sets won
               </p>
             </div>

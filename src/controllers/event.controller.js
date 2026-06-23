@@ -97,7 +97,7 @@ class EventController {
   async updateEvent(req, res, next) {
     try {
       const { eventId } = req.params;
-      const { name, format, category, gender, maxParticipants, registrationFee, rules } = req.body;
+      const { name, format, category, gender, maxParticipants, registrationFee, rules, bestOf, pointsPerSet } = req.body;
 
       const updateData = {};
 
@@ -108,6 +108,8 @@ class EventController {
       if (maxParticipants !== undefined) updateData.maxParticipants = maxParticipants ? parseInt(maxParticipants, 10) : null;
       if (registrationFee !== undefined) updateData.registrationFee = registrationFee ? parseFloat(registrationFee) : null;
       if (rules !== undefined) updateData.rules = rules?.trim() || null;
+      if (bestOf !== undefined) updateData.bestOf = bestOf ? parseInt(bestOf, 10) : null;
+      if (pointsPerSet !== undefined) updateData.pointsPerSet = pointsPerSet ? parseInt(pointsPerSet, 10) : null;
 
       const prisma = require('../lib/prisma');
       const event = await prisma.event.update({
