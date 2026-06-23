@@ -322,7 +322,9 @@ const MatchResultModal = ({ match, event, isRoundRobin, onClose, onSubmit }) => 
 
   const [setScores, setSetScores] = useState(initializeSetScores())
   const [isDraw, setIsDraw]     = useState(false)
+  const [drawReason, setDrawReason] = useState('')
   const [errors, setErrors]     = useState({})
+  const [savedSets, setSavedSets] = useState([]) // Track which sets are saved
 
   const getParticipantName = (participant) => {
     if (!participant) return 'TBD'
@@ -357,6 +359,59 @@ const MatchResultModal = ({ match, event, isRoundRobin, onClose, onSubmit }) => 
     newScores[setIndex] = { ...newScores[setIndex], [player]: value }
     setSetScores(newScores)
     if (errors.sets) setErrors({ ...errors, sets: null })
+    if (errors[`set${setIndex}`]) {
+      const newErrors = { ...errors }
+      delete newErrors[`set${setIndex}`]
+      setErrors(newErrors)
+    }
+  }
+
+  // Validate individual set score
+  const validateSetScore = (p1Score, p2Score, setIndex) => {
+    const p1 = parseInt(p1Score)
+    const p2 = parseInt(p2Score)
+
+    if (isNaN(p1) || isNaN(p2)) {
+      return 'Both scores must be entered'
+    }
+
+    // At least one player must reach pointsPerSet
+    if (p1 < pointsPerSet && p2 < pointsPerSet) {
+      return `At least one player must score ${pointsPerSet} or more points`
+    }
+
+    // Must have 2-point difference
+    const diff = Math.abs(p1 - p2)
+    if (diff < 2) {
+      return 'Winner must have at least 2-point lead'
+    }
+
+    // The player with lower score must not exceed pointsPerSet unless in deuce
+    const maxScore = Math.max(p1, p2)
+    const minScore = Math.min(p1, p2)
+
+    if (minScore < pointsPerSet - 1) {
+      // Normal case: winner must be at pointsPerSet, loser below
+      if (maxScore !== pointsPerSet) {
+        return `Winner must score exactly ${pointsPerSet} when opponent is below ${pointsPerSet - 1}`
+      }
+    }
+
+    return null // Valid
+  }
+
+  const saveSet = (setIndex) => {
+    const set = setScores[setIndex]
+    const error = validateSetScore(set.p1, set.p2, setIndex)
+
+    if (error) {
+      setErrors({ ...errors, [`set${setIndex}`]: error })
+      return
+    }
+
+    // Mark set as saved
+    setSavedSets([...savedSets, setIndex])
+    setErrors({ ...errors, [`set${setIndex}`]: null })
   }
 
   const handleSubmit = (e) => {
@@ -370,44 +425,52 @@ const MatchResultModal = ({ match, event, isRoundRobin, onClose, onSubmit }) => 
       return
     }
 
-    // Validate: at least one set must have scores
-    const hasAnyScores = setScores.some(set => set.p1 !== '' || set.p2 !== '')
-    if (!hasAnyScores && !isDraw) {
-      newErrors.sets = 'Please enter scores for at least one set'
+    // If draw, require reason
+    if (isDraw) {
+      if (!drawReason.trim()) {
+        newErrors.draw = 'Please specify reason for draw'
+        setErrors(newErrors)
+        return
+      }
+      // Submit draw with reason
+      onSubmit(null, `Draw: ${drawReason.trim()}`)
+      return
+    }
+
+    // Validate: at least one set must be saved
+    if (savedSets.length === 0) {
+      newErrors.sets = 'Please save at least one set before submitting'
       setErrors(newErrors)
       return
     }
 
-    // Validate: all entered sets must have both scores
-    const incompleteSets = setScores.filter(set =>
-      (set.p1 !== '' && set.p2 === '') || (set.p1 === '' && set.p2 !== '')
-    )
-    if (incompleteSets.length > 0) {
-      newErrors.sets = 'Please complete all sets with both scores or leave them empty'
+    // Calculate winner based on saved sets only
+    let p1Sets = 0
+    let p2Sets = 0
+    const setsNeededToWin = Math.ceil(bestOf / 2)
+
+    savedSets.forEach(setIndex => {
+      const set = setScores[setIndex]
+      const p1Score = parseInt(set.p1)
+      const p2Score = parseInt(set.p2)
+      if (p1Score > p2Score) p1Sets++
+      else p2Sets++
+    })
+
+    const winnerId = p1Sets >= setsNeededToWin ? match.participant1Id :
+                     p2Sets >= setsNeededToWin ? match.participant2Id : null
+
+    if (!winnerId) {
+      newErrors.winner = `No clear winner yet. Need ${setsNeededToWin} sets to win. Currently: P1=${p1Sets}, P2=${p2Sets}`
       setErrors(newErrors)
       return
     }
 
-    // Calculate winner automatically
-    const winnerId = isDraw ? null : calculateWinner()
-
-    if (!isDraw && !winnerId) {
-      newErrors.winner = 'No clear winner based on scores. Please check the scores entered.'
-      setErrors(newErrors)
-      return
-    }
-
-    // Build score string from sets
-    const scoreString = setScores
-      .filter(set => set.p1 !== '' && set.p2 !== '')
-      .map(set => `${set.p1}-${set.p2}`)
+    // Build score string from saved sets only
+    const scoreString = savedSets
+      .sort((a, b) => a - b)
+      .map(idx => `${setScores[idx].p1}-${setScores[idx].p2}`)
       .join(', ')
-
-    if (!scoreString && !isDraw) {
-      newErrors.sets = 'Please enter at least one complete set'
-      setErrors(newErrors)
-      return
-    }
 
     // Clear errors and submit
     setErrors({})
@@ -487,27 +550,56 @@ const MatchResultModal = ({ match, event, isRoundRobin, onClose, onSubmit }) => 
               <label className="block text-sm font-medium text-gray-900 mb-3">
                 Enter Set Scores <span className="text-red-500">*</span>
               </label>
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {setScores.map((set, idx) => (
-                  <div key={idx} className="flex items-center gap-3">
-                    <span className="text-sm font-medium text-gray-600 w-12">Set {idx + 1}:</span>
-                    <input
-                      type="number"
-                      min="0"
-                      placeholder="P1"
-                      value={set.p1}
-                      onChange={(e) => updateSetScore(idx, 'p1', e.target.value)}
-                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-center"
-                    />
-                    <span className="text-gray-400 font-bold">-</span>
-                    <input
-                      type="number"
-                      min="0"
-                      placeholder="P2"
-                      value={set.p2}
-                      onChange={(e) => updateSetScore(idx, 'p2', e.target.value)}
-                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-center"
-                    />
+                  <div key={idx} className={`p-4 rounded-lg border-2 ${savedSets.includes(idx) ? 'bg-green-50 border-green-300' : 'bg-white border-gray-200'}`}>
+                    <div className="flex items-center gap-3 mb-2">
+                      <span className="text-sm font-semibold text-gray-700 w-16">Set {idx + 1}</span>
+                      <input
+                        type="number"
+                        min="0"
+                        placeholder="P1"
+                        value={set.p1}
+                        onChange={(e) => updateSetScore(idx, 'p1', e.target.value)}
+                        disabled={savedSets.includes(idx)}
+                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-center disabled:bg-gray-100 disabled:cursor-not-allowed"
+                      />
+                      <span className="text-gray-400 font-bold">-</span>
+                      <input
+                        type="number"
+                        min="0"
+                        placeholder="P2"
+                        value={set.p2}
+                        onChange={(e) => updateSetScore(idx, 'p2', e.target.value)}
+                        disabled={savedSets.includes(idx)}
+                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-center disabled:bg-gray-100 disabled:cursor-not-allowed"
+                      />
+                      {!savedSets.includes(idx) && (set.p1 || set.p2) && (
+                        <button
+                          type="button"
+                          onClick={() => saveSet(idx)}
+                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-all"
+                        >
+                          Save
+                        </button>
+                      )}
+                      {savedSets.includes(idx) && (
+                        <span className="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg flex items-center gap-1">
+                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                          Saved
+                        </span>
+                      )}
+                    </div>
+                    {errors[`set${idx}`] && (
+                      <p className="text-sm text-red-600 flex items-center gap-1 mt-2">
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                        {errors[`set${idx}`]}
+                      </p>
+                    )}
                   </div>
                 ))}
               </div>
@@ -527,14 +619,20 @@ const MatchResultModal = ({ match, event, isRoundRobin, onClose, onSubmit }) => 
                   {errors.winner}
                 </p>
               )}
-              <p className="mt-2 text-xs text-gray-600">
-                💡 Enter scores for each set. Winner is automatically determined when one player wins {Math.ceil(bestOf / 2)} sets.
-              </p>
+              <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-xs text-blue-800">
+                  <span className="font-semibold">💡 How scoring works:</span><br />
+                  • Click "Save" after entering each set to validate and lock it<br />
+                  • At least one player must score {pointsPerSet}+ points<br />
+                  • Winner must have 2-point lead minimum<br />
+                  • Match winner determined when one player wins {Math.ceil(bestOf / 2)} sets
+                </p>
+              </div>
             </div>
 
             {/* Draw option (Round Robin only) */}
             {isRoundRobin && (
-              <div>
+              <div className="space-y-3">
                 <label className="flex items-center p-4 rounded-lg border-2 cursor-pointer transition-all bg-gray-50 border-gray-300">
                   <input
                     type="checkbox"
@@ -544,6 +642,35 @@ const MatchResultModal = ({ match, event, isRoundRobin, onClose, onSubmit }) => 
                   />
                   <span className="font-medium text-gray-700">Mark as Draw (1 point each)</span>
                 </label>
+
+                {isDraw && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-900 mb-2">
+                      Reason for Draw <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={drawReason}
+                      onChange={(e) => {
+                        setDrawReason(e.target.value)
+                        if (errors.draw) setErrors({ ...errors, draw: null })
+                      }}
+                      placeholder="e.g., Rain, Player injury, Time constraint"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                    />
+                    {errors.draw && (
+                      <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                        {errors.draw}
+                      </p>
+                    )}
+                    <p className="mt-2 text-xs text-gray-600">
+                      Specify why this match is being marked as a draw
+                    </p>
+                  </div>
+                )}
               </div>
             )}
 
