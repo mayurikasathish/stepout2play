@@ -108,12 +108,11 @@ class EventController {
       if (maxParticipants !== undefined) updateData.maxParticipants = maxParticipants ? parseInt(maxParticipants, 10) : null;
       if (registrationFee !== undefined) updateData.registrationFee = registrationFee ? parseFloat(registrationFee) : null;
       if (rules !== undefined) updateData.rules = rules?.trim() || null;
-      if (bestOf !== undefined) updateData.bestOf = bestOf ? parseInt(bestOf, 10) : null;
-      if (pointsPerSet !== undefined) updateData.pointsPerSet = pointsPerSet ? parseInt(pointsPerSet, 10) : null;
 
-      // Handle sport selection - auto-populate scoring rules
+      // Handle sport selection vs custom rules
       if (sportId !== undefined) {
         if (sportId) {
+          // Sport selected - use sport rules
           const sportsService = require('../services/sports.service');
           const sport = sportsService.getSportById(sportId);
 
@@ -131,10 +130,44 @@ class EventController {
           updateData.bestOf = sport.rules.bestOf;
           updateData.pointsPerSet = sport.rules.pointsPerSet;
         } else {
-          // Clear sport data
+          // Custom rules - sportId is null/empty, use provided bestOf/pointsPerSet
           updateData.sportId = null;
-          updateData.scoringType = null;
-          updateData.scoringRules = null;
+          updateData.scoringType = 'point-based';
+
+          // Build custom scoring rules from provided values
+          if (bestOf !== undefined || pointsPerSet !== undefined) {
+            const customBestOf = bestOf ? parseInt(bestOf, 10) : null;
+            const customPointsPerSet = pointsPerSet ? parseInt(pointsPerSet, 10) : null;
+
+            updateData.bestOf = customBestOf;
+            updateData.pointsPerSet = customPointsPerSet;
+
+            // Create custom scoringRules object
+            if (customBestOf && customPointsPerSet) {
+              updateData.scoringRules = {
+                bestOf: customBestOf,
+                pointsPerSet: customPointsPerSet,
+                minimumLead: 2,
+                maxPoints: null
+              };
+            } else {
+              updateData.scoringRules = null;
+            }
+          }
+        }
+      } else {
+        // sportId not in request, but bestOf/pointsPerSet might be updated independently
+        if (bestOf !== undefined) updateData.bestOf = bestOf ? parseInt(bestOf, 10) : null;
+        if (pointsPerSet !== undefined) updateData.pointsPerSet = pointsPerSet ? parseInt(pointsPerSet, 10) : null;
+
+        // If both are provided and no sportId, create custom rules
+        if (bestOf && pointsPerSet) {
+          updateData.scoringRules = {
+            bestOf: parseInt(bestOf, 10),
+            pointsPerSet: parseInt(pointsPerSet, 10),
+            minimumLead: 2,
+            maxPoints: null
+          };
         }
       }
 

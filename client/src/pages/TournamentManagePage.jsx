@@ -880,19 +880,33 @@ const EditEventModal = ({ event, onClose, onSubmit }) => {
         const response = await getAllSports()
         if (response.success) {
           setSports(response.sports)
-          // Set selected sport - default to badminton if not specified
-          const sportId = event.sportId || 'badminton'
-          const sport = response.sports.find(s => s.id === sportId)
-          setSelectedSport(sport)
 
-          // Auto-fill rules if sport is selected
-          if (sport && !event.bestOf) {
+          // Check if event has custom rules (no sportId but has bestOf/pointsPerSet)
+          if (!event.sportId && event.bestOf && event.pointsPerSet) {
+            // Custom rules mode
+            setShowCustomRules(true)
+            setSelectedSport(null)
             setFormData(prev => ({
               ...prev,
-              sportId: sport.id,
-              bestOf: sport.rules.bestOf,
-              pointsPerSet: sport.rules.pointsPerSet
+              sportId: '',
+              bestOf: event.bestOf,
+              pointsPerSet: event.pointsPerSet
             }))
+          } else {
+            // Sport mode - default to badminton if not specified
+            const sportId = event.sportId || 'badminton'
+            const sport = response.sports.find(s => s.id === sportId)
+            setSelectedSport(sport)
+
+            // Auto-fill rules if sport is selected
+            if (sport && !event.bestOf) {
+              setFormData(prev => ({
+                ...prev,
+                sportId: sport.id,
+                bestOf: sport.rules.bestOf,
+                pointsPerSet: sport.rules.pointsPerSet
+              }))
+            }
           }
         }
       } catch (err) {
@@ -939,13 +953,19 @@ const EditEventModal = ({ event, onClose, onSubmit }) => {
       gender: formData.gender || undefined,
       maxParticipants: formData.maxParticipants ? parseInt(formData.maxParticipants) : undefined,
       registrationFee: formData.registrationFee ? parseFloat(formData.registrationFee) : undefined,
-      rules: formData.rules.trim() || undefined,
-      sportId: formData.sportId || undefined
+      rules: formData.rules.trim() || undefined
     }
 
-    // Only include bestOf/pointsPerSet if they exist (for custom rules)
-    if (formData.bestOf) cleanData.bestOf = parseInt(formData.bestOf)
-    if (formData.pointsPerSet) cleanData.pointsPerSet = parseInt(formData.pointsPerSet)
+    // Handle custom rules vs sport selection
+    if (showCustomRules) {
+      // Custom rules mode - send empty sportId and custom values
+      cleanData.sportId = ''
+      cleanData.bestOf = parseInt(formData.bestOf)
+      cleanData.pointsPerSet = parseInt(formData.pointsPerSet)
+    } else {
+      // Sport mode - send sportId (backend will auto-fill rules)
+      cleanData.sportId = formData.sportId
+    }
 
     onSubmit(cleanData)
   }

@@ -638,12 +638,16 @@ const MatchResultModal = ({ match, event, isRoundRobin, onClose, onSubmit }) => 
             {/* Match Info */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <div className="text-center">
-                {event?.sportId && (
+                {event?.sportId ? (
                   <p className="text-xs font-medium text-blue-700 mb-1">
                     {event.sportId === 'badminton' && '🏸 Badminton'}
                     {event.sportId === 'table-tennis' && '🏓 Table Tennis'}
                     {event.sportId === 'squash' && '🎾 Squash'}
                     {event.sportId === 'pickleball' && '🥒 Pickleball'}
+                  </p>
+                ) : (
+                  <p className="text-xs font-medium text-orange-600 mb-1">
+                    ⚙️ Custom Scoring Rules
                   </p>
                 )}
                 <p className="text-sm font-medium text-blue-900 mb-1">Match Format</p>
