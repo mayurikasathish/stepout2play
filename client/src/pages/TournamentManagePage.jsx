@@ -836,11 +836,24 @@ const EditEventModal = ({ event, onClose, onSubmit }) => {
     gender: event.gender || '',
     maxParticipants: event.maxParticipants || '',
     registrationFee: event.registrationFee || '',
-    rules: event.rules || ''
+    rules: event.rules || '',
+    bestOf: event.bestOf || '',
+    pointsPerSet: event.pointsPerSet || ''
   })
 
   const handleSubmit = (e) => {
     e.preventDefault()
+
+    // Validate scoring configuration
+    if (!formData.bestOf) {
+      alert('Please specify the match format (Best of 3 or 5)')
+      return
+    }
+    if (!formData.pointsPerSet) {
+      alert('Please specify points per set')
+      return
+    }
+
     const cleanData = {
       name: formData.name.trim(),
       format: formData.format,
@@ -848,7 +861,9 @@ const EditEventModal = ({ event, onClose, onSubmit }) => {
       gender: formData.gender || undefined,
       maxParticipants: formData.maxParticipants ? parseInt(formData.maxParticipants) : undefined,
       registrationFee: formData.registrationFee ? parseFloat(formData.registrationFee) : undefined,
-      rules: formData.rules.trim() || undefined
+      rules: formData.rules.trim() || undefined,
+      bestOf: parseInt(formData.bestOf),
+      pointsPerSet: parseInt(formData.pointsPerSet)
     }
     onSubmit(cleanData)
   }
@@ -935,6 +950,45 @@ const EditEventModal = ({ event, onClose, onSubmit }) => {
                 placeholder="Leave empty for free registration"
                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
               />
+            </div>
+
+            {/* Scoring Configuration */}
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+              <h3 className="font-semibold text-blue-900 mb-3">⚙️ Match Scoring Configuration</h3>
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-blue-900 mb-2">
+                    Match Format <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={formData.bestOf}
+                    onChange={(e) => setFormData({ ...formData, bestOf: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none bg-white"
+                    required
+                  >
+                    <option value="">Select format</option>
+                    <option value="3">Best of 3 sets</option>
+                    <option value="5">Best of 5 sets</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-blue-900 mb-2">
+                    Points Per Set <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.pointsPerSet}
+                    onChange={(e) => setFormData({ ...formData, pointsPerSet: e.target.value })}
+                    placeholder="e.g., 21 for badminton, 11 for table tennis"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none bg-white"
+                    required
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-blue-700 mt-2">
+                ℹ️ Winner will be automatically determined based on scores entered for each set
+              </p>
             </div>
 
             <div>

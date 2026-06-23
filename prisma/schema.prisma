@@ -114,6 +114,9 @@ model Event {
   groupCount       Int?           // actual number of groups created
   advanceCount     Int?           // top N per group advance to knockout (hybrid only)
   hasBronzeMatch   Boolean?       @default(false) // whether to include 3rd place match (hybrid only)
+  // Scoring configuration
+  bestOf           Int?           // Best of N (e.g., 3 or 5 sets/games)
+  pointsPerSet     Int?           // Points to win a set (e.g., 21 for badminton, 11 for table tennis)
   tournament       Tournament     @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
   matches          Match[]
   registrations    Registration[]
