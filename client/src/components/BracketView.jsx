@@ -905,7 +905,6 @@ const MatchResultModal = ({ match, event, isRoundRobin, onClose, onSubmit }) => 
         </div>
       </div>
     )}
-  </div>
   </>
   )
 }
