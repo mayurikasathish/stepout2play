@@ -63,7 +63,9 @@ model Tournament {
   id                   String           @id @default(uuid())
   organizationId       String
   name                 String
-  sport                String
+  sport                String           // Legacy field - kept for backward compatibility
+  sportType            String?          // "single" or "multi"
+  sports               String[]         // Array of sport IDs (e.g., ["badminton", "table-tennis"])
   startDate            DateTime
   endDate              DateTime
   venueName            String

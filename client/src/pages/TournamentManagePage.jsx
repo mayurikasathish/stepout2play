@@ -112,10 +112,17 @@ const TournamentManagePage = () => {
       if (response.data.success) {
         setShowEditModal(false)
         loadTournament()
+
+        // Show success toast
+        setToastMessage('Tournament updated successfully!')
+        setToastType('success')
+        setShowToast(true)
       }
     } catch (err) {
       console.error('Error updating tournament:', err)
-      alert('Failed to update tournament')
+      setToastMessage('Failed to update tournament')
+      setToastType('error')
+      setShowToast(true)
     }
   }
 
@@ -472,6 +479,7 @@ const TournamentManagePage = () => {
         {showEditEventModal && editingEvent && (
           <EditEventModal
             event={editingEvent}
+            tournament={tournament}
             onClose={() => { setShowEditEventModal(false); setEditingEvent(null) }}
             onSubmit={handleUpdateEvent}
           />
@@ -660,6 +668,8 @@ const CreateEventModal = ({ onClose, onSubmit }) => {
 
 // Edit Tournament Modal Component
 const EditTournamentModal = ({ tournament, onClose, onSubmit }) => {
+  const [sportType, setSportType] = useState(tournament.sportType || 'single')
+  const [selectedSports, setSelectedSports] = useState(tournament.sports || [tournament.sport || 'badminton'])
   const [formData, setFormData] = useState({
     name: tournament.name || '',
     sport: tournament.sport || 'badminton',
@@ -676,9 +686,45 @@ const EditTournamentModal = ({ tournament, onClose, onSubmit }) => {
     status: ['DRAFT', 'OPEN'].includes(tournament.status) ? tournament.status : 'OPEN'
   })
 
+  const availableSports = [
+    { id: 'badminton', name: 'Badminton', icon: '🏸' },
+    { id: 'table-tennis', name: 'Table Tennis', icon: '🏓' },
+    { id: 'squash', name: 'Squash', icon: '🎾' },
+    { id: 'pickleball', name: 'Pickleball', icon: '🥒' },
+  ]
+
+  const toggleSport = (sportId) => {
+    if (sportType === 'single') {
+      setSelectedSports([sportId])
+    } else {
+      if (selectedSports.includes(sportId)) {
+        // Don't allow removing all sports
+        if (selectedSports.length > 1) {
+          setSelectedSports(selectedSports.filter(s => s !== sportId))
+        }
+      } else {
+        setSelectedSports([...selectedSports, sportId])
+      }
+    }
+  }
+
+  const handleSportTypeChange = (type) => {
+    setSportType(type)
+    if (type === 'single' && selectedSports.length > 1) {
+      // Keep only first sport when switching to single
+      setSelectedSports([selectedSports[0]])
+    }
+  }
+
   const handleSubmit = (e) => {
     e.preventDefault()
-    onSubmit(formData)
+    const submitData = {
+      ...formData,
+      sportType,
+      sports: selectedSports,
+      sport: selectedSports[0] // Legacy field - first sport
+    }
+    onSubmit(submitData)
   }
 
   return (
@@ -699,34 +745,82 @@ const EditTournamentModal = ({ tournament, onClose, onSubmit }) => {
               />
             </div>
 
-            <div className="grid md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">Sport *</label>
-                <select
-                  value={formData.sport}
-                  onChange={(e) => setFormData({ ...formData, sport: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+            {/* Sport Type Selection */}
+            <div>
+              <label className="block text-sm font-medium mb-2">Tournament Type *</label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => handleSportTypeChange('single')}
+                  className={`px-4 py-3 rounded-xl border-2 font-medium transition-all ${
+                    sportType === 'single'
+                      ? 'border-primary-500 bg-primary-50 text-primary-700'
+                      : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                  }`}
                 >
-                  <option value="badminton">Badminton</option>
-                  <option value="tennis">Tennis</option>
-                  <option value="table-tennis">Table Tennis</option>
-                  <option value="squash">Squash</option>
-                  <option value="pickleball">Pickleball</option>
-                  <option value="padel">Padel</option>
-                </select>
+                  🏆 Single Sport
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSportTypeChange('multi')}
+                  className={`px-4 py-3 rounded-xl border-2 font-medium transition-all ${
+                    sportType === 'multi'
+                      ? 'border-primary-500 bg-primary-50 text-primary-700'
+                      : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  🎯 Multi Sport
+                </button>
               </div>
+            </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-2">Format *</label>
-                <select
-                  value={formData.format}
-                  onChange={(e) => setFormData({ ...formData, format: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                >
-                  <option value="ROUND_ROBIN">Round Robin</option>
-                  <option value="KNOCKOUT">Knockout</option>
-                </select>
+            {/* Sports Selection */}
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Select Sport{sportType === 'multi' ? 's' : ''} *
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                {availableSports.map(sport => (
+                  <button
+                    key={sport.id}
+                    type="button"
+                    onClick={() => toggleSport(sport.id)}
+                    className={`px-4 py-3 rounded-xl border-2 font-medium transition-all text-left ${
+                      selectedSports.includes(sport.id)
+                        ? 'border-green-500 bg-green-50 text-green-700'
+                        : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                    }`}
+                  >
+                    <span className="text-lg mr-2">{sport.icon}</span>
+                    {sport.name}
+                    {selectedSports.includes(sport.id) && (
+                      <span className="ml-2 text-green-600">✓</span>
+                    )}
+                  </button>
+                ))}
               </div>
+              {sportType === 'single' && (
+                <p className="text-xs text-gray-500 mt-2">
+                  💡 Events in this tournament will use {availableSports.find(s => s.id === selectedSports[0])?.name} scoring rules
+                </p>
+              )}
+              {sportType === 'multi' && (
+                <p className="text-xs text-gray-500 mt-2">
+                  💡 Events can choose from the selected sports above
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">Format *</label>
+              <select
+                value={formData.format}
+                onChange={(e) => setFormData({ ...formData, format: e.target.value })}
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              >
+                <option value="ROUND_ROBIN">Round Robin</option>
+                <option value="KNOCKOUT">Knockout</option>
+              </select>
             </div>
 
             <div className="grid md:grid-cols-2 gap-4">
@@ -856,10 +950,11 @@ const EditTournamentModal = ({ tournament, onClose, onSubmit }) => {
 }
 
 // Edit Event Modal Component
-const EditEventModal = ({ event, onClose, onSubmit }) => {
+const EditEventModal = ({ event, tournament, onClose, onSubmit }) => {
   const [sports, setSports] = useState([])
   const [selectedSport, setSelectedSport] = useState(null)
   const [showCustomRules, setShowCustomRules] = useState(false)
+  const [allowedSports, setAllowedSports] = useState([]) // Sports allowed by tournament
   const [formData, setFormData] = useState({
     name: event.name || '',
     format: event.format || 'SINGLES',
@@ -879,7 +974,20 @@ const EditEventModal = ({ event, onClose, onSubmit }) => {
       try {
         const response = await getAllSports()
         if (response.success) {
-          setSports(response.sports)
+          const allSports = response.sports
+
+          // Filter sports based on tournament settings
+          let filteredSports = allSports
+          if (tournament?.sportType === 'single') {
+            // Single sport tournament - only show that sport, disable dropdown
+            filteredSports = allSports.filter(s => tournament.sports?.includes(s.id))
+          } else if (tournament?.sportType === 'multi' && tournament?.sports?.length > 0) {
+            // Multi sport tournament - only show allowed sports
+            filteredSports = allSports.filter(s => tournament.sports.includes(s.id))
+          }
+
+          setSports(allSports)
+          setAllowedSports(filteredSports)
 
           // Check if event has custom rules (no sportId but has bestOf/pointsPerSet)
           if (!event.sportId && event.bestOf && event.pointsPerSet) {
@@ -893,9 +1001,12 @@ const EditEventModal = ({ event, onClose, onSubmit }) => {
               pointsPerSet: event.pointsPerSet
             }))
           } else {
-            // Sport mode - default to badminton if not specified
-            const sportId = event.sportId || 'badminton'
-            const sport = response.sports.find(s => s.id === sportId)
+            // Sport mode - use event's sport or first allowed sport
+            let sportId = event.sportId
+            if (!sportId && filteredSports.length > 0) {
+              sportId = filteredSports[0].id
+            }
+            const sport = allSports.find(s => s.id === sportId)
             setSelectedSport(sport)
 
             // Auto-fill rules if sport is selected
@@ -992,14 +1103,20 @@ const EditEventModal = ({ event, onClose, onSubmit }) => {
             <div>
               <label className="block text-sm font-medium mb-2">
                 Sport *
+                {tournament?.sportType === 'single' && (
+                  <span className="text-xs text-gray-500 ml-2">(Fixed by tournament)</span>
+                )}
+                {tournament?.sportType === 'multi' && (
+                  <span className="text-xs text-gray-500 ml-2">(Tournament allows: {tournament.sports?.join(', ')})</span>
+                )}
               </label>
               <select
                 value={formData.sportId}
                 onChange={(e) => handleSportChange(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                disabled={showCustomRules}
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none disabled:bg-gray-100 disabled:cursor-not-allowed"
+                disabled={showCustomRules || tournament?.sportType === 'single'}
               >
-                {sports.map(sport => (
+                {allowedSports.map(sport => (
                   <option key={sport.id} value={sport.id}>
                     {sport.icon} {sport.name}
                   </option>

@@ -354,9 +354,11 @@ const EditOrgModal = ({ organization, onClose, onSubmit }) => {
 
 // Create Tournament Modal Component
 const CreateTournamentModal = ({ onClose, onSubmit }) => {
+  const [sportType, setSportType] = useState('single') // 'single' or 'multi'
+  const [selectedSports, setSelectedSports] = useState(['badminton'])
   const [formData, setFormData] = useState({
     name: '',
-    sport: 'badminton',
+    sport: 'badminton', // Legacy field
     format: 'ROUND_ROBIN',
     startDate: '',
     endDate: '',
@@ -369,9 +371,47 @@ const CreateTournamentModal = ({ onClose, onSubmit }) => {
     status: 'DRAFT'
   })
 
+  const availableSports = [
+    { id: 'badminton', name: 'Badminton', icon: '🏸' },
+    { id: 'table-tennis', name: 'Table Tennis', icon: '🏓' },
+    { id: 'squash', name: 'Squash', icon: '🎾' },
+    { id: 'pickleball', name: 'Pickleball', icon: '🥒' },
+    // { id: 'tennis', name: 'Tennis', icon: '🎾' }, // Coming soon
+    // { id: 'padel', name: 'Padel', icon: '🎾' } // Coming soon
+  ]
+
+  const toggleSport = (sportId) => {
+    if (sportType === 'single') {
+      setSelectedSports([sportId])
+    } else {
+      if (selectedSports.includes(sportId)) {
+        // Don't allow removing all sports
+        if (selectedSports.length > 1) {
+          setSelectedSports(selectedSports.filter(s => s !== sportId))
+        }
+      } else {
+        setSelectedSports([...selectedSports, sportId])
+      }
+    }
+  }
+
+  const handleSportTypeChange = (type) => {
+    setSportType(type)
+    if (type === 'single' && selectedSports.length > 1) {
+      // Keep only first sport when switching to single
+      setSelectedSports([selectedSports[0]])
+    }
+  }
+
   const handleSubmit = (e) => {
     e.preventDefault()
-    onSubmit(formData)
+    const submitData = {
+      ...formData,
+      sportType,
+      sports: selectedSports,
+      sport: selectedSports[0] // Legacy field - first sport
+    }
+    onSubmit(submitData)
   }
 
   return (
@@ -393,23 +433,73 @@ const CreateTournamentModal = ({ onClose, onSubmit }) => {
               />
             </div>
 
-            <div className="grid md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">Sport *</label>
-                <select
-                  value={formData.sport}
-                  onChange={(e) => setFormData({ ...formData, sport: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+            {/* Sport Type Selection */}
+            <div>
+              <label className="block text-sm font-medium mb-2">Tournament Type *</label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => handleSportTypeChange('single')}
+                  className={`px-4 py-3 rounded-xl border-2 font-medium transition-all ${
+                    sportType === 'single'
+                      ? 'border-primary-500 bg-primary-50 text-primary-700'
+                      : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                  }`}
                 >
-                  <option value="badminton">Badminton</option>
-                  <option value="tennis">Tennis</option>
-                  <option value="table-tennis">Table Tennis</option>
-                  <option value="squash">Squash</option>
-                  <option value="pickleball">Pickleball</option>
-                  <option value="padel">Padel</option>
-                </select>
+                  🏆 Single Sport
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSportTypeChange('multi')}
+                  className={`px-4 py-3 rounded-xl border-2 font-medium transition-all ${
+                    sportType === 'multi'
+                      ? 'border-primary-500 bg-primary-50 text-primary-700'
+                      : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  🎯 Multi Sport
+                </button>
               </div>
+            </div>
 
+            {/* Sports Selection */}
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Select Sport{sportType === 'multi' ? 's' : ''} *
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                {availableSports.map(sport => (
+                  <button
+                    key={sport.id}
+                    type="button"
+                    onClick={() => toggleSport(sport.id)}
+                    className={`px-4 py-3 rounded-xl border-2 font-medium transition-all text-left ${
+                      selectedSports.includes(sport.id)
+                        ? 'border-green-500 bg-green-50 text-green-700'
+                        : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                    }`}
+                  >
+                    <span className="text-lg mr-2">{sport.icon}</span>
+                    {sport.name}
+                    {selectedSports.includes(sport.id) && (
+                      <span className="ml-2 text-green-600">✓</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+              {sportType === 'single' && (
+                <p className="text-xs text-gray-500 mt-2">
+                  💡 Events in this tournament will use {availableSports.find(s => s.id === selectedSports[0])?.name} scoring rules
+                </p>
+              )}
+              {sportType === 'multi' && (
+                <p className="text-xs text-gray-500 mt-2">
+                  💡 Events can choose from the selected sports above
+                </p>
+              )}
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium mb-2">Format *</label>
                 <select

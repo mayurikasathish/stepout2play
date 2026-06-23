@@ -11,6 +11,8 @@ class TournamentController {
       const {
         name,
         sport,
+        sportType,
+        sports,
         startDate,
         endDate,
         venueName,
@@ -30,10 +32,31 @@ class TournamentController {
         errors.push('Tournament name is required');
       }
 
+      // Validate sport type and sports array
+      const validSportTypes = ['single', 'multi'];
       const validSports = ['badminton', 'tennis', 'table-tennis', 'squash', 'pickleball', 'padel'];
-      if (!sport || !validSports.includes(sport)) {
-        errors.push(`Sport must be one of: ${validSports.join(', ')}`);
+
+      if (!sportType || !validSportTypes.includes(sportType)) {
+        errors.push('Sport type must be either "single" or "multi"');
       }
+
+      if (!sports || !Array.isArray(sports) || sports.length === 0) {
+        errors.push('At least one sport must be selected');
+      } else {
+        // Validate each sport in the array
+        const invalidSports = sports.filter(s => !validSports.includes(s));
+        if (invalidSports.length > 0) {
+          errors.push(`Invalid sports: ${invalidSports.join(', ')}`);
+        }
+
+        // Single sport tournaments must have exactly one sport
+        if (sportType === 'single' && sports.length > 1) {
+          errors.push('Single sport tournaments can only have one sport');
+        }
+      }
+
+      // Legacy sport field - use first sport from array for backward compatibility
+      const legacySport = sports && sports.length > 0 ? sports[0] : 'badminton';
 
       const validFormats = ['ROUND_ROBIN', 'KNOCKOUT'];
       const format = req.body.format || 'ROUND_ROBIN';
@@ -86,7 +109,9 @@ class TournamentController {
 
       const tournament = await tournamentService.createTournament(orgId, {
         name: name.trim(),
-        sport,
+        sport: legacySport,
+        sportType,
+        sports,
         format,
         startDate,
         endDate,
@@ -186,6 +211,8 @@ class TournamentController {
       const {
         name,
         sport,
+        sportType,
+        sports,
         format,
         startDate,
         endDate,
@@ -202,6 +229,15 @@ class TournamentController {
 
       if (name !== undefined) updateData.name = name.trim();
       if (sport !== undefined) updateData.sport = sport;
+
+      // Handle sport type and sports array
+      if (sportType !== undefined) {
+        updateData.sportType = sportType;
+      }
+      if (sports !== undefined) {
+        updateData.sports = sports;
+      }
+
       if (format !== undefined) updateData.format = format;
       if (startDate !== undefined) updateData.startDate = new Date(startDate);
       if (endDate !== undefined) updateData.endDate = new Date(endDate);

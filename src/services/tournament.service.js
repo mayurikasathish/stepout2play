@@ -79,6 +79,8 @@ class TournamentService {
         organizationId,
         name: tournamentData.name,
         sport: tournamentData.sport,
+        sportType: tournamentData.sportType || 'single',
+        sports: tournamentData.sports || [tournamentData.sport],
         format: tournamentData.format || 'BRACKET',
         startDate,
         endDate,

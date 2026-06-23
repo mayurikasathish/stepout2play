@@ -66,10 +66,28 @@ const BrowsePage = () => {
 
   const filteredTournaments = tournaments.filter(t => {
     const query = searchQuery.toLowerCase()
+
+    // Get sport names for searching
+    const sportNames = {
+      'badminton': 'badminton',
+      'table-tennis': 'table tennis tabletennis',
+      'squash': 'squash',
+      'pickleball': 'pickleball pickle ball',
+      'tennis': 'tennis',
+      'padel': 'padel'
+    }
+
+    // Build searchable sport string from tournament's sports array
+    const tournamentSports = t.sports && t.sports.length > 0
+      ? t.sports.map(sportId => sportNames[sportId] || sportId).join(' ')
+      : sportNames[t.sport] || t.sport || ''
+
     const matchesSearch =
       t.name.toLowerCase().includes(query) ||
       (t.organization?.name || '').toLowerCase().includes(query) ||
-      t.city.toLowerCase().includes(query)
+      t.city.toLowerCase().includes(query) ||
+      tournamentSports.toLowerCase().includes(query)
+
     const matchesSport = filterSport === 'all' || t.sport === filterSport
     // Exclude DRAFT tournaments unless specifically filtered
     const matchesStatus = filterStatus === 'DRAFT' || t.status !== 'DRAFT'
@@ -241,8 +259,40 @@ const TournamentCard = ({ tournament }) => {
         <div className="text-sm text-gray-600">
           <span className="font-medium text-gray-700">Venue:</span> {tournament.venueName}, {tournament.city}
         </div>
-        <div className="text-sm text-gray-600 capitalize">
-          <span className="font-medium text-gray-700">Sport:</span> {tournament.sport.replace('-', ' ')}
+        <div className="text-sm text-gray-600">
+          <span className="font-medium text-gray-700">
+            {tournament.sportType === 'multi' ? 'Sports:' : 'Sport:'}
+          </span>{' '}
+          {tournament.sports && tournament.sports.length > 0 ? (
+            <span className="inline-flex gap-1 flex-wrap">
+              {tournament.sports.map(sportId => {
+                const sportIcons = {
+                  'badminton': '🏸',
+                  'table-tennis': '🏓',
+                  'squash': '🎾',
+                  'pickleball': '🥒',
+                  'tennis': '🎾',
+                  'padel': '🎾'
+                }
+                const sportNames = {
+                  'badminton': 'Badminton',
+                  'table-tennis': 'Table Tennis',
+                  'squash': 'Squash',
+                  'pickleball': 'Pickleball',
+                  'tennis': 'Tennis',
+                  'padel': 'Padel'
+                }
+                return (
+                  <span key={sportId} className="inline-flex items-center gap-1">
+                    <span>{sportIcons[sportId]}</span>
+                    <span>{sportNames[sportId]}</span>
+                  </span>
+                )
+              }).reduce((prev, curr) => [prev, ', ', curr])}
+            </span>
+          ) : (
+            <span className="capitalize">{tournament.sport?.replace('-', ' ')}</span>
+          )}
         </div>
         {tournament.events && tournament.events.length > 0 && (
           <div className="flex items-center justify-between text-sm">
