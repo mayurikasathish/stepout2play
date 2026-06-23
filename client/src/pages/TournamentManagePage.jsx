@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import RegistrationsView from '../components/RegistrationsView'
 import BracketView from '../components/BracketView'
+import Toast from '../components/Toast'
 import api from '../services/api'
 
 const UsersIcon = (props) => (
@@ -55,6 +56,9 @@ const TournamentManagePage = () => {
   const [showDeleteTournamentModal, setShowDeleteTournamentModal] = useState(false)
   const [editingEvent, setEditingEvent] = useState(null)
   const [deletingEvent, setDeletingEvent] = useState(null)
+  const [showToast, setShowToast] = useState(false)
+  const [toastMessage, setToastMessage] = useState('')
+  const [toastType, setToastType] = useState('success')
 
   useEffect(() => {
     loadTournament()
@@ -120,12 +124,25 @@ const TournamentManagePage = () => {
       if (response.data.success) {
         setShowEditEventModal(false)
         setEditingEvent(null)
-        loadEvents()
+
+        // Reload events to get fresh data
+        await loadEvents()
+
+        // Show success toast
+        setToastMessage('Event updated successfully!')
+        setToastType('success')
+        setShowToast(true)
+
+        // Force re-render of bracket by refreshing the page data
+        // This ensures BracketView gets updated event data
+        loadTournament()
       }
     } catch (err) {
       console.error('Error updating event:', err)
       const errorMsg = err.response?.data?.errors?.join(', ') || err.response?.data?.error || 'Failed to update event'
-      alert(errorMsg)
+      setToastMessage(errorMsg)
+      setToastType('error')
+      setShowToast(true)
     }
   }
 
@@ -420,6 +437,7 @@ const TournamentManagePage = () => {
             {events.map((event) => (
               <div key={event.id} id={`bracket-${event.id}`}>
                 <BracketView
+                  key={`${event.id}-${event.bestOf}-${event.pointsPerSet}`}
                   eventId={event.id}
                   eventName={event.name}
                   eventFormat={event.format}
@@ -466,6 +484,15 @@ const TournamentManagePage = () => {
             onConfirm={handleDeleteEvent}
             title="Delete Event?"
             message={`Are you sure you want to delete "${deletingEvent.name}"? This will remove all registrations and matches for this event. This action cannot be undone.`}
+          />
+        )}
+
+        {/* Toast Notification */}
+        {showToast && (
+          <Toast
+            message={toastMessage}
+            type={toastType}
+            onClose={() => setShowToast(false)}
           />
         )}
 
