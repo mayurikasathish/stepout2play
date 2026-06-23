@@ -325,6 +325,15 @@ const MatchResultModal = ({ match, event, isRoundRobin, onClose, onSubmit }) => 
   const [drawReason, setDrawReason] = useState('')
   const [errors, setErrors]     = useState({})
   const [savedSets, setSavedSets] = useState([]) // Track which sets are saved
+  const [setWinners, setSetWinners] = useState([]) // Track winner of each set
+  const [pendingSetIndex, setPendingSetIndex] = useState(null) // Set waiting for confirmation
+  const [showSetConfirmModal, setShowSetConfirmModal] = useState(false)
+  const [showMatchWonModal, setShowMatchWonModal] = useState(false)
+  const [matchWinner, setMatchWinner] = useState(null)
+  const [matchFinalized, setMatchFinalized] = useState(false)
+  const [showFinalizeModal, setShowFinalizeModal] = useState(false)
+  const [showEditWarningModal, setShowEditWarningModal] = useState(false)
+  const [editingSetIndex, setEditingSetIndex] = useState(null)
 
   const getParticipantName = (participant) => {
     if (!participant) return 'TBD'
@@ -409,9 +418,68 @@ const MatchResultModal = ({ match, event, isRoundRobin, onClose, onSubmit }) => 
       return
     }
 
+    // Show confirmation modal
+    setPendingSetIndex(setIndex)
+    setShowSetConfirmModal(true)
+  }
+
+  const confirmSaveSet = () => {
+    const setIndex = pendingSetIndex
+    const set = setScores[setIndex]
+    const p1 = parseInt(set.p1)
+    const p2 = parseInt(set.p2)
+
+    // Determine winner of this set
+    const setWinner = p1 > p2 ? 'p1' : 'p2'
+    const newSetWinners = [...setWinners]
+    newSetWinners[setIndex] = setWinner
+
     // Mark set as saved
-    setSavedSets([...savedSets, setIndex])
+    const newSavedSets = [...savedSets, setIndex]
+    setSavedSets(newSavedSets)
+    setSetWinners(newSetWinners)
     setErrors({ ...errors, [`set${setIndex}`]: null })
+    setShowSetConfirmModal(false)
+    setPendingSetIndex(null)
+
+    // Check if match is won
+    const setsNeededToWin = Math.ceil(bestOf / 2)
+    const p1Wins = newSetWinners.filter(w => w === 'p1').length
+    const p2Wins = newSetWinners.filter(w => w === 'p2').length
+
+    if (p1Wins >= setsNeededToWin || p2Wins >= setsNeededToWin) {
+      const winner = p1Wins >= setsNeededToWin ? 'p1' : 'p2'
+      const winnerName = winner === 'p1' ? getParticipantName(match.participant1) : getParticipantName(match.participant2)
+      setMatchWinner(winnerName)
+      setShowMatchWonModal(true)
+    }
+  }
+
+  const editSet = (setIndex) => {
+    if (matchFinalized) {
+      setEditingSetIndex(setIndex)
+      setShowEditWarningModal(true)
+    } else {
+      // Allow edit without warning if not finalized
+      const newSavedSets = savedSets.filter(idx => idx !== setIndex)
+      const newSetWinners = [...setWinners]
+      newSetWinners[setIndex] = null
+      setSavedSets(newSavedSets)
+      setSetWinners(newSetWinners)
+      setMatchWinner(null) // Clear match winner since we're editing
+    }
+  }
+
+  const confirmEdit = () => {
+    const setIndex = editingSetIndex
+    const newSavedSets = savedSets.filter(idx => idx !== setIndex)
+    const newSetWinners = [...setWinners]
+    newSetWinners[setIndex] = null
+    setSavedSets(newSavedSets)
+    setSetWinners(newSetWinners)
+    setMatchWinner(null)
+    setShowEditWarningModal(false)
+    setEditingSetIndex(null)
   }
 
   const handleSubmit = (e) => {
@@ -437,17 +505,21 @@ const MatchResultModal = ({ match, event, isRoundRobin, onClose, onSubmit }) => 
       return
     }
 
-    // Validate: at least one set must be saved
-    if (savedSets.length === 0) {
-      newErrors.sets = 'Please save at least one set before submitting'
+    // Validate: match must be won
+    if (!matchWinner) {
+      newErrors.winner = 'Match not yet complete. A player must win the required number of sets.'
       setErrors(newErrors)
       return
     }
 
+    // Show finalize confirmation
+    setShowFinalizeModal(true)
+  }
+
+  const confirmFinalize = () => {
     // Calculate winner based on saved sets only
     let p1Sets = 0
     let p2Sets = 0
-    const setsNeededToWin = Math.ceil(bestOf / 2)
 
     savedSets.forEach(setIndex => {
       const set = setScores[setIndex]
@@ -457,14 +529,7 @@ const MatchResultModal = ({ match, event, isRoundRobin, onClose, onSubmit }) => 
       else p2Sets++
     })
 
-    const winnerId = p1Sets >= setsNeededToWin ? match.participant1Id :
-                     p2Sets >= setsNeededToWin ? match.participant2Id : null
-
-    if (!winnerId) {
-      newErrors.winner = `No clear winner yet. Need ${setsNeededToWin} sets to win. Currently: P1=${p1Sets}, P2=${p2Sets}`
-      setErrors(newErrors)
-      return
-    }
+    const winnerId = p1Sets > p2Sets ? match.participant1Id : match.participant2Id
 
     // Build score string from saved sets only
     const scoreString = savedSets
@@ -472,7 +537,9 @@ const MatchResultModal = ({ match, event, isRoundRobin, onClose, onSubmit }) => 
       .map(idx => `${setScores[idx].p1}-${setScores[idx].p2}`)
       .join(', ')
 
-    // Clear errors and submit
+    // Mark as finalized and submit
+    setMatchFinalized(true)
+    setShowFinalizeModal(false)
     setErrors({})
     onSubmit(winnerId, scoreString)
   }
@@ -553,7 +620,7 @@ const MatchResultModal = ({ match, event, isRoundRobin, onClose, onSubmit }) => 
               <div className="space-y-4">
                 {setScores.map((set, idx) => (
                   <div key={idx} className={`p-4 rounded-lg border-2 ${savedSets.includes(idx) ? 'bg-green-50 border-green-300' : 'bg-white border-gray-200'}`}>
-                    <div className="flex items-center gap-3 mb-2">
+                    <div className="flex items-center gap-3">
                       <span className="text-sm font-semibold text-gray-700 w-16">Set {idx + 1}</span>
                       <input
                         type="number"
@@ -574,24 +641,43 @@ const MatchResultModal = ({ match, event, isRoundRobin, onClose, onSubmit }) => 
                         disabled={savedSets.includes(idx)}
                         className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-center disabled:bg-gray-100 disabled:cursor-not-allowed"
                       />
-                      {!savedSets.includes(idx) && (set.p1 || set.p2) && (
-                        <button
-                          type="button"
-                          onClick={() => saveSet(idx)}
-                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-all"
-                        >
-                          Save
-                        </button>
-                      )}
-                      {savedSets.includes(idx) && (
-                        <span className="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg flex items-center gap-1">
-                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                          </svg>
-                          Saved
-                        </span>
-                      )}
+                      <div className="flex gap-2 w-32 justify-end">
+                        {!savedSets.includes(idx) && (set.p1 || set.p2) && (
+                          <button
+                            type="button"
+                            onClick={() => saveSet(idx)}
+                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-all whitespace-nowrap"
+                          >
+                            Save
+                          </button>
+                        )}
+                        {savedSets.includes(idx) && (
+                          <>
+                            <span className="px-3 py-2 bg-green-600 text-white text-xs font-medium rounded-lg flex items-center gap-1 whitespace-nowrap">
+                              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                              Saved
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => editSet(idx)}
+                              className="px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white text-xs font-medium rounded-lg transition-all whitespace-nowrap"
+                            >
+                              Edit
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </div>
+                    {savedSets.includes(idx) && setWinners[idx] && (
+                      <div className="mt-2 text-sm font-medium text-green-700 flex items-center gap-1">
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                        </svg>
+                        Winner: {setWinners[idx] === 'p1' ? getParticipantName(match.participant1) : getParticipantName(match.participant2)}
+                      </div>
+                    )}
                     {errors[`set${idx}`] && (
                       <p className="text-sm text-red-600 flex items-center gap-1 mt-2">
                         <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -694,6 +780,131 @@ const MatchResultModal = ({ match, event, isRoundRobin, onClose, onSubmit }) => 
         </div>
       </div>
     </div>
+
+    {/* Set Confirmation Modal */}
+    {showSetConfirmModal && pendingSetIndex !== null && (
+      <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowSetConfirmModal(false)} />
+        <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 animate-slide-up">
+          <h3 className="text-lg font-bold text-gray-900 mb-2">Confirm Set Score</h3>
+          <p className="text-gray-600 mb-1">
+            Set {pendingSetIndex + 1}: <span className="font-bold">{setScores[pendingSetIndex].p1} - {setScores[pendingSetIndex].p2}</span>
+          </p>
+          <p className="text-sm text-gray-500 mb-6">
+            Are you sure you want to finalize this score?
+          </p>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setShowSetConfirmModal(false)}
+              className="flex-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-all"
+            >
+              Edit
+            </button>
+            <button
+              onClick={confirmSaveSet}
+              className="flex-1 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-all"
+            >
+              Confirm
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* Match Won Modal */}
+    {showMatchWonModal && matchWinner && (
+      <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md" onClick={() => setShowMatchWonModal(false)} />
+        <div className="relative bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl shadow-2xl w-full max-w-lg p-8 text-center animate-slide-up">
+          <div className="mb-4">
+            <svg className="w-20 h-20 text-white mx-auto animate-bounce" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+            </svg>
+          </div>
+          <h2 className="text-3xl font-bold text-white mb-2">🎉 Match Won!</h2>
+          <p className="text-xl font-semibold text-white/90 mb-6">{matchWinner} wins the match!</p>
+          <p className="text-sm text-white/80 mb-6">
+            You can still edit scores if needed, or click "Save Result" to finalize.
+          </p>
+          <button
+            onClick={() => setShowMatchWonModal(false)}
+            className="px-8 py-3 bg-white hover:bg-gray-50 text-green-600 font-bold rounded-xl transition-all shadow-lg"
+          >
+            Continue
+          </button>
+        </div>
+      </div>
+    )}
+
+    {/* Finalize Match Modal */}
+    {showFinalizeModal && (
+      <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowFinalizeModal(false)} />
+        <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 animate-slide-up">
+          <h3 className="text-lg font-bold text-gray-900 mb-2">Finalize Match Result</h3>
+          <p className="text-gray-600 mb-6">
+            Are you sure you want to save this match result? You can still edit it later if needed.
+          </p>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setShowFinalizeModal(false)}
+              className="flex-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-all"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={confirmFinalize}
+              className="flex-1 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-all"
+            >
+              Confirm & Save
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* Edit Warning Modal */}
+    {showEditWarningModal && (
+      <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowEditWarningModal(false)} />
+        <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 animate-slide-up">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
+              <svg className="w-6 h-6 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-gray-900">Edit Finalized Score?</h3>
+            </div>
+          </div>
+          <p className="text-gray-600 mb-2">
+            This match has been finalized. Editing scores may affect:
+          </p>
+          <ul className="text-sm text-gray-600 mb-6 space-y-1 list-disc list-inside">
+            <li>Tournament standings</li>
+            <li>Future match pairings</li>
+            <li>Player statistics</li>
+          </ul>
+          <p className="text-gray-700 font-medium mb-6">Continue with editing?</p>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setShowEditWarningModal(false)}
+              className="flex-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-all"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={confirmEdit}
+              className="flex-1 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white font-medium rounded-lg transition-all"
+            >
+              Yes, Edit
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+  </div>
   )
 }
 
