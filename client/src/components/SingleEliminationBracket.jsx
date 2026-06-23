@@ -266,15 +266,15 @@ const SingleEliminationBracket = ({ matches, onMatchClick, eventName, tournament
 
         {/* Score and Edit Button */}
         {match.score && match.status === 'COMPLETED' && (
-          <div className="mt-1 pt-1 border-t border-gray-200 flex items-center justify-between">
-            <span className="text-[10px] text-gray-600 font-medium">{match.score}</span>
+          <div className="mt-1 pt-1 border-t border-gray-200 space-y-1">
+            <div className="text-[10px] text-gray-600 font-medium">{match.score}</div>
             {onMatchClick && (
               <button
                 onClick={(e) => {
                   e.stopPropagation()
                   onMatchClick(match)
                 }}
-                className="text-[9px] px-2 py-0.5 bg-blue-600 hover:bg-blue-700 text-white rounded font-medium transition-all"
+                className="w-full text-[9px] px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded font-medium transition-all"
               >
                 Edit
               </button>

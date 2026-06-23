@@ -320,12 +320,28 @@ const MatchResultModal = ({ match, event, isRoundRobin, onClose, onSubmit }) => 
     }).concat(Array(Math.max(0, bestOf - sets.length)).fill({ p1: '', p2: '' }))
   }
 
+  // Initialize saved sets and winners from existing scores
+  const initializeSavedSets = () => {
+    if (!match.score) return []
+    const sets = match.score.split(/[,\s]+/).filter(s => s.trim())
+    return sets.map((_, idx) => idx) // Mark all existing sets as saved
+  }
+
+  const initializeSetWinners = () => {
+    if (!match.score) return []
+    const sets = match.score.split(/[,\s]+/).filter(s => s.trim())
+    return sets.map(set => {
+      const [p1, p2] = set.split('-').map(s => parseInt(s.trim()))
+      return p1 > p2 ? 'p1' : 'p2'
+    })
+  }
+
   const [setScores, setSetScores] = useState(initializeSetScores())
   const [isDraw, setIsDraw]     = useState(false)
   const [drawReason, setDrawReason] = useState('')
   const [errors, setErrors]     = useState({})
-  const [savedSets, setSavedSets] = useState([]) // Track which sets are saved
-  const [setWinners, setSetWinners] = useState([]) // Track winner of each set
+  const [savedSets, setSavedSets] = useState(initializeSavedSets()) // Track which sets are saved
+  const [setWinners, setSetWinners] = useState(initializeSetWinners()) // Track winner of each set
   const [pendingSetIndex, setPendingSetIndex] = useState(null) // Set waiting for confirmation
   const [showSetConfirmModal, setShowSetConfirmModal] = useState(false)
   const [showMatchWonModal, setShowMatchWonModal] = useState(false)
