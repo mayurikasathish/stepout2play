@@ -304,8 +304,16 @@ const BracketView = ({ eventId, eventName, eventFormat, registrationCount, isOrg
 // ── Match Result Modal ──
 // Automatic winner detection based on set scores
 const MatchResultModal = ({ match, event, isRoundRobin, onClose, onSubmit }) => {
-  const bestOf = event?.bestOf || 3
-  const pointsPerSet = event?.pointsPerSet || 21
+  // Use scoring rules from sport metadata, or fall back to legacy fields
+  const scoringRules = event?.scoringRules || {
+    bestOf: event?.bestOf || 3,
+    pointsPerSet: event?.pointsPerSet || 21,
+    minimumLead: 2,
+    maxPoints: null
+  }
+
+  const bestOf = scoringRules.bestOf
+  const pointsPerSet = scoringRules.pointsPerSet
 
   // Initialize set scores from existing score string if available
   const initializeSetScores = () => {
@@ -407,7 +415,7 @@ const MatchResultModal = ({ match, event, isRoundRobin, onClose, onSubmit }) => 
     }
   }
 
-  // Validate individual set score
+  // Validate individual set score using dynamic rules
   const validateSetScore = (p1Score, p2Score, setIndex) => {
     const p1 = parseInt(p1Score)
     const p2 = parseInt(p2Score)
@@ -421,10 +429,17 @@ const MatchResultModal = ({ match, event, isRoundRobin, onClose, onSubmit }) => 
       return `At least one player must score ${pointsPerSet} or more points`
     }
 
-    // Must have 2-point difference
+    // Must have minimum lead (usually 2 points)
     const diff = Math.abs(p1 - p2)
-    if (diff < 2) {
-      return 'Winner must have at least 2-point lead'
+    if (diff < scoringRules.minimumLead) {
+      return `Winner must have at least ${scoringRules.minimumLead}-point lead`
+    }
+
+    // Check max points if specified (e.g., badminton has max 30)
+    if (scoringRules.maxPoints) {
+      if (p1 > scoringRules.maxPoints || p2 > scoringRules.maxPoints) {
+        return `Maximum score is ${scoringRules.maxPoints} points`
+      }
     }
 
     // The player with lower score must not exceed pointsPerSet unless in deuce
@@ -623,6 +638,14 @@ const MatchResultModal = ({ match, event, isRoundRobin, onClose, onSubmit }) => 
             {/* Match Info */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <div className="text-center">
+                {event?.sportId && (
+                  <p className="text-xs font-medium text-blue-700 mb-1">
+                    {event.sportId === 'badminton' && '🏸 Badminton'}
+                    {event.sportId === 'table-tennis' && '🏓 Table Tennis'}
+                    {event.sportId === 'squash' && '🎾 Squash'}
+                    {event.sportId === 'pickleball' && '🥒 Pickleball'}
+                  </p>
+                )}
                 <p className="text-sm font-medium text-blue-900 mb-1">Match Format</p>
                 <p className="text-base font-semibold text-blue-700">
                   Best of {bestOf} • {pointsPerSet} points per set

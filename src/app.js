@@ -6,6 +6,7 @@ const tournamentRoutes = require('./routes/tournament.routes');
 const registrationRoutes = require('./routes/registration.routes');
 const bracketRoutes = require('./routes/bracket.routes');
 const schedulerRoutes = require('./routes/scheduler.routes');
+const sportsRoutes = require('./routes/sports.routes');
 
 const app = express();
 
@@ -30,6 +31,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api/auth', authRoutes);
 app.use('/api/orgs', orgRoutes);
 app.use('/api/tournaments', tournamentRoutes);
+app.use('/api/sports', sportsRoutes); // Sports metadata routes
 app.use('/api', registrationRoutes); // Registration routes use /events and /users paths
 app.use('/api', bracketRoutes); // Bracket routes use /events and /matches paths
 app.use('/api', schedulerRoutes); // Scheduler routes use /events and /tournaments paths

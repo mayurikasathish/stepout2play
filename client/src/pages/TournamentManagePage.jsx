@@ -5,6 +5,7 @@ import RegistrationsView from '../components/RegistrationsView'
 import BracketView from '../components/BracketView'
 import Toast from '../components/Toast'
 import api from '../services/api'
+import { getAllSports } from '../services/sports'
 
 const UsersIcon = (props) => (
   <svg {...props} fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -856,6 +857,9 @@ const EditTournamentModal = ({ tournament, onClose, onSubmit }) => {
 
 // Edit Event Modal Component
 const EditEventModal = ({ event, onClose, onSubmit }) => {
+  const [sports, setSports] = useState([])
+  const [selectedSport, setSelectedSport] = useState(null)
+  const [showCustomRules, setShowCustomRules] = useState(false)
   const [formData, setFormData] = useState({
     name: event.name || '',
     format: event.format || 'SINGLES',
@@ -864,21 +868,82 @@ const EditEventModal = ({ event, onClose, onSubmit }) => {
     maxParticipants: event.maxParticipants || '',
     registrationFee: event.registrationFee || '',
     rules: event.rules || '',
+    sportId: event.sportId || 'badminton', // Default to badminton
     bestOf: event.bestOf || '',
     pointsPerSet: event.pointsPerSet || ''
   })
 
+  // Load sports on mount
+  useEffect(() => {
+    const loadSports = async () => {
+      try {
+        const response = await getAllSports()
+        if (response.success) {
+          setSports(response.sports)
+          // Set selected sport - default to badminton if not specified
+          const sportId = event.sportId || 'badminton'
+          const sport = response.sports.find(s => s.id === sportId)
+          setSelectedSport(sport)
+
+          // Auto-fill rules if sport is selected
+          if (sport && !event.bestOf) {
+            setFormData(prev => ({
+              ...prev,
+              sportId: sport.id,
+              bestOf: sport.rules.bestOf,
+              pointsPerSet: sport.rules.pointsPerSet
+            }))
+          }
+        }
+      } catch (err) {
+        console.error('Error loading sports:', err)
+      }
+    }
+    loadSports()
+  }, [])
+
+  const handleSportChange = (sportId) => {
+    if (sportId === 'custom') {
+      // User wants custom rules
+      setShowCustomRules(true)
+      setSelectedSport(null)
+      setFormData({
+        ...formData,
+        sportId: '',
+        bestOf: '',
+        pointsPerSet: ''
+      })
+    } else {
+      // User selected a sport
+      const sport = sports.find(s => s.id === sportId)
+      setSelectedSport(sport)
+      setShowCustomRules(false)
+
+      if (sport) {
+        // Auto-fill scoring rules from selected sport
+        setFormData({
+          ...formData,
+          sportId: sport.id,
+          bestOf: sport.rules.bestOf,
+          pointsPerSet: sport.rules.pointsPerSet
+        })
+      }
+    }
+  }
+
   const handleSubmit = (e) => {
     e.preventDefault()
 
-    // Validate scoring configuration
-    if (!formData.bestOf) {
-      alert('Please specify the match format (Best of 3 or 5)')
-      return
-    }
-    if (!formData.pointsPerSet) {
-      alert('Please specify points per set')
-      return
+    // Validate scoring configuration ONLY if custom rules
+    if (showCustomRules) {
+      if (!formData.bestOf) {
+        alert('Please specify the match format (Best of 3, 5, etc.)')
+        return
+      }
+      if (!formData.pointsPerSet) {
+        alert('Please specify points per set')
+        return
+      }
     }
 
     const cleanData = {
@@ -889,9 +954,13 @@ const EditEventModal = ({ event, onClose, onSubmit }) => {
       maxParticipants: formData.maxParticipants ? parseInt(formData.maxParticipants) : undefined,
       registrationFee: formData.registrationFee ? parseFloat(formData.registrationFee) : undefined,
       rules: formData.rules.trim() || undefined,
-      bestOf: parseInt(formData.bestOf),
-      pointsPerSet: parseInt(formData.pointsPerSet)
+      sportId: formData.sportId || undefined
     }
+
+    // Only include bestOf/pointsPerSet if they exist (for custom rules)
+    if (formData.bestOf) cleanData.bestOf = parseInt(formData.bestOf)
+    if (formData.pointsPerSet) cleanData.pointsPerSet = parseInt(formData.pointsPerSet)
+
     onSubmit(cleanData)
   }
 
@@ -912,6 +981,41 @@ const EditEventModal = ({ event, onClose, onSubmit }) => {
                 required
               />
             </div>
+
+            {/* Sport Selection */}
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Sport *
+              </label>
+              <select
+                value={showCustomRules ? 'custom' : formData.sportId}
+                onChange={(e) => handleSportChange(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              >
+                {sports.map(sport => (
+                  <option key={sport.id} value={sport.id}>
+                    {sport.icon} {sport.name}
+                  </option>
+                ))}
+                <option value="custom">⚙️ Custom Match Scoring Config</option>
+              </select>
+            </div>
+
+            {/* Show selected sport rules */}
+            {selectedSport && !showCustomRules && (
+              <div className="bg-green-50 border border-green-300 rounded-xl p-4">
+                <h4 className="font-semibold text-green-900 mb-2">✅ {selectedSport.name} - Default Scoring Rules</h4>
+                <div className="text-sm text-green-800 space-y-1">
+                  <p>• Best of <strong>{selectedSport.rules.bestOf}</strong> sets</p>
+                  <p>• <strong>{selectedSport.rules.pointsPerSet}</strong> points per set</p>
+                  <p>• <strong>{selectedSport.rules.minimumLead}</strong>-point lead required</p>
+                  {selectedSport.rules.maxPoints && (
+                    <p>• Maximum <strong>{selectedSport.rules.maxPoints}</strong> points per set</p>
+                  )}
+                  <p className="text-xs text-green-600 mt-2 italic">{selectedSport.description}</p>
+                </div>
+              </div>
+            )}
 
             <div className="grid md:grid-cols-2 gap-4">
               <div>
@@ -979,46 +1083,50 @@ const EditEventModal = ({ event, onClose, onSubmit }) => {
               />
             </div>
 
-            {/* Scoring Configuration */}
-            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-              <h3 className="font-semibold text-blue-900 mb-3">⚙️ Match Scoring Configuration</h3>
-              <div className="grid md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-blue-900 mb-2">
-                    Best of (sets) <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="9"
-                    value={formData.bestOf}
-                    onChange={(e) => setFormData({ ...formData, bestOf: e.target.value })}
-                    placeholder="e.g., 3, 5, 7"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none bg-white"
-                    required
-                  />
-                  <p className="text-xs text-blue-600 mt-1">Common: 3, 5, or 7 sets</p>
-                </div>
+            {/* Scoring Configuration - Only show when Custom is selected */}
+            {showCustomRules && (
+              <div className="rounded-xl p-4 border bg-orange-50 border-orange-300">
+                <h3 className="font-semibold mb-3 text-orange-900">
+                  ⚙️ Custom Match Scoring Configuration
+                </h3>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-orange-900">
+                      Best of (sets) <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="9"
+                      value={formData.bestOf}
+                      onChange={(e) => setFormData({ ...formData, bestOf: e.target.value })}
+                      placeholder="e.g., 3, 5, 7"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none bg-white"
+                      required
+                    />
+                    <p className="text-xs text-orange-600 mt-1">Common: 3, 5, or 7 sets</p>
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-blue-900 mb-2">
-                    Points Per Set <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={formData.pointsPerSet}
-                    onChange={(e) => setFormData({ ...formData, pointsPerSet: e.target.value })}
-                    placeholder="e.g., 21 for badminton, 11 for table tennis"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none bg-white"
-                    required
-                  />
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-orange-900">
+                      Points Per Set <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={formData.pointsPerSet}
+                      onChange={(e) => setFormData({ ...formData, pointsPerSet: e.target.value })}
+                      placeholder="e.g., 21 for badminton, 11 for table tennis"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none bg-white"
+                      required
+                    />
+                  </div>
                 </div>
+                <p className="text-xs text-orange-700 mt-2">
+                  ⚠️ Using custom scoring rules - not standard format
+                </p>
               </div>
-              <p className="text-xs text-blue-700 mt-2">
-                ℹ️ Winner will be automatically determined based on scores entered for each set
-              </p>
-            </div>
+            )}
 
             <div>
               <label className="block text-sm font-medium mb-2">Event-Specific Rules</label>

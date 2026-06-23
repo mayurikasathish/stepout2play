@@ -659,7 +659,10 @@ class BracketService {
         advanceCount: event.advanceCount || null,
         hasBronzeMatch: event.hasBronzeMatch || false,
         bestOf: event.bestOf || null,
-        pointsPerSet: event.pointsPerSet || null
+        pointsPerSet: event.pointsPerSet || null,
+        sportId: event.sportId || null,
+        scoringType: event.scoringType || null,
+        scoringRules: event.scoringRules || null
       },
       matches: event.matches,
       groups

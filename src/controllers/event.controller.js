@@ -97,7 +97,7 @@ class EventController {
   async updateEvent(req, res, next) {
     try {
       const { eventId } = req.params;
-      const { name, format, category, gender, maxParticipants, registrationFee, rules, bestOf, pointsPerSet } = req.body;
+      const { name, format, category, gender, maxParticipants, registrationFee, rules, bestOf, pointsPerSet, sportId } = req.body;
 
       const updateData = {};
 
@@ -110,6 +110,33 @@ class EventController {
       if (rules !== undefined) updateData.rules = rules?.trim() || null;
       if (bestOf !== undefined) updateData.bestOf = bestOf ? parseInt(bestOf, 10) : null;
       if (pointsPerSet !== undefined) updateData.pointsPerSet = pointsPerSet ? parseInt(pointsPerSet, 10) : null;
+
+      // Handle sport selection - auto-populate scoring rules
+      if (sportId !== undefined) {
+        if (sportId) {
+          const sportsService = require('../services/sports.service');
+          const sport = sportsService.getSportById(sportId);
+
+          if (!sport) {
+            return res.status(400).json({
+              success: false,
+              error: `Invalid sport ID: ${sportId}`
+            });
+          }
+
+          updateData.sportId = sportId;
+          updateData.scoringType = sport.scoringType;
+          updateData.scoringRules = sport.rules;
+          // Also update legacy fields for backward compatibility
+          updateData.bestOf = sport.rules.bestOf;
+          updateData.pointsPerSet = sport.rules.pointsPerSet;
+        } else {
+          // Clear sport data
+          updateData.sportId = null;
+          updateData.scoringType = null;
+          updateData.scoringRules = null;
+        }
+      }
 
       const prisma = require('../lib/prisma');
       const event = await prisma.event.update({

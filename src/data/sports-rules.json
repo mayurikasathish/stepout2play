@@ -1,0 +1,64 @@
+{
+  "sports": [
+    {
+      "id": "badminton",
+      "name": "Badminton",
+      "icon": "🏸",
+      "category": "racket",
+      "scoringType": "point-based",
+      "description": "BWF Standard Rules",
+      "rules": {
+        "bestOf": 3,
+        "pointsPerSet": 21,
+        "minimumLead": 2,
+        "maxPoints": 30,
+        "deuceStartsAt": 20
+      }
+    },
+    {
+      "id": "table-tennis",
+      "name": "Table Tennis",
+      "icon": "🏓",
+      "category": "racket",
+      "scoringType": "point-based",
+      "description": "ITTF Standard Rules",
+      "rules": {
+        "bestOf": 5,
+        "pointsPerSet": 11,
+        "minimumLead": 2,
+        "maxPoints": null,
+        "deuceStartsAt": 10
+      }
+    },
+    {
+      "id": "squash",
+      "name": "Squash",
+      "icon": "🎾",
+      "category": "racket",
+      "scoringType": "point-based",
+      "description": "WSF Standard Rules (PAR Scoring)",
+      "rules": {
+        "bestOf": 5,
+        "pointsPerSet": 11,
+        "minimumLead": 2,
+        "maxPoints": null,
+        "deuceStartsAt": 10
+      }
+    },
+    {
+      "id": "pickleball",
+      "name": "Pickleball",
+      "icon": "🥒",
+      "category": "racket",
+      "scoringType": "point-based",
+      "description": "USA Pickleball Rules",
+      "rules": {
+        "bestOf": 3,
+        "pointsPerSet": 11,
+        "minimumLead": 2,
+        "maxPoints": 15,
+        "deuceStartsAt": 10
+      }
+    }
+  ]
+}
