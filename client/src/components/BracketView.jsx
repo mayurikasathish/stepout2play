@@ -345,8 +345,8 @@ const MatchResultModal = ({ match, event, isRoundRobin, onClose, onSubmit }) => 
   const [pendingSetIndex, setPendingSetIndex] = useState(null) // Set waiting for confirmation
   const [showSetConfirmModal, setShowSetConfirmModal] = useState(false)
   const [showMatchWonModal, setShowMatchWonModal] = useState(false)
-  const [matchWinner, setMatchWinner] = useState(null)
-  const [matchFinalized, setMatchFinalized] = useState(false)
+  const [matchWinner, setMatchWinner] = useState(null) // Will be set after component mounts
+  const [matchFinalized, setMatchFinalized] = useState(match.status === 'COMPLETED')
   const [showFinalizeModal, setShowFinalizeModal] = useState(false)
   const [showEditWarningModal, setShowEditWarningModal] = useState(false)
   const [editingSetIndex, setEditingSetIndex] = useState(null)
@@ -357,6 +357,22 @@ const MatchResultModal = ({ match, event, isRoundRobin, onClose, onSubmit }) => 
     if (participant.partner) return `${name} / ${participant.partner.firstName} ${participant.partner.lastName}`
     return name
   }
+
+  // Initialize matchWinner from existing scores on mount
+  useEffect(() => {
+    if (match.status === 'COMPLETED' && match.score && !matchWinner) {
+      const setWinners = initializeSetWinners()
+      const setsNeededToWin = Math.ceil(bestOf / 2)
+      const p1Wins = setWinners.filter(w => w === 'p1').length
+      const p2Wins = setWinners.filter(w => w === 'p2').length
+
+      if (p1Wins >= setsNeededToWin) {
+        setMatchWinner(getParticipantName(match.participant1))
+      } else if (p2Wins >= setsNeededToWin) {
+        setMatchWinner(getParticipantName(match.participant2))
+      }
+    }
+  }, []) // Run only on mount
 
   // Calculate who won each set and overall winner
   const calculateWinner = () => {
@@ -658,34 +674,35 @@ const MatchResultModal = ({ match, event, isRoundRobin, onClose, onSubmit }) => 
                         disabled={savedSets.includes(idx)}
                         className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-center disabled:bg-gray-100 disabled:cursor-not-allowed"
                       />
-                      <div className="flex gap-2 w-32 justify-end">
-                        {!savedSets.includes(idx) && (set.p1 || set.p2) && (
+                    </div>
+                    {/* Save/Edit buttons below inputs */}
+                    <div className="mt-3 flex flex-col gap-2">
+                      {!savedSets.includes(idx) && (set.p1 || set.p2) && (
+                        <button
+                          type="button"
+                          onClick={() => saveSet(idx)}
+                          className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-all"
+                        >
+                          Save Set {idx + 1}
+                        </button>
+                      )}
+                      {savedSets.includes(idx) && (
+                        <>
+                          <div className="w-full px-3 py-2 bg-green-600 text-white text-sm font-medium rounded-lg flex items-center justify-center gap-2">
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                            Set {idx + 1} Saved
+                          </div>
                           <button
                             type="button"
-                            onClick={() => saveSet(idx)}
-                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-all whitespace-nowrap"
+                            onClick={() => editSet(idx)}
+                            className="w-full px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium rounded-lg transition-all"
                           >
-                            Save
+                            Edit Set {idx + 1}
                           </button>
-                        )}
-                        {savedSets.includes(idx) && (
-                          <>
-                            <span className="px-3 py-2 bg-green-600 text-white text-xs font-medium rounded-lg flex items-center gap-1 whitespace-nowrap">
-                              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                              </svg>
-                              Saved
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => editSet(idx)}
-                              className="px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white text-xs font-medium rounded-lg transition-all whitespace-nowrap"
-                            >
-                              Edit
-                            </button>
-                          </>
-                        )}
-                      </div>
+                        </>
+                      )}
                     </div>
                     {savedSets.includes(idx) && setWinners[idx] && (
                       <div className="mt-2 text-sm font-medium text-green-700 flex items-center gap-1">
