@@ -135,12 +135,26 @@ const GroupCard = ({ group, isOrganizer, onMatchClick }) => {
                   </span>
                 </div>
 
-                {/* Status badge */}
-                <div className="flex items-center gap-1 shrink-0 w-20 justify-end">
-                  <span className={`w-1.5 h-1.5 rounded-full ${statusCfg.dot}`} />
-                  <span className={`text-xs font-medium ${statusCfg.text}`}>
-                    {statusCfg.label}
-                  </span>
+                {/* Status badge or Edit button */}
+                <div className="flex items-center gap-2 shrink-0 justify-end">
+                  {isCompleted ? (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onMatchClick && onMatchClick(match)
+                      }}
+                      className="text-xs px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-all"
+                    >
+                      Edit
+                    </button>
+                  ) : (
+                    <>
+                      <span className={`w-1.5 h-1.5 rounded-full ${statusCfg.dot}`} />
+                      <span className={`text-xs font-medium ${statusCfg.text}`}>
+                        {statusCfg.label}
+                      </span>
+                    </>
+                  )}
                 </div>
               </div>
             )

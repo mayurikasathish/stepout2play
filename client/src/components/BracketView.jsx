@@ -794,18 +794,18 @@ const MatchResultModal = ({ match, event, isRoundRobin, onClose, onSubmit }) => 
           <p className="text-sm text-gray-500 mb-6">
             Are you sure you want to finalize this score?
           </p>
-          <div className="flex gap-3">
-            <button
-              onClick={() => setShowSetConfirmModal(false)}
-              className="flex-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-all"
-            >
-              Edit
-            </button>
+          <div className="space-y-3">
             <button
               onClick={confirmSaveSet}
-              className="flex-1 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-all"
+              className="w-full px-4 py-3 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-lg transition-all"
             >
               Confirm
+            </button>
+            <button
+              onClick={() => setShowSetConfirmModal(false)}
+              className="w-full px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-all"
+            >
+              Edit
             </button>
           </div>
         </div>

@@ -266,6 +266,19 @@ const HybridBracket = ({ bracket, onMatchClick, isOrganizer }) => {
                               </div>
                             </div>
                           </div>
+                          {match.status === 'COMPLETED' && isOrganizer && (
+                            <div className="mt-2 pt-2 border-t border-gray-200">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  onMatchClick(match)
+                                }}
+                                className="text-xs px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-all w-full"
+                              >
+                                Edit Score
+                              </button>
+                            </div>
+                          )}
                         </div>
                       )
                     })}
