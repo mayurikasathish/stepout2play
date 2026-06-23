@@ -365,7 +365,7 @@ const MatchResultModal = ({ match, event, isRoundRobin, onClose, onSubmit }) => 
 
     // Check if scoring configuration is set
     if (!event?.bestOf || !event?.pointsPerSet) {
-      newErrors.config = 'Event scoring configuration is missing. Please edit the event to set match format and points per set.'
+      newErrors.config = 'This event needs scoring configuration before you can enter match results.'
       setErrors(newErrors)
       return
     }
@@ -418,25 +418,42 @@ const MatchResultModal = ({ match, event, isRoundRobin, onClose, onSubmit }) => 
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="fixed inset-0 bg-gray-900/70 backdrop-blur-md" onClick={onClose} />
       <div className="flex min-h-full items-center justify-center p-4">
-        <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
-          <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+        <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+          <div className="sticky top-0 bg-white z-10 px-8 pt-8 pb-4 border-b border-gray-100">
+            <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <h2 className="text-2xl font-bold text-gray-900">Update Match Result</h2>
+          </div>
 
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">Update Match Result</h2>
+          <div className="px-8 pb-8 pt-4">
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Configuration Error */}
             {errors.config && (
-              <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-sm text-red-700 flex items-center gap-2">
-                  <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <div className="p-4 bg-red-50 border-2 border-red-300 rounded-lg">
+                <div className="flex items-start gap-3">
+                  <svg className="w-6 h-6 flex-shrink-0 text-red-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                   </svg>
-                  {errors.config}
-                </p>
+                  <div>
+                    <p className="font-semibold text-red-900 mb-1">⚠️ Scoring Configuration Missing</p>
+                    <p className="text-sm text-red-700 mb-3">{errors.config}</p>
+                    <div className="bg-white rounded-lg p-3 border border-red-200">
+                      <p className="text-sm font-medium text-gray-900 mb-2">How to fix:</p>
+                      <ol className="text-sm text-gray-700 space-y-1 list-decimal list-inside">
+                        <li>Close this modal</li>
+                        <li>Click "Edit" on this event</li>
+                        <li>Set "Best of" (e.g., 3, 5, 7)</li>
+                        <li>Set "Points Per Set" (e.g., 21)</li>
+                        <li>Save the event</li>
+                        <li>Come back and enter match scores</li>
+                      </ol>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
 
@@ -544,6 +561,7 @@ const MatchResultModal = ({ match, event, isRoundRobin, onClose, onSubmit }) => 
               </button>
             </div>
           </form>
+          </div>
         </div>
       </div>
     </div>

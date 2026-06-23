@@ -958,18 +958,19 @@ const EditEventModal = ({ event, onClose, onSubmit }) => {
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-blue-900 mb-2">
-                    Match Format <span className="text-red-500">*</span>
+                    Best of (sets) <span className="text-red-500">*</span>
                   </label>
-                  <select
+                  <input
+                    type="number"
+                    min="1"
+                    max="9"
                     value={formData.bestOf}
                     onChange={(e) => setFormData({ ...formData, bestOf: e.target.value })}
+                    placeholder="e.g., 3, 5, 7"
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none bg-white"
                     required
-                  >
-                    <option value="">Select format</option>
-                    <option value="3">Best of 3 sets</option>
-                    <option value="5">Best of 5 sets</option>
-                  </select>
+                  />
+                  <p className="text-xs text-blue-600 mt-1">Common: 3, 5, or 7 sets</p>
                 </div>
 
                 <div>
@@ -978,6 +979,7 @@ const EditEventModal = ({ event, onClose, onSubmit }) => {
                   </label>
                   <input
                     type="number"
+                    min="1"
                     value={formData.pointsPerSet}
                     onChange={(e) => setFormData({ ...formData, pointsPerSet: e.target.value })}
                     placeholder="e.g., 21 for badminton, 11 for table tennis"
