@@ -59,6 +59,60 @@
         "maxPoints": 15,
         "deuceStartsAt": 10
       }
+    },
+    {
+      "id": "tennis",
+      "name": "Tennis",
+      "icon": "🎾",
+      "category": "racket",
+      "scoringType": "game-set-match",
+      "description": "ITF Standard Rules",
+      "rules": {
+        "bestOf": 3,
+        "gamesPerSet": 6,
+        "pointsPerGame": ["0", "15", "30", "40"],
+        "deuce": true,
+        "advantage": true,
+        "tiebreak": {
+          "enabled": true,
+          "atGames": "6-6",
+          "pointsToWin": 7,
+          "minimumLead": 2
+        },
+        "finalSetTiebreak": {
+          "enabled": true,
+          "atGames": "6-6",
+          "pointsToWin": 10,
+          "minimumLead": 2
+        }
+      }
+    },
+    {
+      "id": "padel",
+      "name": "Padel",
+      "icon": "🎾",
+      "category": "racket",
+      "scoringType": "game-set-match",
+      "description": "FIP Standard Rules (Same as Tennis)",
+      "rules": {
+        "bestOf": 3,
+        "gamesPerSet": 6,
+        "pointsPerGame": ["0", "15", "30", "40"],
+        "deuce": true,
+        "advantage": true,
+        "tiebreak": {
+          "enabled": true,
+          "atGames": "6-6",
+          "pointsToWin": 7,
+          "minimumLead": 2
+        },
+        "finalSetTiebreak": {
+          "enabled": true,
+          "atGames": "6-6",
+          "pointsToWin": 10,
+          "minimumLead": 2
+        }
+      }
     }
   ]
 }

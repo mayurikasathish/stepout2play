@@ -662,7 +662,8 @@ class BracketService {
         pointsPerSet: event.pointsPerSet || null,
         sportId: event.sportId || null,
         scoringType: event.scoringType || null,
-        scoringRules: event.scoringRules || null
+        scoringRules: event.scoringRules || null,
+        goldenPoint: event.goldenPoint || false
       },
       matches: event.matches,
       groups

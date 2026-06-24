@@ -25,7 +25,14 @@ class EventService {
         category: eventData.category || null,
         gender: eventData.gender || null,
         maxParticipants: eventData.maxParticipants || null,
-        registrationFee: eventData.registrationFee || null
+        registrationFee: eventData.registrationFee || null,
+        rules: eventData.rules || null,
+        sportId: eventData.sportId || null,
+        scoringType: eventData.scoringType || null,
+        scoringRules: eventData.scoringRules || null,
+        bestOf: eventData.bestOf || null,
+        pointsPerSet: eventData.pointsPerSet || null,
+        goldenPoint: eventData.goldenPoint || false
       },
       include: {
         _count: {

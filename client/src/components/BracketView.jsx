@@ -5,6 +5,7 @@ import SingleEliminationBracket from './SingleEliminationBracket'
 import RoundRobinBracket from './RoundRobinBracket'
 import HybridBracket from './HybridBracket'
 import Toast from './Toast'
+import TennisScoreModal from './TennisScoreModal'
 
 const BracketView = ({ eventId, eventName, eventFormat, registrationCount, isOrganizer, tournament }) => {
   const [bracket, setBracket] = useState(null)
@@ -249,15 +250,25 @@ const BracketView = ({ eventId, eventName, eventFormat, registrationCount, isOrg
         </div>
       )}
 
-      {/* Match Result Modal */}
+      {/* Match Result Modal - Conditional based on sport type */}
       {showMatchModal && selectedMatch && (
-        <MatchResultModal
-          match={selectedMatch}
-          event={bracket.event}
-          isRoundRobin={isRoundRobin || (isHybrid && selectedMatch.groupId !== null)}
-          onClose={() => setShowMatchModal(false)}
-          onSubmit={handleMatchUpdate}
-        />
+        bracket.event?.scoringType === 'game-set-match' ? (
+          <TennisScoreModal
+            match={selectedMatch}
+            event={bracket.event}
+            isRoundRobin={isRoundRobin || (isHybrid && selectedMatch.groupId !== null)}
+            onClose={() => setShowMatchModal(false)}
+            onSubmit={handleMatchUpdate}
+          />
+        ) : (
+          <MatchResultModal
+            match={selectedMatch}
+            event={bracket.event}
+            isRoundRobin={isRoundRobin || (isHybrid && selectedMatch.groupId !== null)}
+            onClose={() => setShowMatchModal(false)}
+            onSubmit={handleMatchUpdate}
+          />
+        )
       )}
 
       {/* Delete Confirmation Modal */}

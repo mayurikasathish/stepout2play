@@ -8,7 +8,7 @@ class EventController {
   async createEvent(req, res, next) {
     try {
       const { tournamentId } = req.params;
-      const { name, format, category, gender, maxParticipants, registrationFee, rules } = req.body;
+      const { name, format, category, gender, maxParticipants, registrationFee, rules, sportId, bestOf, pointsPerSet, goldenPoint } = req.body;
 
       // Validation
       const errors = [];
@@ -44,7 +44,7 @@ class EventController {
         return res.status(400).json({ success: false, errors });
       }
 
-      const event = await eventService.createEvent(tournamentId, {
+      const eventData = {
         name: name.trim(),
         format,
         category: category?.trim() || null,
@@ -52,7 +52,52 @@ class EventController {
         maxParticipants: maxParticipants ? parseInt(maxParticipants, 10) : null,
         registrationFee: registrationFee ? parseFloat(registrationFee) : null,
         rules: rules?.trim() || null
-      });
+      };
+
+      // Handle sport selection vs custom rules
+      if (sportId) {
+        // Sport selected - use sport rules
+        const sportsService = require('../services/sports.service');
+        const sport = sportsService.getSportById(sportId);
+
+        if (!sport) {
+          return res.status(400).json({
+            success: false,
+            error: `Invalid sport ID: ${sportId}`
+          });
+        }
+
+        eventData.sportId = sportId;
+        eventData.scoringType = sport.scoringType;
+        eventData.scoringRules = sport.rules;
+        eventData.bestOf = sport.rules.bestOf;
+        eventData.pointsPerSet = sport.rules.pointsPerSet;
+
+        // Golden Point for Padel
+        if (sportId === 'padel' && goldenPoint !== undefined) {
+          eventData.goldenPoint = Boolean(goldenPoint);
+        }
+      } else {
+        // Custom rules
+        eventData.sportId = null;
+        eventData.scoringType = 'point-based';
+
+        if (bestOf && pointsPerSet) {
+          const customBestOf = parseInt(bestOf, 10);
+          const customPointsPerSet = parseInt(pointsPerSet, 10);
+
+          eventData.bestOf = customBestOf;
+          eventData.pointsPerSet = customPointsPerSet;
+          eventData.scoringRules = {
+            bestOf: customBestOf,
+            pointsPerSet: customPointsPerSet,
+            minimumLead: 2,
+            maxPoints: null
+          };
+        }
+      }
+
+      const event = await eventService.createEvent(tournamentId, eventData);
 
       res.status(201).json({
         success: true,
@@ -97,7 +142,7 @@ class EventController {
   async updateEvent(req, res, next) {
     try {
       const { eventId } = req.params;
-      const { name, format, category, gender, maxParticipants, registrationFee, rules, bestOf, pointsPerSet, sportId } = req.body;
+      const { name, format, category, gender, maxParticipants, registrationFee, rules, bestOf, pointsPerSet, sportId, goldenPoint } = req.body;
 
       const updateData = {};
 
@@ -108,6 +153,7 @@ class EventController {
       if (maxParticipants !== undefined) updateData.maxParticipants = maxParticipants ? parseInt(maxParticipants, 10) : null;
       if (registrationFee !== undefined) updateData.registrationFee = registrationFee ? parseFloat(registrationFee) : null;
       if (rules !== undefined) updateData.rules = rules?.trim() || null;
+      if (goldenPoint !== undefined) updateData.goldenPoint = Boolean(goldenPoint);
 
       // Handle sport selection vs custom rules
       if (sportId !== undefined) {

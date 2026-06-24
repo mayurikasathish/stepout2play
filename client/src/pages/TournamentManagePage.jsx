@@ -461,6 +461,7 @@ const TournamentManagePage = () => {
         {/* Create Event Modal */}
         {showCreateEventModal && (
           <CreateEventModal
+            tournament={tournament}
             onClose={() => setShowCreateEventModal(false)}
             onSubmit={handleCreateEvent}
           />
@@ -522,7 +523,11 @@ const TournamentManagePage = () => {
 }
 
 // Create Event Modal Component
-const CreateEventModal = ({ onClose, onSubmit }) => {
+const CreateEventModal = ({ tournament, onClose, onSubmit }) => {
+  const [sports, setSports] = useState([])
+  const [selectedSport, setSelectedSport] = useState(null)
+  const [showCustomRules, setShowCustomRules] = useState(false)
+  const [allowedSports, setAllowedSports] = useState([])
   const [formData, setFormData] = useState({
     name: '',
     format: 'SINGLES',
@@ -530,12 +535,80 @@ const CreateEventModal = ({ onClose, onSubmit }) => {
     gender: '',
     maxParticipants: '',
     registrationFee: '',
-    rules: ''
+    rules: '',
+    sportId: '',
+    bestOf: '',
+    pointsPerSet: '',
+    goldenPoint: false
   })
+
+  // Load sports on mount
+  useEffect(() => {
+    const loadSports = async () => {
+      try {
+        const response = await getAllSports()
+        if (response.success) {
+          const allSports = response.sports
+
+          // Filter sports based on tournament settings
+          let filteredSports = allSports
+          if (tournament?.sportType === 'single') {
+            filteredSports = allSports.filter(s => tournament.sports?.includes(s.id))
+          } else if (tournament?.sportType === 'multi' && tournament?.sports?.length > 0) {
+            filteredSports = allSports.filter(s => tournament.sports.includes(s.id))
+          }
+
+          setSports(allSports)
+          setAllowedSports(filteredSports)
+
+          // Auto-select first allowed sport
+          if (filteredSports.length > 0) {
+            const defaultSport = filteredSports[0]
+            setSelectedSport(defaultSport)
+            setFormData(prev => ({
+              ...prev,
+              sportId: defaultSport.id,
+              bestOf: defaultSport.rules.bestOf,
+              pointsPerSet: defaultSport.rules.pointsPerSet
+            }))
+          }
+        }
+      } catch (err) {
+        console.error('Error loading sports:', err)
+      }
+    }
+    loadSports()
+  }, [])
+
+  const handleSportChange = (sportId) => {
+    const sport = sports.find(s => s.id === sportId)
+    setSelectedSport(sport)
+
+    if (sport) {
+      setFormData({
+        ...formData,
+        sportId: sport.id,
+        bestOf: sport.rules.bestOf,
+        pointsPerSet: sport.rules.pointsPerSet
+      })
+    }
+  }
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    // Clean up empty strings and convert to proper types
+
+    // Validate scoring configuration ONLY if custom rules
+    if (showCustomRules) {
+      if (!formData.bestOf) {
+        alert('Please specify the match format (Best of 3, 5, etc.)')
+        return
+      }
+      if (!formData.pointsPerSet) {
+        alert('Please specify points per set')
+        return
+      }
+    }
+
     const cleanData = {
       name: formData.name.trim(),
       format: formData.format,
@@ -545,6 +618,20 @@ const CreateEventModal = ({ onClose, onSubmit }) => {
       registrationFee: formData.registrationFee ? parseFloat(formData.registrationFee) : undefined,
       rules: formData.rules.trim() || undefined
     }
+
+    // Handle custom rules vs sport selection
+    if (showCustomRules) {
+      cleanData.sportId = ''
+      cleanData.bestOf = parseInt(formData.bestOf)
+      cleanData.pointsPerSet = parseInt(formData.pointsPerSet)
+    } else {
+      cleanData.sportId = formData.sportId
+      // Include goldenPoint for Padel
+      if (formData.sportId === 'padel') {
+        cleanData.goldenPoint = formData.goldenPoint
+      }
+    }
+
     onSubmit(cleanData)
   }
 
@@ -566,6 +653,195 @@ const CreateEventModal = ({ onClose, onSubmit }) => {
                 required
               />
             </div>
+
+            {/* Sport Selection */}
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Sport *
+                {tournament?.sportType === 'single' && (
+                  <span className="text-xs text-gray-500 ml-2">(Fixed by tournament)</span>
+                )}
+                {tournament?.sportType === 'multi' && (
+                  <span className="text-xs text-gray-500 ml-2">(Tournament allows: {tournament.sports?.join(', ')})</span>
+                )}
+              </label>
+              <select
+                value={formData.sportId}
+                onChange={(e) => handleSportChange(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none disabled:bg-gray-100 disabled:cursor-not-allowed"
+                disabled={showCustomRules || tournament?.sportType === 'single'}
+              >
+                {allowedSports.map(sport => (
+                  <option key={sport.id} value={sport.id}>
+                    {sport.icon} {sport.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Show selected sport rules */}
+            {selectedSport && !showCustomRules && (
+  <div className="bg-green-50 border border-green-300 rounded-xl p-4">
+    <h4 className="font-semibold text-green-900 mb-2">
+      ✅ {selectedSport.name} - Default Scoring Rules
+    </h4>
+
+    <div className="text-sm text-green-800 space-y-1">
+
+      <p>
+        • Best of <strong>{selectedSport.rules.bestOf}</strong> sets
+      </p>
+
+      {selectedSport.rules.scoringType === "POINTS" && (
+        <>
+          <p>
+            • <strong>{selectedSport.rules.pointsPerSet}</strong> points per set
+          </p>
+
+          <p>
+            • <strong>{selectedSport.rules.minimumLead}</strong>-point lead required
+          </p>
+
+          {selectedSport.rules.maxPoints && (
+            <p>
+              • Maximum <strong>{selectedSport.rules.maxPoints}</strong> points per set
+            </p>
+          )}
+        </>
+      )}
+
+      {selectedSport.rules.scoringType === "TENNIS" && (
+        <>
+          <p>
+            • First to <strong>{selectedSport.rules.gamesPerSet}</strong> games per set
+          </p>
+
+          <p>
+            • Win set by <strong>2 games</strong>
+          </p>
+
+          {selectedSport.rules.tiebreakAt && (
+            <p>
+              • Tiebreak played at{" "}
+              <strong>
+                {selectedSport.rules.tiebreakAt}-
+                {selectedSport.rules.tiebreakAt}
+              </strong>
+            </p>
+          )}
+
+          {selectedSport.rules.goldenPoint ? (
+            <p>• Golden Point scoring at Deuce</p>
+          ) : (
+            <p>• Advantage scoring at Deuce</p>
+          )}
+        </>
+      )}
+
+      <p className="text-xs text-green-600 mt-2 italic">
+        {selectedSport.description}
+      </p>
+    </div>
+  </div>
+)}
+
+            {/* Golden Point Checkbox (Padel only) */}
+            {selectedSport?.id === 'padel' && !showCustomRules && (
+              <div className="flex items-center gap-3 p-3 bg-yellow-50 rounded-xl border border-yellow-300">
+                <input
+                  type="checkbox"
+                  id="goldenPointCreate"
+                  checked={formData.goldenPoint}
+                  onChange={(e) => setFormData({ ...formData, goldenPoint: e.target.checked })}
+                  className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                />
+                <label htmlFor="goldenPointCreate" className="text-sm font-medium text-yellow-900 cursor-pointer">
+                  🎯 Enable Golden Point (at 40-40, next point wins instead of deuce/advantage)
+                </label>
+              </div>
+            )}
+
+            {/* Custom Rules Checkbox */}
+            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+              <input
+                type="checkbox"
+                id="customRulesCreate"
+                checked={showCustomRules}
+                onChange={(e) => {
+                  const checked = e.target.checked
+                  setShowCustomRules(checked)
+                  if (checked) {
+                    setFormData({
+                      ...formData,
+                      sportId: '',
+                      bestOf: '',
+                      pointsPerSet: ''
+                    })
+                    setSelectedSport(null)
+                  } else {
+                    const defaultSport = allowedSports[0]
+                    if (defaultSport) {
+                      setSelectedSport(defaultSport)
+                      setFormData({
+                        ...formData,
+                        sportId: defaultSport.id,
+                        bestOf: defaultSport.rules.bestOf,
+                        pointsPerSet: defaultSport.rules.pointsPerSet
+                      })
+                    }
+                  }
+                }}
+                className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+              />
+              <label htmlFor="customRulesCreate" className="text-sm font-medium text-gray-700 cursor-pointer">
+                ⚙️ Use custom match scoring configuration
+              </label>
+            </div>
+
+            {/* Scoring Configuration - Only show when Custom is selected */}
+            {showCustomRules && (
+              <div className="rounded-xl p-4 border bg-orange-50 border-orange-300">
+                <h3 className="font-semibold mb-3 text-orange-900">
+                  ⚙️ Custom Match Scoring Configuration
+                </h3>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-orange-900">
+                      Best of (sets) <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="9"
+                      value={formData.bestOf}
+                      onChange={(e) => setFormData({ ...formData, bestOf: e.target.value })}
+                      placeholder="e.g., 3, 5, 7"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none bg-white"
+                      required
+                    />
+                    <p className="text-xs text-orange-600 mt-1">Common: 3, 5, or 7 sets</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-orange-900">
+                      Points Per Set <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={formData.pointsPerSet}
+                      onChange={(e) => setFormData({ ...formData, pointsPerSet: e.target.value })}
+                      placeholder="e.g., 21 for badminton, 11 for table tennis"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none bg-white"
+                      required
+                    />
+                  </div>
+                </div>
+                <p className="text-xs text-orange-700 mt-2">
+                  ⚠️ Using custom scoring rules - not standard format
+                </p>
+              </div>
+            )}
 
             <div className="grid md:grid-cols-2 gap-4">
               <div>
@@ -673,7 +949,6 @@ const EditTournamentModal = ({ tournament, onClose, onSubmit }) => {
   const [formData, setFormData] = useState({
     name: tournament.name || '',
     sport: tournament.sport || 'badminton',
-    format: tournament.format || 'ROUND_ROBIN',
     startDate: tournament.startDate ? tournament.startDate.split('T')[0] : '',
     endDate: tournament.endDate ? tournament.endDate.split('T')[0] : '',
     venueName: tournament.venueName || '',
@@ -691,6 +966,8 @@ const EditTournamentModal = ({ tournament, onClose, onSubmit }) => {
     { id: 'table-tennis', name: 'Table Tennis', icon: '🏓' },
     { id: 'squash', name: 'Squash', icon: '🎾' },
     { id: 'pickleball', name: 'Pickleball', icon: '🥒' },
+    { id: 'tennis', name: 'Tennis', icon: '🎾' },
+    { id: 'padel', name: 'Padel', icon: '🎾' }
   ]
 
   const toggleSport = (sportId) => {
@@ -809,18 +1086,6 @@ const EditTournamentModal = ({ tournament, onClose, onSubmit }) => {
                   💡 Events can choose from the selected sports above
                 </p>
               )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2">Format *</label>
-              <select
-                value={formData.format}
-                onChange={(e) => setFormData({ ...formData, format: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-              >
-                <option value="ROUND_ROBIN">Round Robin</option>
-                <option value="KNOCKOUT">Knockout</option>
-              </select>
             </div>
 
             <div className="grid md:grid-cols-2 gap-4">
@@ -965,7 +1230,8 @@ const EditEventModal = ({ event, tournament, onClose, onSubmit }) => {
     rules: event.rules || '',
     sportId: event.sportId || 'badminton', // Default to badminton
     bestOf: event.bestOf || '',
-    pointsPerSet: event.pointsPerSet || ''
+    pointsPerSet: event.pointsPerSet || '',
+    goldenPoint: event.goldenPoint || false
   })
 
   // Load sports on mount
@@ -1076,6 +1342,10 @@ const EditEventModal = ({ event, tournament, onClose, onSubmit }) => {
     } else {
       // Sport mode - send sportId (backend will auto-fill rules)
       cleanData.sportId = formData.sportId
+      // Include goldenPoint for Padel
+      if (formData.sportId === 'padel') {
+        cleanData.goldenPoint = formData.goldenPoint
+      }
     }
 
     onSubmit(cleanData)
@@ -1126,17 +1396,83 @@ const EditEventModal = ({ event, tournament, onClose, onSubmit }) => {
 
             {/* Show selected sport rules */}
             {selectedSport && !showCustomRules && (
-              <div className="bg-green-50 border border-green-300 rounded-xl p-4">
-                <h4 className="font-semibold text-green-900 mb-2">✅ {selectedSport.name} - Default Scoring Rules</h4>
-                <div className="text-sm text-green-800 space-y-1">
-                  <p>• Best of <strong>{selectedSport.rules.bestOf}</strong> sets</p>
-                  <p>• <strong>{selectedSport.rules.pointsPerSet}</strong> points per set</p>
-                  <p>• <strong>{selectedSport.rules.minimumLead}</strong>-point lead required</p>
-                  {selectedSport.rules.maxPoints && (
-                    <p>• Maximum <strong>{selectedSport.rules.maxPoints}</strong> points per set</p>
-                  )}
-                  <p className="text-xs text-green-600 mt-2 italic">{selectedSport.description}</p>
-                </div>
+  <div className="bg-green-50 border border-green-300 rounded-xl p-4">
+    <h4 className="font-semibold text-green-900 mb-2">
+      ✅ {selectedSport.name} - Default Scoring Rules
+    </h4>
+
+    <div className="text-sm text-green-800 space-y-1">
+
+      <p>
+        • Best of <strong>{selectedSport.rules.bestOf}</strong> sets
+      </p>
+
+      {selectedSport.rules.scoringType === "POINTS" && (
+        <>
+          <p>
+            • <strong>{selectedSport.rules.pointsPerSet}</strong> points per set
+          </p>
+
+          <p>
+            • <strong>{selectedSport.rules.minimumLead}</strong>-point lead required
+          </p>
+
+          {selectedSport.rules.maxPoints && (
+            <p>
+              • Maximum <strong>{selectedSport.rules.maxPoints}</strong> points per set
+            </p>
+          )}
+        </>
+      )}
+
+      {selectedSport.rules.scoringType === "TENNIS" && (
+        <>
+          <p>
+            • First to <strong>{selectedSport.rules.gamesPerSet}</strong> games per set
+          </p>
+
+          <p>
+            • Win set by <strong>2 games</strong>
+          </p>
+
+          {selectedSport.rules.tiebreakAt && (
+            <p>
+              • Tiebreak played at{" "}
+              <strong>
+                {selectedSport.rules.tiebreakAt}-
+                {selectedSport.rules.tiebreakAt}
+              </strong>
+            </p>
+          )}
+
+          {selectedSport.rules.goldenPoint ? (
+            <p>• Golden Point scoring at Deuce</p>
+          ) : (
+            <p>• Advantage scoring at Deuce</p>
+          )}
+        </>
+      )}
+
+      <p className="text-xs text-green-600 mt-2 italic">
+        {selectedSport.description}
+      </p>
+    </div>
+  </div>
+)}
+
+            {/* Golden Point Checkbox (Padel only) */}
+            {selectedSport?.id === 'padel' && !showCustomRules && (
+              <div className="flex items-center gap-3 p-3 bg-yellow-50 rounded-xl border border-yellow-300">
+                <input
+                  type="checkbox"
+                  id="goldenPointEdit"
+                  checked={formData.goldenPoint}
+                  onChange={(e) => setFormData({ ...formData, goldenPoint: e.target.checked })}
+                  className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                />
+                <label htmlFor="goldenPointEdit" className="text-sm font-medium text-yellow-900 cursor-pointer">
+                  🎯 Enable Golden Point (at 40-40, next point wins instead of deuce/advantage)
+                </label>
               </div>
             )}
 

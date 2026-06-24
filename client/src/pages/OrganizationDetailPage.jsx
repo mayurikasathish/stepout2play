@@ -359,7 +359,6 @@ const CreateTournamentModal = ({ onClose, onSubmit }) => {
   const [formData, setFormData] = useState({
     name: '',
     sport: 'badminton', // Legacy field
-    format: 'ROUND_ROBIN',
     startDate: '',
     endDate: '',
     venueName: '',
@@ -376,8 +375,8 @@ const CreateTournamentModal = ({ onClose, onSubmit }) => {
     { id: 'table-tennis', name: 'Table Tennis', icon: '🏓' },
     { id: 'squash', name: 'Squash', icon: '🎾' },
     { id: 'pickleball', name: 'Pickleball', icon: '🥒' },
-    // { id: 'tennis', name: 'Tennis', icon: '🎾' }, // Coming soon
-    // { id: 'padel', name: 'Padel', icon: '🎾' } // Coming soon
+    { id: 'tennis', name: 'Tennis', icon: '🎾' },
+    { id: 'padel', name: 'Padel', icon: '🎾' }
   ]
 
   const toggleSport = (sportId) => {
@@ -497,20 +496,6 @@ const CreateTournamentModal = ({ onClose, onSubmit }) => {
                   💡 Events can choose from the selected sports above
                 </p>
               )}
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">Format *</label>
-                <select
-                  value={formData.format}
-                  onChange={(e) => setFormData({ ...formData, format: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                >
-                  <option value="ROUND_ROBIN">Round Robin</option>
-                  <option value="KNOCKOUT">Knockout</option>
-                </select>
-              </div>
             </div>
 
             <div className="grid md:grid-cols-2 gap-4">
