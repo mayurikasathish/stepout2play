@@ -130,15 +130,22 @@ export default function OnboardingPage() {
                   setError('Date of birth, gender and city are required')
                   return
                 }
+                if (formData.sports.length === 0) {
+                  setError('Please select at least one sport')
+                  return
+                }
                 setError('')
-                setStep(2)
+                finishOnboarding(false)
               }}
-              className="w-full mt-6 px-6 py-3.5 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-xl transition-all shadow-sm flex items-center justify-center gap-2"
+              disabled={loading}
+              className="w-full mt-6 px-6 py-3.5 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-xl transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Continue
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-              </svg>
+              {loading ? 'Completing...' : 'Complete Setup'}
+              {!loading && (
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              )}
             </button>
           </div>
         </div>

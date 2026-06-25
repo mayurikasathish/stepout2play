@@ -21,10 +21,12 @@ if (hasValidCredentials) {
   console.warn('Cloudinary credentials not set - image upload will not work');
 }
 
-// Configure Multer Storage for Profile Pictures
-let profilePictureStorage, organizationLogoStorage, uploadProfilePicture, uploadOrganizationLogo;
+// Configure Multer Storage for different upload types
+let profilePictureStorage, organizationLogoStorage, bannerStorage, galleryStorage;
+let uploadProfilePicture, uploadOrganizationLogo, uploadBanner, uploadGallery;
 
 if (hasValidCredentials) {
+  // Profile Pictures
   profilePictureStorage = new CloudinaryStorage({
     cloudinary: cloudinary,
     params: {
@@ -37,14 +39,40 @@ if (hasValidCredentials) {
     }
   });
 
-  // Configure Multer Storage for Organization Logos
+  // Organization Logos
   organizationLogoStorage = new CloudinaryStorage({
     cloudinary: cloudinary,
     params: {
-      folder: 'stepout2play/organizations',
+      folder: 'stepout2play/organizations/logos',
       allowed_formats: ['jpg', 'jpeg', 'png', 'webp', 'svg'],
       transformation: [
         { width: 400, height: 400, crop: 'fit' },
+        { quality: 'auto', fetch_format: 'auto' }
+      ]
+    }
+  });
+
+  // Banners (org banners, tournament banners, etc)
+  bannerStorage = new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: {
+      folder: 'stepout2play/banners',
+      allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
+      transformation: [
+        { width: 1920, height: 600, crop: 'fill' },
+        { quality: 'auto', fetch_format: 'auto' }
+      ]
+    }
+  });
+
+  // Photo Galleries
+  galleryStorage = new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: {
+      folder: 'stepout2play/galleries',
+      allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
+      transformation: [
+        { width: 1200, height: 800, crop: 'limit' },
         { quality: 'auto', fetch_format: 'auto' }
       ]
     }
@@ -64,11 +92,27 @@ if (hasValidCredentials) {
       fileSize: 5 * 1024 * 1024 // 5MB limit
     }
   });
+
+  uploadBanner = multer({
+    storage: bannerStorage,
+    limits: {
+      fileSize: 10 * 1024 * 1024 // 10MB limit for banners
+    }
+  });
+
+  uploadGallery = multer({
+    storage: galleryStorage,
+    limits: {
+      fileSize: 10 * 1024 * 1024 // 10MB limit
+    }
+  });
 } else {
   // Dummy multer instances when Cloudinary is not configured
   const memoryStorage = multer.memoryStorage();
   uploadProfilePicture = multer({ storage: memoryStorage });
   uploadOrganizationLogo = multer({ storage: memoryStorage });
+  uploadBanner = multer({ storage: memoryStorage });
+  uploadGallery = multer({ storage: memoryStorage });
 }
 
 // Helper function to delete image from Cloudinary
@@ -86,5 +130,7 @@ module.exports = {
   cloudinary,
   uploadProfilePicture,
   uploadOrganizationLogo,
+  uploadBanner,
+  uploadGallery,
   deleteImage
 };

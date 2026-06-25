@@ -34,16 +34,56 @@ model User {
 }
 
 model Organization {
-  id          String       @id @default(uuid())
-  name        String
-  slug        String       @unique
-  logoUrl     String?
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  members     OrgMember[]
-  tournaments Tournament[]
+  id             String       @id @default(uuid())
+  name           String
+  slug           String       @unique
+  logoUrl        String?
+  tagline        String?
+  bannerImageUrl String?
+  photoGallery   String[]     @default([])
+  motto          String?
+  aboutUs        String?
+  joinUsInfo     String?
+  contactEmail   String?
+  contactPhone   String?
+  socialLinks    Json?
+  colorScheme    String?      @default("blue")
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  members        OrgMember[]
+  tournaments    Tournament[]
+  followers      OrgFollower[]
+  joinRequests   OrgJoinRequest[]
 
   @@map("organizations")
+}
+
+model OrgFollower {
+  id        String       @id @default(uuid())
+  userId    String
+  orgId     String
+  createdAt DateTime     @default(now())
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, orgId])
+  @@map("org_followers")
+}
+
+model OrgJoinRequest {
+  id         String       @id @default(uuid())
+  userId     String
+  orgId      String
+  role       String       // MEMBER or ADMIN (requesting role)
+  email      String
+  reason     String
+  experience String?
+  status     String       @default("PENDING") // PENDING, APPROVED, REJECTED
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, orgId])
+  @@map("org_join_requests")
 }
 
 model OrgMember {

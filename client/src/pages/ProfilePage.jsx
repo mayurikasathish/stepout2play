@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext'
 import Navbar from '../components/Navbar'
 import Toast from '../components/Toast'
 import CancelRegistrationModal from '../components/CancelRegistrationModal'
+import ImageUpload from '../components/ImageUpload'
 import api from '../services/api'
 
 const UserIcon = (props) => (
@@ -245,13 +246,18 @@ const ProfilePage = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-900 mb-2">Profile Picture URL</label>
-                <input
-                  type="url"
-                  value={formData.profilePicture || ''}
-                  onChange={(e) => setFormData({ ...formData, profilePicture: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                  placeholder="https://example.com/photo.jpg"
+                <ImageUpload
+                  type="profile"
+                  entityId={profile?.id}
+                  currentImage={formData.profilePicture}
+                  onImageUploaded={(data) => {
+                    setFormData({ ...formData, profilePicture: data.user.profilePicture })
+                    setProfile({ ...profile, profilePicture: data.user.profilePicture })
+                    setToastMessage('Profile picture uploaded successfully!')
+                    setToastType('success')
+                    setShowToast(true)
+                  }}
+                  label="Upload Profile Picture"
                 />
               </div>
 
@@ -291,51 +297,6 @@ const ProfilePage = () => {
           <h2 className="text-2xl font-bold text-gray-900 mb-6">Account Settings</h2>
 
           <div className="space-y-6">
-            {/* Change Role */}
-            <div className="border-b border-gray-200 pb-6">
-              <h3 className="font-semibold text-gray-900 mb-2">Primary Role</h3>
-              <p className="text-sm text-gray-600 mb-4">
-                Current role: <span className="font-medium text-primary-600">{profile?.primaryRole || 'Not set'}</span>
-              </p>
-              <div className="flex gap-3">
-                <button
-                  onClick={async () => {
-                    try {
-                      await api.patch('/auth/profile', { primaryRole: 'PLAYER' })
-                      await fetchProfile()
-                      setToastMessage('Role updated to Player')
-                      setToastType('success')
-                      setShowToast(true)
-                    } catch (err) {
-                      setToastMessage('Failed to update role')
-                      setToastType('error')
-                      setShowToast(true)
-                    }
-                  }}
-                  className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-all"
-                >
-                  Set as Player
-                </button>
-                <button
-                  onClick={async () => {
-                    try {
-                      await api.patch('/auth/profile', { primaryRole: 'ORGANIZER' })
-                      await fetchProfile()
-                      setToastMessage('Role updated to Organizer')
-                      setToastType('success')
-                      setShowToast(true)
-                    } catch (err) {
-                      setToastMessage('Failed to update role')
-                      setToastType('error')
-                      setShowToast(true)
-                    }
-                  }}
-                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-all"
-                >
-                  Set as Organizer
-                </button>
-              </div>
-            </div>
 
             {/* Delete Account */}
             <div>

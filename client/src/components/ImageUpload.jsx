@@ -4,50 +4,90 @@ import api from '../services/api'
 const ImageUpload = ({
   currentImage,
   onImageUploaded,
-  type = 'profile', // 'profile' or 'organization'
+  type = 'profile', // 'profile', 'logo', 'banner', or 'gallery'
+  entityId, // userId or organizationId
   label = 'Upload Image',
-  className = ''
+  className = '',
+  multiple = false // For gallery uploads
 }) => {
   const [uploading, setUploading] = useState(false)
   const [previewUrl, setPreviewUrl] = useState(currentImage)
   const [error, setError] = useState('')
   const fileInputRef = useRef(null)
 
-  const handleFileSelect = async (e) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    // Validate file type
-    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
-    if (!validTypes.includes(file.type)) {
-      setError('Please upload a valid image file (JPG, PNG, or WEBP)')
-      return
+  const getEndpointAndFieldName = () => {
+    switch (type) {
+      case 'profile':
+        return {
+          endpoint: `/users/${entityId}/profile-picture`,
+          fieldName: 'profilePicture'
+        }
+      case 'logo':
+        return {
+          endpoint: `/organizations/${entityId}/logo`,
+          fieldName: 'logo'
+        }
+      case 'banner':
+        return {
+          endpoint: `/organizations/${entityId}/banner`,
+          fieldName: 'banner'
+        }
+      case 'gallery':
+        return {
+          endpoint: `/organizations/${entityId}/gallery`,
+          fieldName: 'photos'
+        }
+      default:
+        return {
+          endpoint: '/upload',
+          fieldName: 'file'
+        }
     }
+  }
 
-    // Validate file size (5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      setError('Image size must be less than 5MB')
-      return
+  const handleFileSelect = async (e) => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+
+    const maxSize = type === 'banner' || type === 'gallery' ? 10 * 1024 * 1024 : 5 * 1024 * 1024
+
+    // Validate file type and size
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+    for (let file of files) {
+      if (!validTypes.includes(file.type)) {
+        setError('Please upload valid image files (JPG, PNG, or WEBP)')
+        return
+      }
+      if (file.size > maxSize) {
+        setError(`Image size must be less than ${maxSize / (1024 * 1024)}MB`)
+        return
+      }
     }
 
     setError('')
 
-    // Show preview
-    const reader = new FileReader()
-    reader.onloadend = () => {
-      setPreviewUrl(reader.result)
+    // Show preview for single file
+    if (!multiple && files[0]) {
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setPreviewUrl(reader.result)
+      }
+      reader.readAsDataURL(files[0])
     }
-    reader.readAsDataURL(file)
 
     // Upload to server
     try {
       setUploading(true)
       const formData = new FormData()
-      formData.append('image', file)
+      const { endpoint, fieldName } = getEndpointAndFieldName()
 
-      const endpoint = type === 'profile'
-        ? '/upload/profile-picture'
-        : '/upload/organization-logo'
+      if (multiple) {
+        Array.from(files).forEach(file => {
+          formData.append(fieldName, file)
+        })
+      } else {
+        formData.append(fieldName, files[0])
+      }
 
       const response = await api.post(endpoint, formData, {
         headers: {
@@ -56,7 +96,11 @@ const ImageUpload = ({
       })
 
       if (response.data.success) {
-        onImageUploaded(response.data.imageUrl, response.data.publicId)
+        onImageUploaded?.(response.data)
+        // Reset file input
+        if (fileInputRef.current) {
+          fileInputRef.current.value = ''
+        }
       }
     } catch (err) {
       console.error('Error uploading image:', err)
@@ -120,6 +164,7 @@ const ImageUpload = ({
             type="file"
             accept="image/jpeg,image/jpg,image/png,image/webp"
             onChange={handleFileSelect}
+            multiple={multiple}
             className="hidden"
           />
 
@@ -142,13 +187,14 @@ const ImageUpload = ({
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
-                Choose Image
+                {multiple ? 'Choose Images' : 'Choose Image'}
               </>
             )}
           </button>
 
           <p className="text-xs text-gray-500 mt-2">
-            JPG, PNG or WEBP. Max size 5MB.
+            JPG, PNG or WEBP. Max size {type === 'banner' || type === 'gallery' ? '10' : '5'}MB.
+            {multiple && ' Upload up to 10 at once.'}
           </p>
 
           {error && (

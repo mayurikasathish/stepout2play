@@ -16,7 +16,8 @@ import TournamentManagePage from './pages/TournamentManagePage'
 // ── New pages ──
 import DiscoverPage from './pages/DiscoverPage'
 import OrgMiniSitePage from './pages/OrgMiniSitePage'
-// import PlayersPage from './pages/PlayersPage'         // wire up when ready
+import EditOrgPage from './pages/EditOrgPage'
+import PlayersPage from './pages/PlayersPage'
 // import PlayerProfilePage from './pages/PlayerProfilePage' // wire up when ready
 
 function App() {
@@ -38,7 +39,7 @@ function App() {
           <Route path="/orgs/:id" element={<OrgMiniSitePage />} />
 
           {/* Players directory – public */}
-          {/* <Route path="/players" element={<PlayersPage />} /> */}
+          <Route path="/players" element={<PlayersPage />} />
           {/* <Route path="/players/:id" element={<PlayerProfilePage />} /> */}
 
           {/* Onboarding – auth required but no onboardingComplete check */}
@@ -91,6 +92,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <ProfilePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/orgs/edit"
+            element={
+              <ProtectedRoute>
+                <EditOrgPage />
               </ProtectedRoute>
             }
           />

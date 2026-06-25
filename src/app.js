@@ -2,12 +2,13 @@ const express = require('express');
 const cors = require('cors');
 const authRoutes = require('./routes/auth.routes');
 const orgRoutes = require('./routes/org.routes');
+const userRoutes = require('./routes/user.routes');
 const tournamentRoutes = require('./routes/tournament.routes');
 const registrationRoutes = require('./routes/registration.routes');
 const bracketRoutes = require('./routes/bracket.routes');
 const schedulerRoutes = require('./routes/scheduler.routes');
 const sportsRoutes = require('./routes/sports.routes');
-// const uploadRoutes = require('./routes/upload.routes'); // Temporarily disabled until Cloudinary is configured
+const uploadRoutes = require('./routes/upload.routes');
 
 const app = express();
 
@@ -31,12 +32,13 @@ app.use(express.urlencoded({ extended: true }));
 // Routes - all under /api prefix
 app.use('/api/auth', authRoutes);
 app.use('/api/orgs', orgRoutes);
+app.use('/api/users', userRoutes);
 app.use('/api/tournaments', tournamentRoutes);
 app.use('/api/sports', sportsRoutes); // Sports metadata routes
 app.use('/api', registrationRoutes); // Registration routes use /events and /users paths
 app.use('/api', bracketRoutes); // Bracket routes use /events and /matches paths
 app.use('/api', schedulerRoutes); // Scheduler routes use /events and /tournaments paths
-// app.use('/api', uploadRoutes); // Upload routes - disabled until Cloudinary is configured
+app.use('/api', uploadRoutes); // Upload routes for images
 
 // Health check
 app.get('/api/health', (req, res) => {

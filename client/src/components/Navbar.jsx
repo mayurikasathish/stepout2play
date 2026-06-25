@@ -64,7 +64,7 @@ const Navbar = () => {
     { name: 'Dashboard', path: '/dashboard' },
     { name: 'Browse', path: '/browse' },
     { name: 'My Matches', path: '/matches' },
-    ...(context?.isOrganizer ? [{ name: 'My Organizations', path: '/manage' }] : []),
+    { name: 'My Organizations', path: '/manage' },
   ] : [
     { name: 'Browse', path: '/browse' },
   ]
