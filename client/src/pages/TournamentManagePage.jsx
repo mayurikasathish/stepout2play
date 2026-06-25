@@ -528,6 +528,7 @@ const CreateEventModal = ({ tournament, onClose, onSubmit }) => {
   const [selectedSport, setSelectedSport] = useState(null)
   const [showCustomRules, setShowCustomRules] = useState(false)
   const [allowedSports, setAllowedSports] = useState([])
+  const [validationError, setValidationError] = useState('')
   const [formData, setFormData] = useState({
     name: '',
     format: 'SINGLES',
@@ -596,15 +597,21 @@ const CreateEventModal = ({ tournament, onClose, onSubmit }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault()
+    setValidationError('')
 
     // Validate scoring configuration ONLY if custom rules
     if (showCustomRules) {
       if (!formData.bestOf) {
-        alert('Please specify the match format (Best of 3, 5, etc.)')
+        setValidationError('Please specify the match format (Best of 3, 5, etc.)')
+        return
+      }
+      const bestOfValue = parseInt(formData.bestOf)
+      if (bestOfValue % 2 === 0) {
+        setValidationError('Best of sets must be an odd number (3, 5, 7, etc.) to determine a clear winner')
         return
       }
       if (!formData.pointsPerSet) {
-        alert('Please specify points per set')
+        setValidationError('Please specify points per set')
         return
       }
     }
@@ -840,6 +847,18 @@ const CreateEventModal = ({ tournament, onClose, onSubmit }) => {
                 <p className="text-xs text-orange-700 mt-2">
                   ⚠️ Using custom scoring rules - not standard format
                 </p>
+              </div>
+            )}
+
+            {/* Validation Error */}
+            {validationError && (
+              <div className="p-4 bg-red-50 border border-red-300 rounded-xl">
+                <div className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                  <p className="text-sm font-medium text-red-800">{validationError}</p>
+                </div>
               </div>
             )}
 
@@ -1220,6 +1239,7 @@ const EditEventModal = ({ event, tournament, onClose, onSubmit }) => {
   const [selectedSport, setSelectedSport] = useState(null)
   const [showCustomRules, setShowCustomRules] = useState(false)
   const [allowedSports, setAllowedSports] = useState([]) // Sports allowed by tournament
+  const [validationError, setValidationError] = useState('')
   const [formData, setFormData] = useState({
     name: event.name || '',
     format: event.format || 'SINGLES',
@@ -1310,15 +1330,21 @@ const EditEventModal = ({ event, tournament, onClose, onSubmit }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault()
+    setValidationError('')
 
     // Validate scoring configuration ONLY if custom rules
     if (showCustomRules) {
       if (!formData.bestOf) {
-        alert('Please specify the match format (Best of 3, 5, etc.)')
+        setValidationError('Please specify the match format (Best of 3, 5, etc.)')
+        return
+      }
+      const bestOfValue = parseInt(formData.bestOf)
+      if (bestOfValue % 2 === 0) {
+        setValidationError('Best of sets must be an odd number (3, 5, 7, etc.) to determine a clear winner')
         return
       }
       if (!formData.pointsPerSet) {
-        alert('Please specify points per set')
+        setValidationError('Please specify points per set')
         return
       }
     }
@@ -1623,6 +1649,18 @@ const EditEventModal = ({ event, tournament, onClose, onSubmit }) => {
                 <p className="text-xs text-orange-700 mt-2">
                   ⚠️ Using custom scoring rules - not standard format
                 </p>
+              </div>
+            )}
+
+            {/* Validation Error */}
+            {validationError && (
+              <div className="p-4 bg-red-50 border border-red-300 rounded-xl">
+                <div className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                  <p className="text-sm font-medium text-red-800">{validationError}</p>
+                </div>
               </div>
             )}
 
