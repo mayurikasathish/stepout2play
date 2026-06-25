@@ -13,6 +13,11 @@ import ManagePage from './pages/ManagePage'
 import ProfilePage from './pages/ProfilePage'
 import OrganizationDetailPage from './pages/OrganizationDetailPage'
 import TournamentManagePage from './pages/TournamentManagePage'
+// ── New pages ──
+import DiscoverPage from './pages/DiscoverPage'
+import OrgMiniSitePage from './pages/OrgMiniSitePage'
+// import PlayersPage from './pages/PlayersPage'         // wire up when ready
+// import PlayerProfilePage from './pages/PlayerProfilePage' // wire up when ready
 
 function App() {
   return (
@@ -26,10 +31,20 @@ function App() {
           <Route path="/browse" element={<BrowsePage />} />
           <Route path="/tournaments/:id" element={<TournamentDetailPage />} />
 
-          {/* Onboarding - auth required but no onboardingComplete check */}
+          {/* Discover – public (works logged out too) */}
+          <Route path="/discover" element={<DiscoverPage />} />
+
+          {/* Org mini-site – public */}
+          <Route path="/orgs/:id" element={<OrgMiniSitePage />} />
+
+          {/* Players directory – public */}
+          {/* <Route path="/players" element={<PlayersPage />} /> */}
+          {/* <Route path="/players/:id" element={<PlayerProfilePage />} /> */}
+
+          {/* Onboarding – auth required but no onboardingComplete check */}
           <Route path="/onboarding" element={<OnboardingPage />} />
 
-          {/* Protected routes - requires auth + onboardingComplete */}
+          {/* Protected routes – requires auth + onboardingComplete */}
           <Route
             path="/dashboard"
             element={
@@ -54,6 +69,7 @@ function App() {
               </ProtectedRoute>
             }
           />
+          {/* My Organizations (previously /manage) — organizer only */}
           <Route
             path="/manage"
             element={
@@ -78,7 +94,6 @@ function App() {
               </ProtectedRoute>
             }
           />
-
         </Routes>
       </AuthProvider>
     </Router>
