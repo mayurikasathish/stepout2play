@@ -1,5 +1,5 @@
 const prisma = require('../lib/prisma');
-const { deleteImage } = require('../config/cloudinary');
+const { deleteImage, uploadToCloudinary } = require('../config/cloudinary');
 
 class UploadController {
   /**
@@ -36,10 +36,19 @@ class UploadController {
         await deleteImage(publicId);
       }
 
+      // Upload to Cloudinary using the official SDK
+      const result = await uploadToCloudinary(req.file.buffer, {
+        folder: 'stepout2play/profiles',
+        transformation: [
+          { width: 500, height: 500, crop: 'fill', gravity: 'face' },
+          { quality: 'auto', fetch_format: 'auto' }
+        ]
+      });
+
       // Update user with new profile picture URL
       const updatedUser = await prisma.user.update({
         where: { id: userId },
-        data: { profilePicture: req.file.path },
+        data: { profilePicture: result.secure_url },
         select: {
           id: true,
           firstName: true,
@@ -93,10 +102,19 @@ class UploadController {
         await deleteImage(publicId);
       }
 
+      // Upload to Cloudinary using the official SDK
+      const result = await uploadToCloudinary(req.file.buffer, {
+        folder: 'stepout2play/organizations/logos',
+        transformation: [
+          { width: 400, height: 400, crop: 'fit' },
+          { quality: 'auto', fetch_format: 'auto' }
+        ]
+      });
+
       // Update organization with new logo URL
       const updatedOrganization = await prisma.organization.update({
         where: { id: organizationId },
-        data: { logoUrl: req.file.path },
+        data: { logoUrl: result.secure_url },
         select: {
           id: true,
           name: true,
@@ -226,9 +244,18 @@ class UploadController {
         await deleteImage(publicId);
       }
 
+      // Upload to Cloudinary using the official SDK
+      const result = await uploadToCloudinary(req.file.buffer, {
+        folder: 'stepout2play/banners',
+        transformation: [
+          { width: 1920, height: 600, crop: 'fill' },
+          { quality: 'auto', fetch_format: 'auto' }
+        ]
+      });
+
       const updatedOrganization = await prisma.organization.update({
         where: { id: organizationId },
-        data: { bannerImageUrl: req.file.path },
+        data: { bannerImageUrl: result.secure_url },
         select: {
           id: true,
           name: true,
@@ -273,8 +300,19 @@ class UploadController {
         });
       }
 
-      // Get URLs of newly uploaded photos
-      const newPhotoUrls = req.files.map(file => file.path);
+      // Upload all photos to Cloudinary in parallel
+      const uploadPromises = req.files.map(file =>
+        uploadToCloudinary(file.buffer, {
+          folder: 'stepout2play/galleries',
+          transformation: [
+            { width: 1200, height: 800, crop: 'limit' },
+            { quality: 'auto', fetch_format: 'auto' }
+          ]
+        })
+      );
+
+      const uploadResults = await Promise.all(uploadPromises);
+      const newPhotoUrls = uploadResults.map(result => result.secure_url);
 
       // Add to existing gallery
       const updatedOrganization = await prisma.organization.update({
