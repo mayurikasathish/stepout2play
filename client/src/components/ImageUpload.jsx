@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import api from '../services/api'
 
 const ImageUpload = ({
@@ -14,6 +14,11 @@ const ImageUpload = ({
   const [previewUrl, setPreviewUrl] = useState(currentImage)
   const [error, setError] = useState('')
   const fileInputRef = useRef(null)
+
+  // Sync previewUrl with currentImage prop changes
+  useEffect(() => {
+    setPreviewUrl(currentImage)
+  }, [currentImage])
 
   const getEndpointAndFieldName = () => {
     switch (type) {

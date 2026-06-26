@@ -3,10 +3,11 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import Navbar from '../components/Navbar'
 import Toast from '../components/Toast'
+import Carousel from '../components/Carousel'
 import api from '../services/api'
 
-const HeartIcon = (p) => (
-  <svg {...p} fill={p.filled ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor">
+const HeartIcon = ({ filled, ...props }) => (
+  <svg {...props} fill={filled ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
   </svg>
 )
@@ -36,12 +37,12 @@ const PhoneIcon = (p) => (
 )
 
 const colorSchemes = {
-  blue: { primary: 'from-blue-500 to-blue-700', accent: 'bg-blue-600', light: 'bg-blue-50', text: 'text-blue-700' },
-  green: { primary: 'from-green-500 to-green-700', accent: 'bg-green-600', light: 'bg-green-50', text: 'text-green-700' },
-  purple: { primary: 'from-purple-500 to-purple-700', accent: 'bg-purple-600', light: 'bg-purple-50', text: 'text-purple-700' },
-  orange: { primary: 'from-orange-500 to-orange-700', accent: 'bg-orange-600', light: 'bg-orange-50', text: 'text-orange-700' },
-  pink: { primary: 'from-pink-500 to-pink-700', accent: 'bg-pink-600', light: 'bg-pink-50', text: 'text-pink-700' },
-  teal: { primary: 'from-teal-500 to-teal-700', accent: 'bg-teal-600', light: 'bg-teal-50', text: 'text-teal-700' }
+  blue: { primary: 'from-blue-500 to-blue-700', accent: 'bg-blue-600', light: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-300' },
+  green: { primary: 'from-green-500 to-green-700', accent: 'bg-green-600', light: 'bg-green-50', text: 'text-green-700', border: 'border-green-300' },
+  purple: { primary: 'from-purple-500 to-purple-700', accent: 'bg-purple-600', light: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-300' },
+  orange: { primary: 'from-orange-500 to-orange-700', accent: 'bg-orange-600', light: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-300' },
+  pink: { primary: 'from-pink-500 to-pink-700', accent: 'bg-pink-600', light: 'bg-pink-50', text: 'text-pink-700', border: 'border-pink-300' },
+  teal: { primary: 'from-teal-500 to-teal-700', accent: 'bg-teal-600', light: 'bg-teal-50', text: 'text-teal-700', border: 'border-teal-300' }
 }
 
 const OrgMiniSitePage = () => {
@@ -184,53 +185,59 @@ const OrgMiniSitePage = () => {
 
       {/* Banner */}
       {org.bannerImageUrl ? (
-        <div className="w-full h-64 md:h-80 relative">
+        <div className="w-full h-64 md:h-96 relative">
           <img src={org.bannerImageUrl} alt={org.name} className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
         </div>
       ) : (
-        <div className={`w-full h-64 md:h-80 bg-gradient-to-br ${scheme.primary}`}></div>
+        <div className={`w-full h-64 md:h-96 bg-gradient-to-br ${scheme.primary}`}></div>
       )}
 
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 -mt-20 relative z-10 pb-16">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
 
-        {/* Header Card */}
-        <div className="glass-card rounded-2xl p-8 mb-8 shadow-xl">
-          <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
-            {/* Logo */}
-            <div className={`w-24 h-24 shrink-0 bg-gradient-to-br ${scheme.primary} rounded-2xl flex items-center justify-center shadow-lg text-white text-4xl font-bold`}>
+        {/* Header Card with Half-Out Logo (LinkedIn style) */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-8 mb-8 shadow-xl -mt-12 relative">
+          <div className="flex flex-col md:flex-row items-start md:items-end gap-6 relative">
+            {/* Logo - Positioned to sit half above the card */}
+            <div className={`w-20 h-20 shrink-0 bg-gradient-to-br ${scheme.primary} rounded-full flex items-center justify-center shadow-2xl text-white text-3xl font-bold border-4 border-white -mt-16 md:-mt-20`}>
               {org.logoUrl ? (
-                <img src={org.logoUrl} alt={org.name} className="w-full h-full object-cover rounded-2xl" />
+                <img src={org.logoUrl} alt={org.name} className="w-full h-full object-cover rounded-full" />
               ) : (
                 org.name.charAt(0).toUpperCase()
               )}
             </div>
 
             {/* Name & Tagline */}
-            <div className="flex-1">
+            <div className="flex-1 pt-0">
               <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">{org.name}</h1>
               {org.tagline && (
                 <p className="text-lg text-gray-600 mb-4">{org.tagline}</p>
               )}
-              <div className="flex items-center gap-4 text-sm text-gray-600">
-                <div className="flex items-center gap-1.5">
-                  <UsersIcon className="w-4 h-4" />
-                  <span>{org.memberCount || 0} members</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <TrophyIcon className="w-4 h-4" />
-                  <span>{org.tournamentCount || 0} tournaments</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <HeartIcon className="w-4 h-4" filled={false} />
-                  <span>{followersCount} followers</span>
-                </div>
+              <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
+                {(org.memberCount || 0) > 0 && (
+                  <div className="flex items-center gap-1.5">
+                    <UsersIcon className="w-4 h-4" />
+                    <span>{org.memberCount} members</span>
+                  </div>
+                )}
+                {(org.tournamentCount || 0) > 0 && (
+                  <div className="flex items-center gap-1.5">
+                    <TrophyIcon className="w-4 h-4" />
+                    <span>{org.tournamentCount} tournaments</span>
+                  </div>
+                )}
+                {followersCount > 0 && (
+                  <div className="flex items-center gap-1.5">
+                    <HeartIcon className="w-4 h-4" filled={false} />
+                    <span>{followersCount} followers</span>
+                  </div>
+                )}
               </div>
             </div>
 
             {/* Actions or Role Badge */}
             {org.userRole ? (
-              <div className="shrink-0">
+              <div className="shrink-0 flex items-center gap-3">
                 <div className={`px-6 py-3 rounded-xl font-semibold text-center ${
                   org.userRole === 'OWNER' ? 'bg-primary-100 text-primary-700' :
                   org.userRole === 'ADMIN' ? 'bg-purple-100 text-purple-700' :
@@ -240,15 +247,23 @@ const OrgMiniSitePage = () => {
                    org.userRole === 'ADMIN' ? '⚡ Admin' :
                    '✓ Member'}
                 </div>
+                {(org.userRole === 'OWNER' || org.userRole === 'ADMIN') && (
+                  <button
+                    onClick={() => navigate('/orgs/edit')}
+                    className="px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-xl transition-all"
+                  >
+                    ✏️ Edit Minisite
+                  </button>
+                )}
               </div>
             ) : (
               <div className="flex gap-3 shrink-0">
                 <button
                   onClick={handleFollow}
-                  className={`px-6 py-3 rounded-xl font-medium transition-all flex items-center gap-2 ${
+                  className={`px-6 py-3 rounded-xl font-medium transition-all flex items-center gap-2 border-2 ${
                     isFollowing
-                      ? `${scheme.light} ${scheme.text} hover:opacity-80`
-                      : `${scheme.accent} text-white hover:opacity-90`
+                      ? 'border-gray-400 bg-gray-50 text-gray-700 hover:bg-gray-100'
+                      : 'border-gray-400 bg-white text-gray-700 hover:bg-gray-50'
                   }`}
                 >
                   <HeartIcon className="w-5 h-5" filled={isFollowing} />
@@ -256,7 +271,7 @@ const OrgMiniSitePage = () => {
                 </button>
                 <button
                   onClick={handleJoin}
-                  className={`px-6 py-3 ${scheme.accent} text-white font-medium rounded-xl hover:opacity-90 transition-all`}
+                  className="px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-xl transition-all"
                 >
                   Join Us
                 </button>
@@ -265,26 +280,20 @@ const OrgMiniSitePage = () => {
           </div>
         </div>
 
-        {/* Photo Gallery */}
+        {/* Photo Gallery Carousel */}
         {org.photoGallery && org.photoGallery.length > 0 && (
           <div className="glass-card rounded-2xl p-8 mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">Gallery</h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {org.photoGallery.map((url, idx) => (
-                <img
-                  key={idx}
-                  src={url}
-                  alt={`Gallery ${idx + 1}`}
-                  className="w-full h-48 object-cover rounded-xl hover:scale-105 transition-transform cursor-pointer"
-                />
-              ))}
-            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Moments & Memories</h2>
+            <Carousel
+              images={org.photoGallery}
+              autoPlayInterval={3000}
+            />
           </div>
         )}
 
         {/* Motto / Culture */}
         {org.motto && (
-          <div className={`${scheme.light} rounded-2xl p-8 mb-8 border-l-4 ${scheme.accent}`}>
+          <div className={`${scheme.light} rounded-2xl p-8 mb-8 border-l-4 ${scheme.border}`}>
             <h2 className={`text-xl font-bold ${scheme.text} mb-3`}>Our Motto & Culture</h2>
             <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{org.motto}</p>
           </div>

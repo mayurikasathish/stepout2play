@@ -612,4 +612,171 @@ const rejectJoinRequest = async (req, res, next) => {
   }
 };
 
-module.exports = { createOrg, getMyOrgs, getOrg, getOrgPublic, updateOrg, deleteOrg, inviteMember, getOrgTournaments, discoverOrgs, followOrg, unfollowOrg, requestJoin, getJoinRequests, acceptJoinRequest, rejectJoinRequest };
+// POST /orgs/:orgId/invite — Send invitation to a user
+const sendInvitation = async (req, res, next) => {
+  try {
+    const { orgId } = req.params;
+    const { userId, role, message } = req.body;
+
+    if (!userId || !role) {
+      return res.status(400).json({ success: false, error: 'userId and role are required' });
+    }
+
+    // Check if user exists
+    const invitee = await prisma.user.findUnique({ where: { id: userId } });
+    if (!invitee) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+
+    // Check if already a member
+    const existingMember = await prisma.orgMember.findUnique({
+      where: { userId_orgId: { userId, orgId } }
+    });
+    if (existingMember) {
+      return res.status(400).json({ success: false, error: 'User is already a member' });
+    }
+
+    // Check if invitation already exists
+    const existingInvite = await prisma.orgInvitation.findUnique({
+      where: { orgId_inviteeId: { orgId, inviteeId: userId } }
+    });
+    if (existingInvite && existingInvite.status === 'PENDING') {
+      return res.status(400).json({ success: false, error: 'Invitation already sent' });
+    }
+
+    // Delete old declined/expired invites
+    if (existingInvite) {
+      await prisma.orgInvitation.delete({ where: { id: existingInvite.id } });
+    }
+
+    // Create invitation (expires in 7 days)
+    const invitation = await prisma.orgInvitation.create({
+      data: {
+        orgId,
+        inviterId: req.user.id,
+        inviteeId: userId,
+        role: role.toUpperCase(),
+        message,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+      }
+    });
+
+    res.status(201).json({ success: true, invitation });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// GET /orgs/invitations/received — Get invitations received by current user
+const getReceivedInvitations = async (req, res, next) => {
+  try {
+    const invitations = await prisma.orgInvitation.findMany({
+      where: {
+        inviteeId: req.user.id,
+        status: 'PENDING'
+      },
+      include: {
+        organization: {
+          select: { id: true, name: true, slug: true, logoUrl: true }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    // Fetch inviter details
+    const invitationsWithInviters = await Promise.all(
+      invitations.map(async (inv) => {
+        const inviter = await prisma.user.findUnique({
+          where: { id: inv.inviterId },
+          select: { id: true, firstName: true, lastName: true }
+        });
+        return { ...inv, inviter };
+      })
+    );
+
+    res.json({ success: true, invitations: invitationsWithInviters });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// POST /orgs/invitations/:invitationId/accept — Accept invitation
+const acceptInvitation = async (req, res, next) => {
+  try {
+    const { invitationId } = req.params;
+
+    const invitation = await prisma.orgInvitation.findUnique({
+      where: { id: invitationId }
+    });
+
+    if (!invitation) {
+      return res.status(404).json({ success: false, error: 'Invitation not found' });
+    }
+
+    if (invitation.inviteeId !== req.user.id) {
+      return res.status(403).json({ success: false, error: 'Not authorized' });
+    }
+
+    if (invitation.status !== 'PENDING') {
+      return res.status(400).json({ success: false, error: 'Invitation already processed' });
+    }
+
+    // Check expiry
+    if (invitation.expiresAt && new Date() > invitation.expiresAt) {
+      await prisma.orgInvitation.update({
+        where: { id: invitationId },
+        data: { status: 'EXPIRED' }
+      });
+      return res.status(400).json({ success: false, error: 'Invitation expired' });
+    }
+
+    // Add user to org and update invitation
+    await prisma.$transaction([
+      prisma.orgMember.create({
+        data: {
+          userId: invitation.inviteeId,
+          orgId: invitation.orgId,
+          role: invitation.role
+        }
+      }),
+      prisma.orgInvitation.update({
+        where: { id: invitationId },
+        data: { status: 'ACCEPTED' }
+      })
+    ]);
+
+    res.json({ success: true, message: 'Invitation accepted' });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// POST /orgs/invitations/:invitationId/decline — Decline invitation
+const declineInvitation = async (req, res, next) => {
+  try {
+    const { invitationId } = req.params;
+
+    const invitation = await prisma.orgInvitation.findUnique({
+      where: { id: invitationId }
+    });
+
+    if (!invitation) {
+      return res.status(404).json({ success: false, error: 'Invitation not found' });
+    }
+
+    if (invitation.inviteeId !== req.user.id) {
+      return res.status(403).json({ success: false, error: 'Not authorized' });
+    }
+
+    await prisma.orgInvitation.update({
+      where: { id: invitationId },
+      data: { status: 'DECLINED' }
+    });
+
+    res.json({ success: true, message: 'Invitation declined' });
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = { createOrg, getMyOrgs, getOrg, getOrgPublic, updateOrg, deleteOrg, inviteMember, getOrgTournaments, discoverOrgs, followOrg, unfollowOrg, requestJoin, getJoinRequests, acceptJoinRequest, rejectJoinRequest, sendInvitation, getReceivedInvitations, acceptInvitation, declineInvitation };

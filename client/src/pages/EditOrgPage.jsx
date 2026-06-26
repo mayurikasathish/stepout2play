@@ -19,13 +19,22 @@ const EditOrgPage = () => {
 
   const [formData, setFormData] = useState({
     tagline: '',
+    description: '',
     bannerImageUrl: '',
     photoGallery: [],
     motto: '',
     aboutUs: '',
+    whatWeOffer: '',
     joinUsInfo: '',
+    membershipBenefits: '',
+    membershipFee: '',
+    location: '',
     contactEmail: '',
     contactPhone: '',
+    instagramUrl: '',
+    facebookUrl: '',
+    twitterUrl: '',
+    websiteUrl: '',
     colorScheme: 'blue'
   })
 
@@ -72,18 +81,30 @@ const EditOrgPage = () => {
 
   const loadOrgData = async () => {
     try {
+      console.log('Loading org data for:', selectedOrgId)
       const res = await api.get(`/orgs/${selectedOrgId}`)
+      console.log('Org data response:', res.data)
       if (res.data.success) {
-        const org = res.data.organization
+        const org = res.data.org || res.data.organization
+        console.log('Setting form data:', org)
         setFormData({
           tagline: org.tagline || '',
+          description: org.description || '',
           bannerImageUrl: org.bannerImageUrl || '',
           photoGallery: org.photoGallery || [],
           motto: org.motto || '',
           aboutUs: org.aboutUs || '',
+          whatWeOffer: org.whatWeOffer || '',
           joinUsInfo: org.joinUsInfo || '',
+          membershipBenefits: org.membershipBenefits || '',
+          membershipFee: org.membershipFee || '',
+          location: org.location || '',
           contactEmail: org.contactEmail || '',
           contactPhone: org.contactPhone || '',
+          instagramUrl: org.instagramUrl || '',
+          facebookUrl: org.facebookUrl || '',
+          twitterUrl: org.twitterUrl || '',
+          websiteUrl: org.websiteUrl || '',
           colorScheme: org.colorScheme || 'blue'
         })
       }
@@ -212,34 +233,65 @@ const EditOrgPage = () => {
         {/* Editor Form */}
         <div className="glass-card rounded-2xl p-8 space-y-8">
 
-          {/* Tagline */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Tagline <span className="text-gray-400 font-normal">(appears below org name)</span>
-            </label>
-            <input
-              type="text"
-              value={formData.tagline}
-              onChange={(e) => setFormData({ ...formData, tagline: e.target.value })}
-              placeholder="e.g., Building champions on and off the court"
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-            />
+          {/* Section: Basic Info */}
+          <div className="space-y-6">
+            <h3 className="text-xl font-bold text-gray-900 pb-3 border-b border-gray-200">
+              📝 Basic Information
+            </h3>
+
+            {/* Tagline */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Tagline <span className="text-gray-400 font-normal">(appears below org name)</span>
+              </label>
+              <input
+                type="text"
+                value={formData.tagline}
+                onChange={(e) => setFormData({ ...formData, tagline: e.target.value })}
+                placeholder="e.g., Building champions on and off the court"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              />
+            </div>
+
+            {/* Description */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Short Description <span className="text-gray-400 font-normal">(1-2 sentences)</span>
+              </label>
+              <textarea
+                value={formData.description || ''}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder="A quick summary of your organization..."
+                rows={3}
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none resize-none"
+              />
+            </div>
           </div>
 
-          {/* Banner Image */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-3">
-              Banner Image
-            </label>
+          {/* Section: Visual Assets */}
+          <div className="space-y-6">
+            <h3 className="text-xl font-bold text-gray-900 pb-3 border-b border-gray-200">
+              🎨 Visual Assets
+            </h3>
+
+            {/* Banner Image */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                Banner Image
+              </label>
             <ImageUpload
+              key={`banner-${formData.bannerImageUrl || 'empty'}`}
               type="banner"
               entityId={selectedOrgId}
               currentImage={formData.bannerImageUrl}
               onImageUploaded={(data) => {
-                setFormData({ ...formData, bannerImageUrl: data.organization.bannerImageUrl })
+                const newBannerUrl = data.organization.bannerImageUrl
+                setFormData(prev => ({ ...prev, bannerImageUrl: newBannerUrl }))
                 setToastMessage('Banner uploaded successfully!')
                 setToastType('success')
                 setShowToast(true)
+                // Reload org data to ensure sync
+                loadOrgData()
               }}
               label="Upload Banner"
             />
@@ -251,7 +303,7 @@ const EditOrgPage = () => {
           {/* Photo Gallery */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-3">
-              Photo Gallery <span className="text-gray-400 font-normal">(tournaments, events, team photos)</span>
+              Moments & Memories <span className="text-gray-400 font-normal">(tournaments, events, team photos)</span>
             </label>
 
             {/* Existing Photos */}
@@ -290,21 +342,46 @@ const EditOrgPage = () => {
 
             {/* Upload New Photos */}
             <ImageUpload
+              key={`gallery-${formData.photoGallery.length}`}
               type="gallery"
               entityId={selectedOrgId}
               multiple={true}
               onImageUploaded={(data) => {
-                setFormData({ ...formData, photoGallery: data.organization.photoGallery })
+                const newGallery = data.organization.photoGallery
+                setFormData(prev => ({ ...prev, photoGallery: newGallery }))
                 setToastMessage('Photos uploaded successfully!')
                 setToastType('success')
                 setShowToast(true)
+                // Reload org data to ensure sync
+                loadOrgData()
               }}
               label="Upload Photos"
             />
           </div>
+          </div>
 
-          {/* Motto */}
-          <div>
+          {/* Section: About & Culture */}
+          <div className="space-y-6">
+            <h3 className="text-xl font-bold text-gray-900 pb-3 border-b border-gray-200">
+              ℹ️ About & Culture
+            </h3>
+
+            {/* About Us */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                About Us
+              </label>
+              <textarea
+                value={formData.aboutUs}
+                onChange={(e) => setFormData({ ...formData, aboutUs: e.target.value })}
+                placeholder="Tell people about your organization's history, mission, achievements..."
+                rows={6}
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none resize-none"
+              />
+            </div>
+
+            {/* Motto */}
+            <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Motto / Culture / Rules
             </label>
@@ -317,22 +394,29 @@ const EditOrgPage = () => {
             />
           </div>
 
-          {/* About Us */}
+          {/* What We Offer */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              About Us
+              What We Offer <span className="text-gray-400 font-normal">(facilities, training, etc.)</span>
             </label>
             <textarea
-              value={formData.aboutUs}
-              onChange={(e) => setFormData({ ...formData, aboutUs: e.target.value })}
-              placeholder="Tell people about your organization's history, mission, achievements..."
-              rows={6}
+              value={formData.whatWeOffer || ''}
+              onChange={(e) => setFormData({ ...formData, whatWeOffer: e.target.value })}
+              placeholder="List facilities, training programs, coaching, equipment, etc..."
+              rows={4}
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none resize-none"
             />
           </div>
+          </div>
 
-          {/* Join Us Info */}
-          <div>
+          {/* Section: Membership */}
+          <div className="space-y-6">
+            <h3 className="text-xl font-bold text-gray-900 pb-3 border-b border-gray-200">
+              👥 Membership & Joining
+            </h3>
+
+            {/* Join Us Info */}
+            <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Join Us Information
             </label>
@@ -345,7 +429,56 @@ const EditOrgPage = () => {
             />
           </div>
 
-          {/* Contact Info */}
+          {/* Membership Benefits */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Membership Benefits <span className="text-gray-400 font-normal">(what members get)</span>
+            </label>
+            <textarea
+              value={formData.membershipBenefits || ''}
+              onChange={(e) => setFormData({ ...formData, membershipBenefits: e.target.value })}
+              placeholder="Tournament discounts, free training sessions, priority court booking..."
+              rows={4}
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none resize-none"
+            />
+          </div>
+
+          {/* Membership Fee */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Membership Fee <span className="text-gray-400 font-normal">(optional)</span>
+              </label>
+              <input
+                type="text"
+                value={formData.membershipFee || ''}
+                onChange={(e) => setFormData({ ...formData, membershipFee: e.target.value })}
+                placeholder="e.g., ₹500/month or Free"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Location/Venue <span className="text-gray-400 font-normal">(optional)</span>
+              </label>
+              <input
+                type="text"
+                value={formData.location || ''}
+                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                placeholder="e.g., Bangalore, Karnataka"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              />
+            </div>
+          </div>
+          </div>
+
+          {/* Section: Contact & Social */}
+          <div className="space-y-6">
+            <h3 className="text-xl font-bold text-gray-900 pb-3 border-b border-gray-200">
+              📞 Contact & Social
+            </h3>
+
+            {/* Contact Info */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -373,8 +506,70 @@ const EditOrgPage = () => {
             </div>
           </div>
 
-          {/* Color Scheme */}
-          <div>
+          {/* Social Links */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Instagram <span className="text-gray-400 font-normal">(optional)</span>
+              </label>
+              <input
+                type="url"
+                value={formData.instagramUrl || ''}
+                onChange={(e) => setFormData({ ...formData, instagramUrl: e.target.value })}
+                placeholder="https://instagram.com/yourorg"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Facebook <span className="text-gray-400 font-normal">(optional)</span>
+              </label>
+              <input
+                type="url"
+                value={formData.facebookUrl || ''}
+                onChange={(e) => setFormData({ ...formData, facebookUrl: e.target.value })}
+                placeholder="https://facebook.com/yourorg"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Twitter <span className="text-gray-400 font-normal">(optional)</span>
+              </label>
+              <input
+                type="url"
+                value={formData.twitterUrl || ''}
+                onChange={(e) => setFormData({ ...formData, twitterUrl: e.target.value })}
+                placeholder="https://twitter.com/yourorg"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Website <span className="text-gray-400 font-normal">(optional)</span>
+              </label>
+              <input
+                type="url"
+                value={formData.websiteUrl || ''}
+                onChange={(e) => setFormData({ ...formData, websiteUrl: e.target.value })}
+                placeholder="https://yourorg.com"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              />
+            </div>
+          </div>
+          </div>
+
+          {/* Section: Appearance */}
+          <div className="space-y-6">
+            <h3 className="text-xl font-bold text-gray-900 pb-3 border-b border-gray-200">
+              🎨 Appearance
+            </h3>
+
+            {/* Color Scheme */}
+            <div>
             <label className="block text-sm font-medium text-gray-700 mb-3">
               Color Scheme
             </label>
@@ -397,6 +592,7 @@ const EditOrgPage = () => {
                 </button>
               ))}
             </div>
+          </div>
           </div>
 
           {/* Save Button */}

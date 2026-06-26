@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const authenticate = require('../middleware/authenticate');
 const requireOrgRole = require('../middleware/requireOrgRole');
-const { createOrg, getMyOrgs, getOrg, getOrgPublic, updateOrg, deleteOrg, inviteMember, getOrgTournaments, discoverOrgs, followOrg, unfollowOrg, requestJoin, getJoinRequests, acceptJoinRequest, rejectJoinRequest } = require('../controllers/org.controller');
+const { createOrg, getMyOrgs, getOrg, getOrgPublic, updateOrg, deleteOrg, inviteMember, getOrgTournaments, discoverOrgs, followOrg, unfollowOrg, requestJoin, getJoinRequests, acceptJoinRequest, rejectJoinRequest, sendInvitation, getReceivedInvitations, acceptInvitation, declineInvitation } = require('../controllers/org.controller');
 const tournamentController = require('../controllers/tournament.controller');
 
 router.post('/', authenticate, createOrg);
@@ -20,6 +20,12 @@ router.post('/:orgId/join-request', authenticate, requestJoin);
 router.get('/:orgId/join-requests', authenticate, requireOrgRole(['OWNER', 'ADMIN']), getJoinRequests);
 router.post('/:orgId/join-requests/:requestId/accept', authenticate, requireOrgRole(['OWNER', 'ADMIN']), acceptJoinRequest);
 router.post('/:orgId/join-requests/:requestId/reject', authenticate, requireOrgRole(['OWNER', 'ADMIN']), rejectJoinRequest);
+
+// Invitation routes
+router.post('/:orgId/invite', authenticate, requireOrgRole(['OWNER', 'ADMIN']), sendInvitation);
+router.get('/invitations/received', authenticate, getReceivedInvitations);
+router.post('/invitations/:invitationId/accept', authenticate, acceptInvitation);
+router.post('/invitations/:invitationId/decline', authenticate, declineInvitation);
 
 // Tournament routes under organization
 router.post(

@@ -41,15 +41,12 @@ const getGradient = (name = '') => {
 }
 
 /* ─── Player Card ───────────────────────────────────── */
-const PlayerCard = ({ player, onClick }) => {
+const PlayerCard = ({ player, onClick, onInvite }) => {
   const fullName = `${player.firstName || ''} ${player.lastName || ''}`.trim() || 'Unknown Player'
   const initials = `${player.firstName?.charAt(0) || ''}${player.lastName?.charAt(0) || ''}`.toUpperCase()
 
   return (
-    <button
-      onClick={onClick}
-      className="glass-card rounded-xl text-left hover:shadow-glass-lg transition-all duration-300 w-full group hover:-translate-y-1 overflow-hidden"
-    >
+    <div className="glass-card rounded-xl hover:shadow-glass-lg transition-all duration-300 w-full group hover:-translate-y-1 overflow-hidden">
       <div className="p-6">
         {/* Header row */}
         <div className="flex items-start gap-4 mb-4">
@@ -94,8 +91,27 @@ const PlayerCard = ({ player, onClick }) => {
             </div>
           )}
         </div>
+
+        {/* Action Buttons */}
+        <div className="flex gap-2 pt-4 border-t border-gray-100 mt-4">
+          <button
+            onClick={onClick}
+            className="flex-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-all text-sm"
+          >
+            View Profile
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              onInvite(player)
+            }}
+            className="flex-1 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-all text-sm"
+          >
+            Invite to Org
+          </button>
+        </div>
       </div>
-    </button>
+    </div>
   )
 }
 
@@ -127,29 +143,84 @@ const PlayersPage = () => {
   const [players, setPlayers] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [showInviteModal, setShowInviteModal] = useState(false)
+  const [selectedPlayer, setSelectedPlayer] = useState(null)
+  const [myOrgs, setMyOrgs] = useState([])
+  const [inviteData, setInviteData] = useState({
+    orgId: '',
+    role: 'MEMBER',
+    message: ''
+  })
+  const [sendingInvite, setSendingInvite] = useState(false)
 
   useEffect(() => {
     loadPlayers()
+    loadMyOrgs()
   }, [])
 
   const loadPlayers = async () => {
     try {
       setLoading(true)
       console.log('Fetching players from /users/players...')
-      // Fetch all players — adjust endpoint to match your backend
       const res = await api.get('/users/players')
       console.log('Players response:', res.data)
       if (res.data.success) {
         console.log('Setting players:', res.data.players.length)
-        setPlayers(res.data.players)
+        // Filter out current user
+        const filteredPlayers = res.data.players.filter(p => p.id !== user?.id)
+        setPlayers(filteredPlayers)
       }
     } catch (err) {
       console.error('Error loading players:', err)
       console.error('Error details:', err.response?.data)
-      // Fallback: empty list without crashing
       setPlayers([])
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadMyOrgs = async () => {
+    try {
+      const res = await api.get('/orgs')
+      if (res.data.success) {
+        // Filter to only orgs where user is OWNER or ADMIN
+        const adminOrgs = res.data.orgs.filter(
+          org => org.myRole === 'OWNER' || org.myRole === 'ADMIN'
+        )
+        setMyOrgs(adminOrgs)
+      }
+    } catch (err) {
+      console.error('Error loading orgs:', err)
+      setMyOrgs([])
+    }
+  }
+
+  const handleInviteClick = (player) => {
+    setSelectedPlayer(player)
+    setInviteData({ orgId: '', role: 'MEMBER', message: '' })
+    setShowInviteModal(true)
+  }
+
+  const handleSendInvite = async () => {
+    if (!inviteData.orgId) {
+      alert('Please select an organization')
+      return
+    }
+
+    setSendingInvite(true)
+    try {
+      await api.post(`/orgs/${inviteData.orgId}/invite`, {
+        userId: selectedPlayer.id,
+        role: inviteData.role,
+        message: inviteData.message
+      })
+      alert('Invitation sent successfully!')
+      setShowInviteModal(false)
+    } catch (err) {
+      console.error('Error sending invite:', err)
+      alert(err.response?.data?.error || 'Failed to send invitation')
+    } finally {
+      setSendingInvite(false)
     }
   }
 
@@ -230,11 +301,124 @@ const PlayersPage = () => {
                 key={player.id}
                 player={player}
                 onClick={() => navigate(`/players/${player.id}`)}
+                onInvite={handleInviteClick}
               />
             ))}
           </div>
         )}
       </main>
+
+      {/* Invite Modal */}
+      {showInviteModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="glass-card rounded-2xl p-8 max-w-lg w-full">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">
+              Invite {selectedPlayer?.firstName} to Organization
+            </h2>
+
+            {myOrgs.length === 0 ? (
+              <div className="text-center py-8">
+                <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-bold text-gray-900 mb-2">
+                  No Organizations Found
+                </h3>
+                <p className="text-gray-600 mb-6">
+                  You need to be an owner or admin of an organization to invite players.
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowInviteModal(false)}
+                    className="flex-1 px-4 py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium rounded-xl transition-all"
+                  >
+                    Close
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowInviteModal(false)
+                      navigate('/manage')
+                    }}
+                    className="flex-1 px-4 py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-xl transition-all"
+                  >
+                    Go to My Orgs
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {/* Organization Selector */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Select Organization *
+                  </label>
+                  <select
+                    value={inviteData.orgId}
+                    onChange={(e) => setInviteData({ ...inviteData, orgId: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                  >
+                    <option value="">Choose an organization...</option>
+                    {myOrgs.map(org => (
+                      <option key={org.id} value={org.id}>
+                        {org.name} ({org.myRole})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Role Selector */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Role *
+                  </label>
+                  <select
+                    value={inviteData.role}
+                    onChange={(e) => setInviteData({ ...inviteData, role: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                  >
+                    <option value="MEMBER">Member</option>
+                    <option value="ADMIN">Admin</option>
+                  </select>
+                </div>
+
+                {/* Optional Message */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Message (Optional)
+                  </label>
+                  <textarea
+                    value={inviteData.message}
+                    onChange={(e) => setInviteData({ ...inviteData, message: e.target.value })}
+                    placeholder="Add a personal message..."
+                    rows={3}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none resize-none"
+                  />
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-3 pt-4">
+                  <button
+                    onClick={() => setShowInviteModal(false)}
+                    disabled={sendingInvite}
+                    className="flex-1 px-4 py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium rounded-xl transition-all disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSendInvite}
+                    disabled={sendingInvite || !inviteData.orgId}
+                    className="flex-1 px-4 py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {sendingInvite ? 'Sending...' : 'Send Invite'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

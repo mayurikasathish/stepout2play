@@ -158,7 +158,9 @@ const DiscoverPage = () => {
       // Fetch all public orgs — adjust endpoint to match your backend
       const res = await api.get('/orgs/discover')
       if (res.data.success) {
-        setOrgs(res.data.orgs)
+        // Filter out orgs where user is already a member/admin/owner
+        const filteredOrgs = res.data.orgs.filter(org => !org.userRole)
+        setOrgs(filteredOrgs)
       }
     } catch (err) {
       console.error('Error loading orgs:', err)
@@ -186,19 +188,11 @@ const DiscoverPage = () => {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
         {/* ── Page Header ── */}
-        <div className="mb-8 flex items-start justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Discover Organizations</h1>
-            <p className="text-gray-600">
-              Find sports organizations to join, play with, and compete in tournaments
-            </p>
-          </div>
-          <button
-            onClick={() => navigate('/orgs/edit')}
-            className="px-5 py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-xl shadow-sm hover:shadow-md transition-all text-sm whitespace-nowrap"
-          >
-            Create/Edit My Org Page
-          </button>
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Discover Organizations</h1>
+          <p className="text-gray-600">
+            Find new sports organizations to join, play with, and compete in tournaments
+          </p>
         </div>
 
         {/* ── Search + Filter bar ── */}

@@ -34,26 +34,36 @@ model User {
 }
 
 model Organization {
-  id             String       @id @default(uuid())
-  name           String
-  slug           String       @unique
-  logoUrl        String?
-  tagline        String?
-  bannerImageUrl String?
-  photoGallery   String[]     @default([])
-  motto          String?
-  aboutUs        String?
-  joinUsInfo     String?
-  contactEmail   String?
-  contactPhone   String?
-  socialLinks    Json?
-  colorScheme    String?      @default("blue")
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-  members        OrgMember[]
-  tournaments    Tournament[]
-  followers      OrgFollower[]
-  joinRequests   OrgJoinRequest[]
+  id                 String       @id @default(uuid())
+  name               String
+  slug               String       @unique
+  logoUrl            String?
+  tagline            String?
+  description        String?
+  bannerImageUrl     String?
+  photoGallery       String[]     @default([])
+  motto              String?
+  aboutUs            String?
+  whatWeOffer        String?
+  joinUsInfo         String?
+  membershipBenefits String?
+  membershipFee      String?
+  location           String?
+  contactEmail       String?
+  contactPhone       String?
+  instagramUrl       String?
+  facebookUrl        String?
+  twitterUrl         String?
+  websiteUrl         String?
+  socialLinks        Json?
+  colorScheme        String?      @default("blue")
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+  members            OrgMember[]
+  tournaments        Tournament[]
+  followers          OrgFollower[]
+  joinRequests       OrgJoinRequest[]
+  invitations        OrgInvitation[]
 
   @@map("organizations")
 }
@@ -84,6 +94,23 @@ model OrgJoinRequest {
 
   @@unique([userId, orgId])
   @@map("org_join_requests")
+}
+
+model OrgInvitation {
+  id         String       @id @default(uuid())
+  orgId      String
+  inviterId  String       // User who sent the invite
+  inviteeId  String       // User who received the invite
+  role       String       // MEMBER or ADMIN
+  message    String?
+  status     String       @default("PENDING") // PENDING, ACCEPTED, DECLINED
+  expiresAt  DateTime?    // Optional expiry date
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, inviteeId])
+  @@map("org_invitations")
 }
 
 model OrgMember {

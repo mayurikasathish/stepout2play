@@ -1,6 +1,7 @@
 import { useAuth } from '../context/AuthContext'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useState, useRef, useEffect } from 'react'
+import api from '../services/api'
 
 const ChevronDownIcon = (p) => (
   <svg {...p} fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -24,6 +25,7 @@ const Navbar = () => {
   const location = useLocation()
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
   const [isExploreOpen, setIsExploreOpen] = useState(false)
+  const [pendingCount, setPendingCount] = useState(0)
   const exploreRef = useRef(null)
   const userMenuRef = useRef(null)
 
@@ -31,6 +33,51 @@ const Navbar = () => {
     logout()
     navigate('/login', { replace: true })
   }
+
+  // Load pending notifications count
+  useEffect(() => {
+    if (!user) return
+
+    const loadPendingCount = async () => {
+      try {
+        // Get join requests count
+        let requestsCount = 0
+        const orgs = context?.orgs || []
+        const ownerAdminOrgs = orgs.filter(o => o.myRole === 'OWNER' || o.myRole === 'ADMIN')
+
+        for (const org of ownerAdminOrgs) {
+          try {
+            const res = await api.get(`/orgs/${org.id}/join-requests`)
+            if (res.data.success) {
+              requestsCount += res.data.requests.length
+            }
+          } catch (err) {
+            // Ignore errors
+          }
+        }
+
+        // Get invitations count
+        let invitationsCount = 0
+        try {
+          const res = await api.get('/orgs/invitations/received')
+          if (res.data.success) {
+            invitationsCount = res.data.invitations.length
+          }
+        } catch (err) {
+          // Ignore errors
+        }
+
+        setPendingCount(requestsCount + invitationsCount)
+      } catch (err) {
+        console.error('Error loading pending count:', err)
+      }
+    }
+
+    loadPendingCount()
+    // Refresh every 30 seconds
+    const interval = setInterval(loadPendingCount, 30000)
+    return () => clearInterval(interval)
+  }, [user, context])
 
   // Close dropdowns on outside click
   useEffect(() => {
@@ -103,13 +150,18 @@ const Navbar = () => {
               <button
                 key={item.path}
                 onClick={() => navigate(item.path)}
-                className={`px-4 py-2 rounded-lg text-[15px] font-medium transition-all whitespace-nowrap ${
+                className={`px-4 py-2 rounded-lg text-[15px] font-medium transition-all whitespace-nowrap relative ${
                   isActive(item.path)
                     ? 'bg-primary-50 text-primary-700'
                     : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                 }`}
               >
                 {item.name}
+                {item.path === '/manage' && pendingCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
+                    {pendingCount > 9 ? '9+' : pendingCount}
+                  </span>
+                )}
               </button>
             ))}
 
