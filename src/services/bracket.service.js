@@ -191,7 +191,12 @@ class BracketService {
     const participantCount = participants.length;
     const groupCount = options.groupCount || 4;
     const advanceCount = options.advanceCount || 2;
-    const hasBronzeMatch = options.hasBronzeMatch !== false; // default true
+    const knockoutSize = groupCount * advanceCount;
+
+    // Bronze match logic: Only if 4+ qualifiers (i.e., there will be semi-finals)
+    // 2 qualifiers → just finals (no bronze)
+    // 4+ qualifiers → semis exist, so bronze match makes sense
+    const hasBronzeMatch = knockoutSize >= 4 && options.hasBronzeMatch !== false;
 
     // Validation
     const minParticipants = groupCount * 2;
@@ -201,7 +206,6 @@ class BracketService {
       throw error;
     }
 
-    const knockoutSize = groupCount * advanceCount;
     if (!Number.isInteger(Math.log2(knockoutSize))) {
       const error = new Error(
         `Knockout participants (${knockoutSize}) must be a power of 2. ` +
@@ -435,6 +439,121 @@ class BracketService {
     return pos < groupCount ? pos : cycle - pos;
   }
 
+  /**
+   * Advance top qualifiers from groups to knockout stage (Hybrid format)
+   * Called automatically when all group stage matches are completed
+   */
+  async _advanceQualifiersToKnockout(tx, eventId) {
+    const event = await tx.event.findUnique({
+      where: { id: eventId },
+      include: {
+        groups: {
+          include: {
+            standings: {
+              include: {
+                registration: true
+              },
+              orderBy: [
+                { points: 'desc' },
+                { wins: 'desc' },
+                { gamesWon: 'desc' },
+                { pointsFor: 'desc' }
+              ]
+            }
+          },
+          orderBy: { name: 'asc' }
+        },
+        matches: {
+          where: { groupId: null }, // Knockout matches only
+          orderBy: [
+            { roundNumber: 'desc' },
+            { matchNumber: 'asc' }
+          ]
+        }
+      }
+    });
+
+    if (!event || !event.advanceCount) {
+      console.log('⚠️ Event not found or advanceCount not set');
+      return;
+    }
+
+    // Get top N qualifiers from each group
+    const qualifiers = [];
+    event.groups.forEach(group => {
+      const topN = group.standings.slice(0, event.advanceCount);
+      topN.forEach((standing, idx) => {
+        qualifiers.push({
+          registrationId: standing.registrationId,
+          groupName: group.name,
+          position: idx + 1
+        });
+      });
+    });
+
+    console.log(`✅ Qualifiers from groups:`, qualifiers.map(q => `${q.groupName} #${q.position}`).join(', '));
+
+    // Find first round of knockout (highest roundNumber, excluding bronze match)
+    const knockoutMatches = event.matches.filter(m => m.bracketPosition !== 'Bronze');
+    if (knockoutMatches.length === 0) {
+      console.log('⚠️ No knockout matches found');
+      return;
+    }
+
+    const firstKnockoutRound = Math.max(...knockoutMatches.map(m => m.roundNumber));
+    const firstRoundMatches = knockoutMatches.filter(m => m.roundNumber === firstKnockoutRound);
+
+    console.log(`🎯 Filling ${firstRoundMatches.length} matches in first knockout round (Round ${firstKnockoutRound})`);
+
+    // Assign qualifiers to knockout matches with proper seeding
+    // Standard tournament seeding: alternate groups to avoid same-group matchups early
+    // For 2 groups, 1 qualifier each: [A1 vs B1]
+    // For 2 groups, 2 qualifiers each: [A1 vs B2], [A2 vs B1]
+    // For 4 groups, 1 qualifier each: [A1 vs C1], [B1 vs D1]
+    // For 4 groups, 2 qualifiers each: [A1 vs D2], [B1 vs C2], [C1 vs B2], [D1 vs A2]
+
+    const totalQualifiers = qualifiers.length;
+    const matchCount = firstRoundMatches.length;
+
+    // Create seeding pairs - split qualifiers into two halves and pair them
+    const topHalf = qualifiers.slice(0, Math.floor(totalQualifiers / 2));
+    const bottomHalf = qualifiers.slice(Math.floor(totalQualifiers / 2)).reverse();
+
+    for (let matchIdx = 0; matchIdx < matchCount; matchIdx++) {
+      const match = firstRoundMatches[matchIdx];
+
+      if (topHalf[matchIdx]) {
+        await tx.match.update({
+          where: { id: match.id },
+          data: { participant1Id: topHalf[matchIdx].registrationId }
+        });
+        console.log(`  Match ${match.matchNumber}: P1 = ${topHalf[matchIdx].groupName} #${topHalf[matchIdx].position}`);
+      }
+
+      if (bottomHalf[matchIdx]) {
+        await tx.match.update({
+          where: { id: match.id },
+          data: { participant2Id: bottomHalf[matchIdx].registrationId }
+        });
+        console.log(`  Match ${match.matchNumber}: P2 = ${bottomHalf[matchIdx].groupName} #${bottomHalf[matchIdx].position}`);
+      }
+    }
+
+    // Update match status to READY if both participants are now filled
+    for (const match of firstRoundMatches) {
+      const updated = await tx.match.findUnique({ where: { id: match.id } });
+      if (updated.participant1Id && updated.participant2Id && updated.status === 'PENDING') {
+        await tx.match.update({
+          where: { id: match.id },
+          data: { status: 'READY' }
+        });
+        console.log(`  Match ${match.matchNumber} now READY`);
+      }
+    }
+
+    console.log('🎉 Knockout stage populated!');
+  }
+
   // ─────────────────────────────────────────────────────────────────
   // ROUND ROBIN: Update match result + recalculate standings
   // ─────────────────────────────────────────────────────────────────
@@ -460,6 +579,26 @@ class BracketService {
       const error = new Error('Score is required for round robin matches (needed for tie-breaking)');
       error.statusCode = 400;
       throw error;
+    }
+
+    // Validate score if it's a point-based sport
+    if (match.event.scoringType === 'point-based' && match.event.scoringRules) {
+      const { validateMatchScore, getSportValidationHelp } = require('../utils/scoreValidator');
+
+      // scoringRules can be either { rules: {...} } or just the rules object directly
+      const rules = match.event.scoringRules.rules || match.event.scoringRules;
+
+      // Only validate if we have the necessary fields
+      if (rules.pointsPerSet && rules.minimumLead && rules.deuceStartsAt !== undefined) {
+        const validation = validateMatchScore(score, rules);
+
+        if (!validation.valid) {
+          const helpText = getSportValidationHelp(match.event.sportId, rules);
+          const error = new Error(`${validation.error}\n\n${helpText}`);
+          error.statusCode = 400;
+          throw error;
+        }
+      }
     }
 
     // Parse score to get games/points and determine winner
@@ -568,6 +707,23 @@ class BracketService {
           where: { id: match.groupId },
           data: { status: 'COMPLETED' }
         });
+
+        // Check if ALL groups are now completed → advance qualifiers to knockout!
+        const event = await tx.event.findUnique({
+          where: { id: match.eventId },
+          include: {
+            groups: true
+          }
+        });
+
+        if (event && event.bracketFormat === 'LEAGUE_CUM_KNOCKOUT') {
+          const allGroupsCompleted = event.groups.every(g => g.status === 'COMPLETED');
+
+          if (allGroupsCompleted) {
+            console.log('🏆 All groups completed! Advancing qualifiers to knockout stage...');
+            await this._advanceQualifiersToKnockout(tx, match.eventId);
+          }
+        }
       } else {
         // Mark IN_PROGRESS if not already
         await tx.group.updateMany({
@@ -922,6 +1078,26 @@ class BracketService {
       const error = new Error('Winner must be one of the match participants');
       error.statusCode = 400;
       throw error;
+    }
+
+    // Validate score if it's a point-based sport
+    if (score && match.event.scoringType === 'point-based' && match.event.scoringRules) {
+      const { validateMatchScore, getSportValidationHelp } = require('../utils/scoreValidator');
+
+      // scoringRules can be either { rules: {...} } or just the rules object directly
+      const rules = match.event.scoringRules.rules || match.event.scoringRules;
+
+      // Only validate if we have the necessary fields
+      if (rules.pointsPerSet && rules.minimumLead && rules.deuceStartsAt !== undefined) {
+        const validation = validateMatchScore(score, rules);
+
+        if (!validation.valid) {
+          const helpText = getSportValidationHelp(match.event.sportId, rules);
+          const error = new Error(`${validation.error}\n\n${helpText}`);
+          error.statusCode = 400;
+          throw error;
+        }
+      }
     }
 
     await prisma.$transaction(async (tx) => {

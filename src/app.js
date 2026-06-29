@@ -9,6 +9,7 @@ const bracketRoutes = require('./routes/bracket.routes');
 const schedulerRoutes = require('./routes/scheduler.routes');
 const sportsRoutes = require('./routes/sports.routes');
 const uploadRoutes = require('./routes/upload.routes');
+const ocrRoutes = require('./routes/ocr.routes');
 
 const app = express();
 
@@ -39,6 +40,7 @@ app.use('/api', registrationRoutes); // Registration routes use /events and /use
 app.use('/api', bracketRoutes); // Bracket routes use /events and /matches paths
 app.use('/api', schedulerRoutes); // Scheduler routes use /events and /tournaments paths
 app.use('/api', uploadRoutes); // Upload routes for images
+app.use('/api/ocr', ocrRoutes); // OCR routes for scorecard extraction
 
 // Health check
 app.get('/api/health', (req, res) => {

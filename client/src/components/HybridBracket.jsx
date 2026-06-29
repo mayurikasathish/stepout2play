@@ -1,6 +1,7 @@
 import { useState } from 'react'
+import EditScoreButton from './EditScoreButton'
 
-const HybridBracket = ({ bracket, onMatchClick, isOrganizer }) => {
+const HybridBracket = ({ bracket, onMatchClick, onCaptureScorecard, isOrganizer }) => {
   const { event, groups, matches } = bracket
   const [activeTab, setActiveTab] = useState('groups')
 
@@ -266,17 +267,12 @@ const HybridBracket = ({ bracket, onMatchClick, isOrganizer }) => {
                               </div>
                             </div>
                           </div>
-                          {match.status === 'COMPLETED' && isOrganizer && (
+                          {(match.status === 'COMPLETED' || match.status === 'READY') && isOrganizer && (
                             <div className="mt-2 pt-2 border-t border-gray-200">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  onMatchClick(match)
-                                }}
-                                className="text-xs px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-all w-full"
-                              >
-                                Edit Score
-                              </button>
+                              <EditScoreButton
+                                onManualEntry={() => onMatchClick(match)}
+                                onCaptureScore={() => onCaptureScorecard?.(match)}
+                              />
                             </div>
                           )}
                         </div>
@@ -359,6 +355,15 @@ const HybridBracket = ({ bracket, onMatchClick, isOrganizer }) => {
                               </div>
                             </div>
 
+                            {(match.status === 'COMPLETED' || match.status === 'READY') && isOrganizer && (
+                              <div className="px-3 pb-3 border-t border-gray-100 pt-2">
+                                <EditScoreButton
+                                  onManualEntry={() => onMatchClick(match)}
+                                  onCaptureScore={() => onCaptureScorecard?.(match)}
+                                />
+                              </div>
+                            )}
+
                             {match.status === 'PENDING' && (
                               <div className="bg-yellow-50 px-3 py-2 border-t border-yellow-200">
                                 <p className="text-xs text-yellow-800 font-medium">
@@ -409,9 +414,15 @@ const HybridBracket = ({ bracket, onMatchClick, isOrganizer }) => {
                       )
                     })}
                   </div>
-                  {bronzeMatch.status === 'COMPLETED' && bronzeMatch.score && (
-                    <div className="bg-gray-100 px-4 py-2 text-center border-t border-gray-200">
-                      <p className="text-sm font-semibold text-gray-700">{bronzeMatch.score}</p>
+                  {(bronzeMatch.status === 'COMPLETED' || bronzeMatch.status === 'READY') && isOrganizer && (
+                    <div className="bg-gray-50 px-4 py-3 border-t border-gray-200">
+                      {bronzeMatch.score && bronzeMatch.status === 'COMPLETED' && (
+                        <p className="text-sm font-semibold text-gray-700 mb-2 text-center">{bronzeMatch.score}</p>
+                      )}
+                      <EditScoreButton
+                        onManualEntry={() => onMatchClick(bronzeMatch)}
+                        onCaptureScore={() => onCaptureScorecard?.(bronzeMatch)}
+                      />
                     </div>
                   )}
                 </div>

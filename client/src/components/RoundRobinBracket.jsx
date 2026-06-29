@@ -5,7 +5,7 @@
 import { useState, useRef } from 'react'
 import GroupCard from './GroupCard'
 
-const RoundRobinBracket = ({ groups, isOrganizer, onMatchClick, eventName, tournamentName }) => {
+const RoundRobinBracket = ({ groups, isOrganizer, onMatchClick, onCaptureScorecard, eventName, tournamentName }) => {
   const [zoom, setZoom] = useState(100)
   const containerRef = useRef(null)
 
@@ -109,6 +109,7 @@ const RoundRobinBracket = ({ groups, isOrganizer, onMatchClick, eventName, tourn
                 group={group}
                 isOrganizer={isOrganizer}
                 onMatchClick={onMatchClick}
+                onCaptureScorecard={onCaptureScorecard}
               />
             ))}
           </div>

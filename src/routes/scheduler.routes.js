@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const schedulerController = require('../controllers/scheduler.controller');
+const matchSchedulerController = require('../controllers/matchScheduler.controller');
 const authenticate = require('../middleware/authenticate');
 
 /**
@@ -34,6 +35,42 @@ router.delete(
   '/events/:eventId/schedule',
   authenticate,
   schedulerController.clearSchedule.bind(schedulerController)
+);
+
+// NEW: Greedy algorithm scheduler
+// GET /events/:eventId/saved-schedule
+router.get(
+  '/events/:eventId/saved-schedule',
+  authenticate,
+  matchSchedulerController.getSavedSchedule.bind(matchSchedulerController)
+);
+
+// POST /events/:eventId/generate-schedule
+router.post(
+  '/events/:eventId/generate-schedule',
+  authenticate,
+  matchSchedulerController.generateSchedule.bind(matchSchedulerController)
+);
+
+// POST /events/:eventId/validate-schedule (validate without saving)
+router.post(
+  '/events/:eventId/validate-schedule',
+  authenticate,
+  matchSchedulerController.validateScheduleOnly.bind(matchSchedulerController)
+);
+
+// POST /events/:eventId/save-schedule
+router.post(
+  '/events/:eventId/save-schedule',
+  authenticate,
+  matchSchedulerController.saveSchedule.bind(matchSchedulerController)
+);
+
+// DELETE /events/:eventId/delete-schedule
+router.delete(
+  '/events/:eventId/delete-schedule',
+  authenticate,
+  matchSchedulerController.deleteSchedule.bind(matchSchedulerController)
 );
 
 module.exports = router;

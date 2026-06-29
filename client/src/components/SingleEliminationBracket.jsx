@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
+import EditScoreButton from './EditScoreButton'
 
-const SingleEliminationBracket = ({ matches, onMatchClick, eventName, tournamentName }) => {
+const SingleEliminationBracket = ({ matches, onMatchClick, onCaptureScorecard, eventName, tournamentName }) => {
   const [zoom, setZoom] = useState(100)
   const bracketRef = useRef(null)
   const [connectorLines, setConnectorLines] = useState([])
@@ -14,10 +15,11 @@ const SingleEliminationBracket = ({ matches, onMatchClick, eventName, tournament
     roundsMap[match.roundNumber].push(match)
   })
 
-  // Sort rounds in descending order (highest round number first = first round)
+  // Sort rounds in ascending order (lowest round number first = final on right)
+  // Database stores: higher roundNumber = earlier round, so reverse for display
   const rounds = Object.keys(roundsMap)
     .map(Number)
-    .sort((a, b) => b - a)
+    .sort((a, b) => b - a) // Keep descending to show early rounds first
     .map(roundNum => ({
       roundNumber: roundNum,
       matches: roundsMap[roundNum].sort((a, b) => a.matchNumber - b.matchNumber)
@@ -44,17 +46,23 @@ const SingleEliminationBracket = ({ matches, onMatchClick, eventName, tournament
         const targetCard = container.querySelector(`[data-match-id="${match.nextMatchId}"]`)
 
         if (sourceCard && targetCard) {
-          // Get positions relative to the container (before scale)
-          const sourceRect = sourceCard.getBoundingClientRect()
-          const targetRect = targetCard.getBoundingClientRect()
           const containerRect = container.getBoundingClientRect()
-
-          // Calculate positions accounting for zoom scale
           const scale = zoom / 100
 
-          const x1 = (sourceRect.right - containerRect.left) / scale
+          // Find the participants container inside each card (the anchor point)
+          const sourceParticipants = sourceCard.querySelector('[data-participants-container]')
+          const targetParticipants = targetCard.querySelector('[data-participants-container]')
+
+          // Use participants container if available, otherwise fallback to card center
+          const sourceRect = sourceParticipants ? sourceParticipants.getBoundingClientRect() : sourceCard.getBoundingClientRect()
+          const targetRect = targetParticipants ? targetParticipants.getBoundingClientRect() : targetCard.getBoundingClientRect()
+
+          // Start at right edge of source card, but vertical center of participants area
+          const x1 = (sourceCard.getBoundingClientRect().right - containerRect.left) / scale
           const y1 = (sourceRect.top + sourceRect.height / 2 - containerRect.top) / scale
-          const x2 = (targetRect.left - containerRect.left) / scale
+
+          // End at left edge of target card, but vertical center of participants area
+          const x2 = (targetCard.getBoundingClientRect().left - containerRect.left) / scale
           const y2 = (targetRect.top + targetRect.height / 2 - containerRect.top) / scale
 
           // Create elbow connector: horizontal, then vertical, then horizontal
@@ -73,7 +81,12 @@ const SingleEliminationBracket = ({ matches, onMatchClick, eventName, tournament
 
     // Delay calculation to ensure DOM is ready after zoom
     const timeout = setTimeout(calculateLines, 50)
-    return () => clearTimeout(timeout)
+
+    window.addEventListener('resize', calculateLines)
+    return () => {
+      clearTimeout(timeout)
+      window.removeEventListener('resize', calculateLines)
+    }
   }, [matches, zoom])
 
   const getRoundName = (roundNumber, totalRounds) => {
@@ -91,33 +104,60 @@ const SingleEliminationBracket = ({ matches, onMatchClick, eventName, tournament
   }
 
   const getParticipantLabel = (participant, match, position) => {
-    // If participant exists, show their name
-    if (participant && participant.user) {
-      const userName = `${participant.user.firstName} ${participant.user.lastName}`
-      if (participant.partner) {
-        return `${userName} / ${participant.partner.firstName} ${participant.partner.lastName}`
+    // If participant exists, show their name with null safety
+    if (participant) {
+      if (participant.user) {
+        const userName = `${participant.user.firstName || ''} ${participant.user.lastName || ''}`.trim()
+        if (participant.partner && participant.partner.firstName) {
+          const partnerName = `${participant.partner.firstName} ${participant.partner.lastName || ''}`.trim()
+          return userName ? `${userName} / ${partnerName}` : partnerName
+        }
+        return userName || 'Unknown Player'
       }
-      return userName
+      // Fallback if user object is missing but participant exists
+      return 'Player TBD'
     }
 
-    // Find source match
+    // Find source match that feeds into this position
     const sourceMatch = matches.find(m => m.nextMatchId === match.id && m.feedsPosition === position)
 
     if (sourceMatch) {
+      // If source match is completed or auto-advanced (BYE)
       if (sourceMatch.status === 'COMPLETED' || sourceMatch.status === 'BYE') {
-        if (sourceMatch.winnerId && sourceMatch.winner && sourceMatch.winner.user) {
-          const winnerName = `${sourceMatch.winner.user.firstName} ${sourceMatch.winner.user.lastName}`
-          if (sourceMatch.winner.partner) {
-            return `${winnerName} / ${sourceMatch.winner.partner.firstName} ${sourceMatch.winner.partner.lastName}`
+        // Try to get winner from winnerId by finding the participant
+        if (sourceMatch.winnerId) {
+          // Check participant1 or participant2 based on winnerId
+          const winnerParticipant = sourceMatch.winnerId === sourceMatch.participant1Id
+            ? sourceMatch.participant1
+            : sourceMatch.participant2
+
+          if (winnerParticipant && winnerParticipant.user) {
+            const winnerName = `${winnerParticipant.user.firstName || ''} ${winnerParticipant.user.lastName || ''}`.trim()
+            if (winnerParticipant.partner && winnerParticipant.partner.firstName) {
+              const partnerName = `${winnerParticipant.partner.firstName} ${winnerParticipant.partner.lastName || ''}`.trim()
+              return winnerName ? `${winnerName} / ${partnerName}` : partnerName
+            }
+            return winnerName || 'Winner Advancing'
           }
-          return winnerName
+
+          // Fallback to winner object if participant lookup fails
+          if (sourceMatch.winner && sourceMatch.winner.user) {
+            const winnerName = `${sourceMatch.winner.user.firstName || ''} ${sourceMatch.winner.user.lastName || ''}`.trim()
+            if (sourceMatch.winner.partner) {
+              return `${winnerName} / ${sourceMatch.winner.partner.firstName} ${sourceMatch.winner.partner.lastName || ''}`.trim()
+            }
+            return winnerName || 'Winner Advancing'
+          }
         }
-        return 'Advancing...'
+        return 'Winner Advancing'
       }
-      return `Winner of M${sourceMatch.matchNumber}`
+
+      // Source match is still pending or ready
+      return `Winner of M${sourceMatch.matchNumber || '?'}`
     }
 
-    return 'Awaiting'
+    // No source match found
+    return 'TBD'
   }
 
   const getStatusColor = (match) => {
@@ -132,16 +172,12 @@ const SingleEliminationBracket = ({ matches, onMatchClick, eventName, tournament
   const getStatusIndicator = (match) => {
     const indicators = {
       COMPLETED: { dot: 'bg-green-500', text: 'Done', textColor: 'text-green-700' },
-      IN_PROGRESS: { dot: 'bg-blue-500 animate-pulse', text: 'Live', textColor: 'text-blue-700' },
       BYE: { dot: 'bg-green-400', text: 'Auto', textColor: 'text-green-700' },
       READY: { dot: 'bg-amber-500', text: 'Ready', textColor: 'text-amber-700' },
-      PENDING: { dot: 'bg-yellow-400', text: 'Wait', textColor: 'text-yellow-700' }
+      PENDING: { dot: 'bg-gray-400', text: 'Wait', textColor: 'text-gray-600' }
     }
 
-    const status = match.status === 'PENDING' && (!match.participant1 || !match.participant2)
-      ? 'PENDING'
-      : match.status
-
+    const status = match.status || 'PENDING'
     const indicator = indicators[status] || indicators.PENDING
 
     return (
@@ -161,8 +197,12 @@ const SingleEliminationBracket = ({ matches, onMatchClick, eventName, tournament
     if (!bracketRef.current) return
     const container = bracketRef.current.parentElement
     const bracket = bracketRef.current
-    const availableWidth = container.clientWidth
-    const bracketWidth = bracket.scrollWidth
+    const availableWidth = container?.clientWidth || 0
+    const bracketWidth = bracket.scrollWidth || 1
+
+    // Prevent division by zero
+    if (bracketWidth === 0) return
+
     const fitZoom = Math.floor((availableWidth / bracketWidth) * 100)
     setZoom(Math.min(100, Math.max(50, fitZoom)))
   }
@@ -173,7 +213,7 @@ const SingleEliminationBracket = ({ matches, onMatchClick, eventName, tournament
     }, 100)
   }
 
-  // Compact BYE match card
+  // BYE/Auto-Advanced match card - Consistent size with regular matches
   const renderByeMatch = (match) => {
     const participant = match.participant1 || match.participant2
 
@@ -181,106 +221,132 @@ const SingleEliminationBracket = ({ matches, onMatchClick, eventName, tournament
       <div
         key={match.id}
         data-match-id={match.id}
-        className={`compact-match-card border-2 rounded-lg p-2 transition-all ${getStatusColor(match)}`}
+        data-bye-match="true"
+        className={`compact-match-card border-2 rounded-xl transition-all relative z-10 flex flex-col overflow-hidden ${getStatusColor(match)}`}
+        style={{ width: '240px', minHeight: '200px' }}
       >
-        <div className="flex items-center justify-between mb-1.5">
-          <span className="text-[10px] font-bold text-gray-500">M{match.matchNumber}</span>
+        {/* Schedule strip */}
+        <div className="bg-blue-50 border-b border-blue-100 px-3 py-1.5 text-center flex-shrink-0">
+          {match.scheduledAt ? (
+            <span className="text-[10px] font-semibold text-blue-700">
+              {new Date(match.scheduledAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+              {' • '}
+              {new Date(match.scheduledAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+              {match.courtName && <> • {match.courtName}</>}
+            </span>
+          ) : (
+            <span className="text-[10px] font-medium text-gray-400">Not Scheduled</span>
+          )}
+        </div>
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-3 py-2 flex-shrink-0 bg-gray-50 border-b border-gray-100">
+          <span className="text-xs font-bold text-gray-800">Match #{match.matchNumber}</span>
           {getStatusIndicator(match)}
         </div>
-        <div className="bg-white border border-green-400 rounded px-2 py-1">
-          <div className="flex items-center gap-1">
-            <div className="w-1 h-1 bg-green-500 rounded-full"></div>
-            <span className="text-[9px] font-bold text-green-700 uppercase tracking-wide">Auto Advanced</span>
-          </div>
-          <div className="text-xs font-medium text-gray-900 truncate mt-0.5">
-            {participant ? (
-              participant.partner ? (
-                <>{participant.user.firstName} {participant.user.lastName} / {participant.partner.firstName} {participant.partner.lastName}</>
-              ) : (
-                <>{participant.user.firstName} {participant.user.lastName}</>
-              )
-            ) : 'Unknown'}
+
+        {/* Auto-Advanced player */}
+        <div className="px-3 py-3 flex-shrink-0" data-participants-container>
+          <div className="bg-white border border-green-400 rounded-lg px-3 py-2.5">
+            <div className="flex items-center gap-2 mb-1.5">
+              <div className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0"></div>
+              <span className="text-[10px] font-bold text-green-700 uppercase tracking-wide">Auto Advanced</span>
+            </div>
+            <div className="text-xs font-medium text-gray-900 truncate">
+              {participant ? (
+                participant.partner
+                  ? <>{participant.user.firstName} {participant.user.lastName} / {participant.partner.firstName} {participant.partner.lastName}</>
+                  : <>{participant.user.firstName} {participant.user.lastName}</>
+              ) : 'Unknown'}
+            </div>
           </div>
         </div>
       </div>
     )
   }
 
-  // Compact normal match card
+  // Match card
   const renderMatch = (match) => {
     const isClickable = onMatchClick && match.status !== 'BYE' && (match.participant1 && match.participant2)
     const p1Name = getParticipantLabel(match.participant1, match, 1)
     const p2Name = getParticipantLabel(match.participant2, match, 2)
     const isP1Winner = match.winnerId === match.participant1Id
     const isP2Winner = match.winnerId === match.participant2Id
+    const showButton = (match.status === 'COMPLETED' || match.status === 'READY') && onMatchClick
 
     return (
       <div
         key={match.id}
         data-match-id={match.id}
         onClick={() => isClickable && onMatchClick(match)}
-        className={`compact-match-card border-2 rounded-lg p-2 transition-all ${getStatusColor(match)} ${
+        className={`compact-match-card border-2 rounded-xl transition-all relative z-10 flex flex-col overflow-hidden ${getStatusColor(match)} ${
           isClickable ? 'hover:border-primary-500 hover:shadow-md cursor-pointer' : ''
         }`}
+        style={{ width: '240px', minHeight: '200px' }}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between mb-1.5">
-          <span className="text-[10px] font-bold text-gray-600">M{match.matchNumber}</span>
+        {/* Schedule strip */}
+        <div className="bg-blue-50 border-b border-blue-100 px-3 py-1.5 text-center flex-shrink-0">
+          {match.scheduledAt ? (
+            <span className="text-[10px] font-semibold text-blue-700">
+              {new Date(match.scheduledAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+              {' • '}
+              {new Date(match.scheduledAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+              {match.courtName && <> • {match.courtName}</>}
+            </span>
+          ) : (
+            <span className="text-[10px] font-medium text-gray-400">Not Scheduled</span>
+          )}
+        </div>
+
+        {/* Match number + status */}
+        <div className="flex items-center justify-between px-3 py-2 flex-shrink-0 bg-gray-50 border-b border-gray-100">
+          <span className="text-xs font-bold text-gray-800">Match #{match.matchNumber}</span>
           {getStatusIndicator(match)}
         </div>
 
-        {/* Participants - Compact */}
-        <div className="space-y-1">
-          {/* Participant 1 */}
-          <div className={`rounded px-2 py-0.5 flex items-center justify-between ${
+        {/* Players */}
+        <div className="px-3 pt-3 pb-2 space-y-2 flex-shrink-0" data-participants-container>
+          <div className={`rounded-lg px-3 py-2.5 flex items-center justify-between min-h-[38px] ${
             isP1Winner && match.status === 'COMPLETED'
               ? 'bg-gradient-to-r from-amber-100 to-yellow-100 border border-amber-400'
               : 'bg-white border border-gray-200'
           }`}>
-            <span className={`text-xs truncate flex-1 ${
-              match.participant1 ? 'font-medium text-gray-900' : 'italic text-gray-400 text-[11px]'
-            }`}>
-              {p1Name}
-            </span>
+            <span className={`text-xs truncate flex-1 min-w-0 ${
+              match.participant1 ? 'font-medium text-gray-900' : 'italic text-gray-400'
+            }`}>{p1Name}</span>
             {isP1Winner && match.status === 'COMPLETED' && (
-              <span className="text-[9px] px-1.5 py-0.5 bg-amber-500 text-white rounded font-bold ml-1 flex-shrink-0">W</span>
+              <span className="text-[9px] px-2 py-0.5 bg-amber-500 text-white rounded font-bold ml-2 flex-shrink-0">W</span>
             )}
           </div>
 
-          {/* Participant 2 */}
-          <div className={`rounded px-2 py-0.5 flex items-center justify-between ${
+          <div className={`rounded-lg px-3 py-2.5 flex items-center justify-between min-h-[38px] ${
             isP2Winner && match.status === 'COMPLETED'
               ? 'bg-gradient-to-r from-amber-100 to-yellow-100 border border-amber-400'
               : 'bg-white border border-gray-200'
           }`}>
-            <span className={`text-xs truncate flex-1 ${
-              match.participant2 ? 'font-medium text-gray-900' : 'italic text-gray-400 text-[11px]'
-            }`}>
-              {p2Name}
-            </span>
+            <span className={`text-xs truncate flex-1 min-w-0 ${
+              match.participant2 ? 'font-medium text-gray-900' : 'italic text-gray-400'
+            }`}>{p2Name}</span>
             {isP2Winner && match.status === 'COMPLETED' && (
-              <span className="text-[9px] px-1.5 py-0.5 bg-amber-500 text-white rounded font-bold ml-1 flex-shrink-0">W</span>
+              <span className="text-[9px] px-2 py-0.5 bg-amber-500 text-white rounded font-bold ml-2 flex-shrink-0">W</span>
             )}
           </div>
         </div>
 
-        {/* Score and Edit Button */}
-        {match.score && match.status === 'COMPLETED' && (
-          <div className="mt-1 pt-1 border-t border-gray-200 space-y-1">
-            <div className="text-[10px] text-gray-600 font-medium">{match.score}</div>
-            {onMatchClick && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onMatchClick(match)
-                }}
-                className="w-full text-[9px] px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded font-medium transition-all"
-              >
-                Edit
-              </button>
-            )}
-          </div>
-        )}
+        {/* Score display and Edit button - consistent spacing */}
+        <div className="px-3 pb-3 pt-1 flex-shrink-0">
+          {match.score && match.status === 'COMPLETED' && (
+            <div className="text-[10px] text-gray-500 font-medium text-center mb-1">{match.score}</div>
+          )}
+          {showButton && (
+            <EditScoreButton
+              onManualEntry={() => onMatchClick(match)}
+              onCaptureScore={() => onCaptureScorecard?.(match)}
+            />
+          )}
+          {/* Maintain consistent card height even without button */}
+          {!showButton && <div className="h-8"></div>}
+        </div>
       </div>
     )
   }
@@ -325,7 +391,13 @@ const SingleEliminationBracket = ({ matches, onMatchClick, eventName, tournament
       </div>
 
       {/* Print Header - Only visible in print */}
-      <div className="print-only hidden">
+      <style>{`
+        @media print {
+          .print-only { display: block !important; }
+          .no-print { display: none !important; }
+        }
+      `}</style>
+      <div className="print-only" style={{ display: 'none' }}>
         <div className="text-center mb-8 pb-4 border-b-2 border-gray-300">
           <h1 className="text-2xl font-bold text-gray-900">{tournamentName}</h1>
           <h2 className="text-lg font-semibold text-gray-700 mt-1">{eventName}</h2>
@@ -343,13 +415,13 @@ const SingleEliminationBracket = ({ matches, onMatchClick, eventName, tournament
           }}
           className="relative inline-flex gap-16 px-4 bracket-inner"
         >
-          {/* SVG Connector Lines */}
+          {/* SVG Connector Lines - Always behind cards */}
           <svg
             className="absolute top-0 left-0 pointer-events-none overflow-visible"
             style={{
               width: '100%',
               height: '100%',
-              zIndex: 0
+              zIndex: 1
             }}
             preserveAspectRatio="none"
           >
@@ -368,7 +440,7 @@ const SingleEliminationBracket = ({ matches, onMatchClick, eventName, tournament
 
           {/* Rounds */}
           {rounds.map((round, roundIndex) => (
-            <div key={round.roundNumber} className="flex flex-col min-w-[240px] relative z-10">
+            <div key={round.roundNumber} className="flex flex-col min-w-[240px] relative z-10 isolate">
               {/* Round Header - Compact */}
               <div className="text-center mb-6 sticky top-0 bg-white z-10 pb-3 border-b-2 border-gray-200">
                 <div className="inline-block px-4 py-1.5 bg-primary-600 rounded-full">

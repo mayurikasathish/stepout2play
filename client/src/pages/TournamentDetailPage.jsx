@@ -335,7 +335,8 @@ const TournamentDetailPage = () => {
   }
 
   const registrationDeadlinePassed = new Date(tournament.registrationDeadline) < new Date()
-  const canRegister = tournament.status === 'OPEN' && !registrationDeadlinePassed
+  // Allow registration for OPEN and ONGOING tournaments (as long as deadline hasn't passed)
+  const canRegister = (tournament.status === 'OPEN' || tournament.status === 'ONGOING') && !registrationDeadlinePassed
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-primary-50/20">

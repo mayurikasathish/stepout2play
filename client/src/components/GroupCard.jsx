@@ -1,5 +1,6 @@
 // GroupCard.jsx
 // Displays one Round Robin group: standings table + fixture list
+import EditScoreButton from './EditScoreButton'
 
 const STATUS_CONFIG = {
   PENDING:     { label: 'Upcoming', dot: 'bg-gray-400',   text: 'text-gray-600',   bg: 'bg-gray-50'   },
@@ -20,7 +21,7 @@ const getInitials = (reg) => {
   return `${reg.user.firstName[0]}${reg.user.lastName[0]}`
 }
 
-const GroupCard = ({ group, isOrganizer, onMatchClick }) => {
+const GroupCard = ({ group, isOrganizer, onMatchClick, onCaptureScorecard }) => {
   const groupStatus = STATUS_CONFIG[group.status] || STATUS_CONFIG.PENDING
 
   // Standings sorted by points desc, wins desc (backend already sorts, but just in case)
@@ -103,7 +104,7 @@ const GroupCard = ({ group, isOrganizer, onMatchClick }) => {
               <div
                 key={match.id}
                 onClick={() => isClickable && onMatchClick && onMatchClick(match)}
-                className={`flex items-center justify-between p-3 rounded-xl border transition-all ${
+                className={`rounded-xl border transition-all relative ${
                   isClickable
                     ? 'border-orange-200 bg-orange-50 cursor-pointer hover:bg-orange-100 hover:border-orange-300'
                     : isCompleted
@@ -111,10 +112,23 @@ const GroupCard = ({ group, isOrganizer, onMatchClick }) => {
                     : 'border-gray-100 bg-white'
                 }`}
               >
-                {/* Match ID */}
-                <span className="text-xs text-gray-400 font-mono w-14 shrink-0">
-                  {match.bracketPosition?.split('-').slice(1).join('-') || `M${match.matchNumber}`}
-                </span>
+                {/* Scheduled Time Strip - Thin bar at top */}
+                {match.scheduledAt && (
+                  <div className="bg-blue-50 border-b border-blue-100 px-2 py-0.5 text-center">
+                    <span className="text-[9px] font-medium text-blue-700">
+                      {new Date(match.scheduledAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      {' • '}
+                      {new Date(match.scheduledAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                      {match.courtName && <> • {match.courtName}</>}
+                    </span>
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between p-3">
+                  {/* Match ID */}
+                  <span className="text-xs text-gray-400 font-mono w-14 shrink-0">
+                    {match.bracketPosition?.split('-').slice(1).join('-') || `M${match.matchNumber}`}
+                  </span>
 
                 {/* Players */}
                 <div className="flex-1 flex items-center justify-center gap-2 min-w-0">
@@ -135,26 +149,24 @@ const GroupCard = ({ group, isOrganizer, onMatchClick }) => {
                   </span>
                 </div>
 
-                {/* Status badge or Edit button */}
-                <div className="flex items-center gap-2 shrink-0 justify-end">
-                  {isCompleted ? (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        onMatchClick && onMatchClick(match)
-                      }}
-                      className="text-xs px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-all"
-                    >
-                      Edit
-                    </button>
-                  ) : (
-                    <>
-                      <span className={`w-1.5 h-1.5 rounded-full ${statusCfg.dot}`} />
-                      <span className={`text-xs font-medium ${statusCfg.text}`}>
-                        {statusCfg.label}
-                      </span>
-                    </>
-                  )}
+                  {/* Status badge or Edit button */}
+                  <div className="flex items-center gap-2 shrink-0 justify-end min-w-[120px]">
+                    {(isCompleted || match.status === 'READY') && isOrganizer ? (
+                      <div onClick={(e) => e.stopPropagation()} className="w-full">
+                        <EditScoreButton
+                          onManualEntry={() => onMatchClick && onMatchClick(match)}
+                          onCaptureScore={() => onCaptureScorecard?.(match)}
+                        />
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <span className={`w-1.5 h-1.5 rounded-full ${statusCfg.dot}`} />
+                        <span className={`text-xs font-medium ${statusCfg.text}`}>
+                          {statusCfg.label}
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             )

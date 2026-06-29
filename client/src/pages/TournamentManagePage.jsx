@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import RegistrationsView from '../components/RegistrationsView'
 import BracketView from '../components/BracketView'
+import MatchScheduler from '../components/MatchScheduler'
 import Toast from '../components/Toast'
 import api from '../services/api'
 import { getAllSports } from '../services/sports'
@@ -288,6 +289,14 @@ const TournamentManagePage = () => {
           >
             Brackets
           </button>
+          <button
+            onClick={() => setActiveTab('schedule')}
+            className={`px-4 py-3 font-medium text-sm transition-colors border-b-2 ${
+              activeTab === 'schedule' ? 'border-primary-600 text-primary-600' : 'border-transparent text-gray-600'
+            }`}
+          >
+            📅 Schedule
+          </button>
         </div>
 
         {/* Tab Content */}
@@ -401,6 +410,63 @@ const TournamentManagePage = () => {
 
         {activeTab === 'registrations' && (
           <RegistrationsView tournamentId={id} />
+        )}
+
+        {activeTab === 'schedule' && (
+          <div className="space-y-6">
+            {/* Event Selection for Scheduling */}
+            <div className="glass-card rounded-xl p-6">
+              <label className="block text-sm font-medium text-gray-900 mb-3">
+                Select Event to Schedule Matches
+              </label>
+              {events.length === 0 ? (
+                <p className="text-gray-600">No events created yet. Create events first.</p>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {events.map((event) => (
+                    <button
+                      key={event.id}
+                      onClick={() => {
+                        const element = document.getElementById(`schedule-${event.id}`)
+                        if (element) {
+                          const yOffset = -100
+                          const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset
+                          window.scrollTo({ top: y, behavior: 'smooth' })
+                        }
+                      }}
+                      className="p-4 border-2 border-gray-200 hover:border-blue-400 rounded-xl text-left transition-all hover:shadow-md"
+                    >
+                      <h3 className="font-semibold text-gray-900 mb-1">{event.name}</h3>
+                      <p className="text-sm text-gray-600 capitalize">
+                        {event.format.replace('_', ' ')}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-2">
+                        {event.bracketGenerated ? '✅ Bracket Generated' : '⚠️ Generate bracket first'}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Schedule Views for Each Event */}
+            {events.filter(e => e.bracketGenerated).map((event) => (
+              <div key={event.id} id={`schedule-${event.id}`}>
+                <MatchScheduler
+                  eventId={event.id}
+                  tournament={tournament}
+                />
+              </div>
+            ))}
+
+            {events.filter(e => !e.bracketGenerated).length > 0 && (
+              <div className="glass-card rounded-xl p-6 bg-yellow-50 border-2 border-yellow-300">
+                <p className="text-yellow-900 font-medium">
+                  ⚠️ Some events don't have brackets yet. Generate brackets first in the "Brackets" tab.
+                </p>
+              </div>
+            )}
+          </div>
         )}
 
         {activeTab === 'brackets' && (
