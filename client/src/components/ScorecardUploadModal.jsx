@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import api from '../services/api'
+import ScoreValidationModal from './ScoreValidationModal'
 
 const ScorecardUploadModal = ({ isOpen, onClose, match, onScoreExtracted }) => {
   const [selectedImage, setSelectedImage] = useState(null)
@@ -7,6 +8,7 @@ const ScorecardUploadModal = ({ isOpen, onClose, match, onScoreExtracted }) => {
   const [extracting, setExtracting] = useState(false)
   const [result, setResult] = useState(null)
   const [error, setError] = useState(null)
+  const [showValidation, setShowValidation] = useState(false)
 
   const handleImageSelect = (e) => {
     const file = e.target.files[0]
@@ -23,11 +25,14 @@ const ScorecardUploadModal = ({ isOpen, onClose, match, onScoreExtracted }) => {
   }
 
   const handleExtract = async () => {
+    console.log('🚀 handleExtract called!')
+
     if (!selectedImage) {
       setError('Please select an image first')
       return
     }
 
+    console.log('📸 Selected image:', selectedImage.name)
     setExtracting(true)
     setError(null)
     setResult(null)
@@ -44,10 +49,16 @@ const ScorecardUploadModal = ({ isOpen, onClose, match, onScoreExtracted }) => {
       })
 
       console.log('✅ OCR Response:', response.data)
+      console.log('📊 Parsed success?', response.data.parsed?.success)
       setResult(response.data)
 
-      // TODO: Parse the extracted text and auto-fill scores
-      // For now, just show the raw extracted text
+      // Show validation modal if parsing succeeded
+      if (response.data.parsed?.success) {
+        console.log('🎯 Setting showValidation to TRUE')
+        setShowValidation(true)
+      } else {
+        console.log('⚠️ Not showing validation - parsed.success is false')
+      }
     } catch (err) {
       console.error('❌ OCR Error:', err)
       setError(err.response?.data?.error || err.message || 'Failed to extract text')
@@ -62,10 +73,44 @@ const ScorecardUploadModal = ({ isOpen, onClose, match, onScoreExtracted }) => {
     setResult(null)
     setError(null)
     setExtracting(false)
+    setShowValidation(false)
     onClose()
   }
 
+  const handleConfirmScores = (validatedData) => {
+    // Pass validated scores to parent (BracketView) to update bracket
+    if (onScoreExtracted) {
+      onScoreExtracted(validatedData, match)
+    }
+    handleClose()
+  }
+
+  const handleRetake = () => {
+    // Reset to allow retaking photo
+    setShowValidation(false)
+    setResult(null)
+    setSelectedImage(null)
+    setPreviewUrl(null)
+  }
+
   if (!isOpen) return null
+
+  // Hide upload modal when validation modal is showing
+  if (showValidation) {
+    console.log('🎨 Rendering ScoreValidationModal with:', result?.parsed)
+    return (
+      <ScoreValidationModal
+        isOpen={showValidation}
+        onClose={() => setShowValidation(false)}
+        parsedData={result.parsed}
+        matchData={match}
+        onConfirm={handleConfirmScores}
+        onRetake={handleRetake}
+      />
+    )
+  }
+
+  console.log('📋 Rendering upload modal. showValidation:', showValidation, 'result:', result)
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
@@ -191,8 +236,8 @@ const ScorecardUploadModal = ({ isOpen, onClose, match, onScoreExtracted }) => {
               </div>
             )}
 
-            {/* Results */}
-            {result && (
+            {/* Results - Only show if validation modal is NOT open */}
+            {result && !showValidation && (
               <div className="mt-4 space-y-4">
                 {/* Parsed Data */}
                 {result.parsed?.success ? (

@@ -21,8 +21,6 @@ const BracketView = ({ eventId, eventName, eventFormat, registrationCount, isOrg
   const [toastType, setToastType] = useState('success')
   const [showScorecardModal, setShowScorecardModal] = useState(false)
   const [scorecardMatch, setScorecardMatch] = useState(null)
-  const [ocrResult, setOcrResult] = useState(null)
-  const [ocrLoading, setOcrLoading] = useState(false)
 
   useEffect(() => {
     loadBracket()
@@ -81,39 +79,9 @@ const BracketView = ({ eventId, eventName, eventFormat, registrationCount, isOrg
 
   const handleCaptureScorecard = (match) => {
     setScorecardMatch(match)
-    setOcrResult(null)
     setShowScorecardModal(true)
   }
 
-  const handleImageUpload = async (event) => {
-    const file = event.target.files?.[0]
-    if (!file) return
-
-    setOcrLoading(true)
-    setOcrResult(null)
-
-    try {
-      const formData = new FormData()
-      formData.append('scorecard', file)
-
-      const response = await api.post('/ocr/extract-score', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      })
-
-      if (response.data.success) {
-        setOcrResult(response.data)
-      }
-    } catch (err) {
-      console.error('OCR Error:', err)
-      setToastMessage(err.response?.data?.error || 'OCR extraction failed')
-      setToastType('error')
-      setShowToast(true)
-    } finally {
-      setOcrLoading(false)
-    }
-  }
 
   const handleMatchUpdate = async (winnerId, score) => {
     try {
@@ -378,144 +346,6 @@ const BracketView = ({ eventId, eventName, eventFormat, registrationCount, isOrg
         </div>
       )}
 
-      {/* Capture Scorecard Modal (OCR Feature - Coming Soon) */}
-      {showScorecardModal && scorecardMatch && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowScorecardModal(false)} />
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 animate-slide-up">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-gray-900">Capture Scorecard</h3>
-              <button
-                onClick={() => setShowScorecardModal(false)}
-                className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <svg className="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            {/* Match Info */}
-            <div className="bg-gray-50 rounded-lg p-4 mb-6">
-              <p className="text-sm font-medium text-gray-600 mb-1">Match</p>
-              <p className="text-lg font-bold text-gray-900">
-                {scorecardMatch.participant1 ?
-                  `${scorecardMatch.participant1.user.firstName} ${scorecardMatch.participant1.user.lastName}` :
-                  'TBD'
-                }
-                {' vs '}
-                {scorecardMatch.participant2 ?
-                  `${scorecardMatch.participant2.user.firstName} ${scorecardMatch.participant2.user.lastName}` :
-                  'TBD'
-                }
-              </p>
-            </div>
-
-            {/* Upload Options */}
-            <div className="space-y-3 mb-6">
-              {/* Take Photo Option */}
-              <button
-                onClick={() => {
-                  setToastMessage('Camera feature coming soon!')
-                  setToastType('info')
-                  setShowToast(true)
-                  setShowScorecardModal(false)
-                }}
-                className="w-full p-3 border-2 border-gray-200 hover:border-blue-500 hover:bg-blue-50 rounded-xl transition-all group"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-blue-100 group-hover:bg-blue-200 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors">
-                    <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                  </div>
-                  <div className="flex-1 text-left min-w-0">
-                    <p className="font-semibold text-gray-900 text-sm">Take Photo</p>
-                    <p className="text-xs text-gray-500">Use your device camera</p>
-                  </div>
-                  <svg className="w-4 h-4 text-gray-400 group-hover:text-blue-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </div>
-              </button>
-
-              {/* Upload Image Option */}
-              <label className="w-full p-3 border-2 border-gray-200 hover:border-green-500 hover:bg-green-50 rounded-xl transition-all group cursor-pointer block">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  className="hidden"
-                  disabled={ocrLoading}
-                />
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-green-100 group-hover:bg-green-200 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors">
-                    <svg className="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                  </div>
-                  <div className="flex-1 text-left min-w-0">
-                    <p className="font-semibold text-gray-900 text-sm">Upload Image</p>
-                    <p className="text-xs text-gray-500">Choose from gallery</p>
-                  </div>
-                  <svg className="w-4 h-4 text-gray-400 group-hover:text-green-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </div>
-              </label>
-            </div>
-
-            {/* OCR Result */}
-            {ocrLoading && (
-              <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <svg className="animate-spin h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                  </svg>
-                  <p className="text-sm font-medium text-blue-900">Processing image with OCR...</p>
-                </div>
-              </div>
-            )}
-
-            {ocrResult && (
-              <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-                <h4 className="text-sm font-bold text-green-900 mb-3">📊 OCR Result (JSON)</h4>
-                <div className="bg-white rounded p-3 border border-green-300 max-h-64 overflow-y-auto">
-                  <pre className="text-xs text-gray-800 whitespace-pre-wrap font-mono">
-                    {JSON.stringify(ocrResult, null, 2)}
-                  </pre>
-                </div>
-                <p className="text-xs text-green-700 mt-2">
-                  ✅ Parsed: {ocrResult.parsed?.success ? 'Success' : 'Failed'} •
-                  {ocrResult.parsed?.sets?.length || 0} sets extracted •
-                  {ocrResult.processing_time_ms}ms
-                </p>
-              </div>
-            )}
-
-            {/* Info Banner */}
-            <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-4">
-              <div className="flex gap-3">
-                <div className="flex-shrink-0">
-                  <svg className="w-5 h-5 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <div className="text-sm">
-                  <p className="font-semibold text-purple-900 mb-1">OCR Score Recognition</p>
-                  <p className="text-purple-700">
-                    We'll automatically extract scores from your scoresheet using AI.
-                    You can review and edit before saving.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {showToast && (
         <Toast message={toastMessage} type={toastType} onClose={() => setShowToast(false)} />
