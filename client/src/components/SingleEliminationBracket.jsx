@@ -223,7 +223,7 @@ const SingleEliminationBracket = ({ matches, onMatchClick, onCaptureScorecard, e
         data-match-id={match.id}
         data-bye-match="true"
         className={`compact-match-card border-2 rounded-xl transition-all relative z-10 flex flex-col overflow-hidden ${getStatusColor(match)}`}
-        style={{ width: '240px', minHeight: '200px' }}
+        style={{ width: '260px', minHeight: '280px' }}
       >
         {/* Schedule strip */}
         <div className="bg-blue-50 border-b border-blue-100 px-3 py-1.5 text-center flex-shrink-0">
@@ -282,7 +282,7 @@ const SingleEliminationBracket = ({ matches, onMatchClick, onCaptureScorecard, e
         className={`compact-match-card border-2 rounded-xl transition-all relative z-10 flex flex-col overflow-hidden ${getStatusColor(match)} ${
           isClickable ? 'hover:border-primary-500 hover:shadow-md cursor-pointer' : ''
         }`}
-        style={{ width: '240px', minHeight: '200px' }}
+        style={{ width: '260px', minHeight: '280px' }}
       >
         {/* Schedule strip */}
         <div className="bg-blue-50 border-b border-blue-100 px-3 py-1.5 text-center flex-shrink-0">
@@ -440,7 +440,7 @@ const SingleEliminationBracket = ({ matches, onMatchClick, onCaptureScorecard, e
 
           {/* Rounds */}
           {rounds.map((round, roundIndex) => (
-            <div key={round.roundNumber} className="flex flex-col min-w-[240px] relative z-10 isolate">
+            <div key={round.roundNumber} className="flex flex-col min-w-[260px] relative z-10 isolate">
               {/* Round Header - Compact */}
               <div className="text-center mb-6 sticky top-0 bg-white z-10 pb-3 border-b-2 border-gray-200">
                 <div className="inline-block px-4 py-1.5 bg-primary-600 rounded-full">
