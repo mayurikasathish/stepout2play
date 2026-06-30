@@ -47,6 +47,9 @@ const ScoreValidationModal = ({
 
   if (!isOpen) return null
 
+  // Extract round label from bracketPosition (e.g., "R3-M1" -> "R3")
+  const roundLabel = matchData?.bracketPosition?.split('-')[0] || matchData?.roundLabel || 'N/A'
+
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       {/* Backdrop */}
@@ -77,7 +80,7 @@ const ScoreValidationModal = ({
                 </div>
                 <div>
                   <span className="text-xs text-gray-600">Round:</span>
-                  <span className="ml-2 font-bold text-blue-900">{matchData?.roundLabel}</span>
+                  <span className="ml-2 font-bold text-blue-900">{roundLabel}</span>
                 </div>
               </div>
             </div>
