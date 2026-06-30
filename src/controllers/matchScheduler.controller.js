@@ -77,7 +77,9 @@ class MatchSchedulerController {
         courtNumber: match.courtNumber,
         date: match.scheduledAt.toISOString().split('T')[0],
         time: match.scheduledAt.toTimeString().slice(0, 5),
-        duration: event.tournament.matchDuration || 45
+        duration: event.tournament.matchDuration || 45,
+        status: match.status, // COMPLETED, READY, PENDING, BYE
+        isLocked: match.status === 'COMPLETED' || match.status === 'BYE' // Can't reschedule completed/bye matches
       }));
 
       const daysUsed = new Set(scheduledMatches.map(m => m.date)).size;
@@ -261,8 +263,10 @@ class MatchSchedulerController {
         conflicts.push({
           type: 'DEPENDENCY_VIOLATION',
           message: `${nextMatchName} (${nextDate.toISOString().split('T')[0]}) cannot happen before ${currentMatchName} (${currentSchedule.date}) which feeds into it`,
-          sourceMatch: item.matchNumber,
-          nextMatch: nextMatchSchedule.matchNumber
+          sourceMatchId: item.matchId,  // Store matchId for unique lookup
+          nextMatchId: match.nextMatchId,  // Store matchId for unique lookup
+          sourceMatch: item.matchNumber,  // Keep for display
+          nextMatch: nextMatchSchedule.matchNumber  // Keep for display
         });
       } else if (nextDate.getTime() === currentDate.getTime()) {
         // Same day - next match must start after this one ends (with rest)
@@ -270,8 +274,10 @@ class MatchSchedulerController {
           conflicts.push({
             type: 'DEPENDENCY_VIOLATION',
             message: `${nextMatchName} starts at ${this._formatTimeFromMinutes(nextMatchSchedule.startTime)} but ${currentMatchName} (which feeds into it) doesn't finish until ${this._formatTimeFromMinutes(currentSchedule.endTime + minRestTime)}`,
-            sourceMatch: item.matchNumber,
-            nextMatch: nextMatchSchedule.matchNumber,
+            sourceMatchId: item.matchId,  // Store matchId for unique lookup
+            nextMatchId: match.nextMatchId,  // Store matchId for unique lookup
+            sourceMatch: item.matchNumber,  // Keep for display
+            nextMatch: nextMatchSchedule.matchNumber,  // Keep for display
             date: currentSchedule.date
           });
         }
@@ -312,6 +318,7 @@ class MatchSchedulerController {
   /**
    * POST /events/:eventId/validate-schedule
    * Validate schedule for conflicts WITHOUT saving
+   * NOW WITH SMART SUGGESTIONS!
    */
   async validateScheduleOnly(req, res, next) {
     try {
@@ -352,11 +359,17 @@ class MatchSchedulerController {
       const validation = this._validateSchedule(schedule, event);
 
       if (!validation.valid) {
+        // 🧠 SMART MODE: Generate suggestions to fix conflicts
+        console.log('🔍 CONFLICTS:', JSON.stringify(validation.conflicts, null, 2));
+        const suggestions = this._generateSmartSuggestions(schedule, validation.conflicts, event);
+        console.log('🔍 GENERATED SUGGESTIONS:', JSON.stringify(suggestions, null, 2));
+
         return res.status(400).json({
           success: false,
           valid: false,
           error: validation.error,
-          conflicts: validation.conflicts
+          conflicts: validation.conflicts,
+          suggestions // NEW: AI-like suggestions to fix issues
         });
       }
 
@@ -369,6 +382,151 @@ class MatchSchedulerController {
     } catch (error) {
       next(error);
     }
+  }
+
+  /**
+   * 🧠 SMART SUGGESTIONS ENGINE
+   * Analyzes conflicts and suggests alternative times/courts
+   */
+  _generateSmartSuggestions(schedule, conflicts, event) {
+    const suggestions = [];
+    const matchDuration = event.tournament.matchDuration || 45;
+    const minRestTime = event.tournament.minRestTime || 30;
+    const breakDuration = event.tournament.breakDuration || 15;
+    const seenSuggestions = new Set(); // Prevent duplicate suggestions
+
+    console.log('🧠 Processing conflicts:', conflicts.length);
+    conflicts.forEach((conflict, idx) => {
+      console.log(`🧠 Conflict ${idx}:`, conflict.type, conflict);
+      if (conflict.type === 'PLAYER_OVERLAP') {
+        // Player has two matches at same time - suggest moving one match
+        const match = schedule.find(m => m.matchNumber === conflict.match1);
+        if (match) {
+          const currentDateTime = new Date(`${match.date}T${match.time}`);
+          const currentMinutes = currentDateTime.getHours() * 60 + currentDateTime.getMinutes();
+          const matchObj = this._findMatchInEvent(match.matchId, event);
+          const matchName = this._formatMatchName(matchObj);
+
+          // Suggestion 1: Move 1 hour later
+          const laterTime = this._formatTimeFromMinutes(currentMinutes + 60);
+          const suggestionKey1 = `reschedule-${match.matchNumber}-${laterTime}`;
+
+          if (!seenSuggestions.has(suggestionKey1)) {
+            seenSuggestions.add(suggestionKey1);
+            suggestions.push({
+              type: 'RESCHEDULE',
+              matchId: match.matchId,  // Add matchId for unique lookup
+              matchNumber: match.matchNumber,
+              currentTime: match.time,
+              suggestedTime: laterTime,
+              suggestedDate: match.date,
+              reason: `Move ${matchName} from ${match.time} to ${laterTime} to avoid player conflict`,
+              action: 'reschedule',
+              confidence: 'high'
+            });
+          }
+
+          // Suggestion 2: Move to next day
+          const nextDay = new Date(match.date);
+          nextDay.setDate(nextDay.getDate() + 1);
+          const suggestionKey2 = `reschedule-${match.matchNumber}-${nextDay.toISOString().split('T')[0]}`;
+
+          if (!seenSuggestions.has(suggestionKey2)) {
+            seenSuggestions.add(suggestionKey2);
+            suggestions.push({
+              type: 'RESCHEDULE',
+              matchId: match.matchId,  // Add matchId for unique lookup
+              matchNumber: match.matchNumber,
+              currentTime: match.time,
+              suggestedTime: match.time,
+              suggestedDate: nextDay.toISOString().split('T')[0],
+              reason: `Move ${matchName} to ${nextDay.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} to spread player load`,
+              action: 'reschedule',
+              confidence: 'medium'
+            });
+          }
+        }
+      }
+
+      if (conflict.type === 'DEPENDENCY_VIOLATION') {
+        // Next match scheduled before source match - suggest swapping times
+        // Use matchId for unique lookup (matchNumber can be same across rounds!)
+        const sourceMatch = schedule.find(m => m.matchId === conflict.sourceMatchId);
+        const nextMatch = schedule.find(m => m.matchId === conflict.nextMatchId);
+
+        console.log('🧠 Found sourceMatch:', sourceMatch?.matchId, 'nextMatch:', nextMatch?.matchId);
+
+        // CRITICAL FIX: Compare by matchId, not matchNumber (same matchNumber can exist in different rounds!)
+        if (sourceMatch && nextMatch &&
+            sourceMatch.matchId !== nextMatch.matchId &&
+            sourceMatch.time !== nextMatch.time) {
+
+          const sourceMatchObj = this._findMatchInEvent(sourceMatch.matchId, event);
+          const nextMatchObj = this._findMatchInEvent(nextMatch.matchId, event);
+          const sourceMatchName = this._formatMatchName(sourceMatchObj);
+          const nextMatchName = this._formatMatchName(nextMatchObj);
+
+          const suggestionKey = `swap-${sourceMatch.matchId}-${nextMatch.matchId}`;
+
+          if (!seenSuggestions.has(suggestionKey)) {
+            seenSuggestions.add(suggestionKey);
+            suggestions.push({
+              type: 'SWAP_TIMES',
+              match1Id: sourceMatch.matchId,  // Add matchId for unique lookup
+              match1Number: sourceMatch.matchNumber,
+              match1Time: sourceMatch.time,
+              match2Id: nextMatch.matchId,  // Add matchId for unique lookup
+              match2Number: nextMatch.matchNumber,
+              match2Time: nextMatch.time,
+              reason: `Swap ${sourceMatchName} (${sourceMatch.time}) with ${nextMatchName} (${nextMatch.time}) - source must finish first`,
+              action: 'swap',
+              confidence: 'high'
+            });
+            console.log('🧠 Added SWAP suggestion');
+          }
+        } else {
+          console.log('🧠 Skipped swap - same match or same time');
+        }
+
+        // Alternative: Push next match later (only if not same matchId)
+        if (nextMatch && sourceMatch && sourceMatch.matchId !== nextMatch.matchId) {
+          const nextDateTime = new Date(`${nextMatch.date}T${nextMatch.time}`);
+          const nextMinutes = nextDateTime.getHours() * 60 + nextDateTime.getMinutes();
+          const safeTime = this._formatTimeFromMinutes(nextMinutes + 90); // Push 90 min later
+          const nextMatchObj = this._findMatchInEvent(nextMatch.matchId, event);
+          const nextMatchName = this._formatMatchName(nextMatchObj);
+
+          const suggestionKey = `reschedule-dep-${nextMatch.matchId}-${safeTime}`;
+
+          if (!seenSuggestions.has(suggestionKey)) {
+            seenSuggestions.add(suggestionKey);
+            suggestions.push({
+              type: 'RESCHEDULE',
+              matchId: nextMatch.matchId,  // Add matchId for unique lookup
+              matchNumber: nextMatch.matchNumber,
+              currentTime: nextMatch.time,
+              suggestedTime: safeTime,
+              suggestedDate: nextMatch.date,
+              reason: `Move ${nextMatchName} from ${nextMatch.time} to ${safeTime} to allow source match to complete first`,
+              action: 'reschedule',
+              confidence: 'high'
+            });
+            console.log('🧠 Added RESCHEDULE suggestion');
+          }
+        } else {
+          console.log('🧠 Skipped reschedule - same match');
+        }
+      }
+    });
+
+    console.log(`🧠 Generated ${suggestions.length} smart suggestions`);
+    suggestions.forEach(s => console.log(`  - ${s.action.toUpperCase()}: ${s.reason}`));
+
+    return suggestions;
+  }
+
+  _findMatchInEvent(matchId, event) {
+    return event.matches.find(m => m.id === matchId);
   }
 
   /**

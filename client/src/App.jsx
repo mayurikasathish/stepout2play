@@ -18,6 +18,8 @@ import DiscoverPage from './pages/DiscoverPage'
 import OrgMiniSitePage from './pages/OrgMiniSitePage'
 import EditOrgPage from './pages/EditOrgPage'
 import PlayersPage from './pages/PlayersPage'
+import OCRTestPage from './pages/OCRTestPage'
+import ScorecardPrintPage from './pages/ScorecardPrintPage'
 // import PlayerProfilePage from './pages/PlayerProfilePage' // wire up when ready
 
 function App() {
@@ -100,6 +102,26 @@ function App() {
             element={
               <ProtectedRoute>
                 <EditOrgPage />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* OCR Test Page */}
+          <Route
+            path="/test-ocr"
+            element={
+              <ProtectedRoute>
+                <OCRTestPage />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Scorecard Print Page */}
+          <Route
+            path="/events/:eventId/scorecards"
+            element={
+              <ProtectedRoute>
+                <ScorecardPrintPage />
               </ProtectedRoute>
             }
           />

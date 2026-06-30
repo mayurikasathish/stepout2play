@@ -6,6 +6,7 @@ import RoundRobinBracket from './RoundRobinBracket'
 import HybridBracket from './HybridBracket'
 import Toast from './Toast'
 import TennisScoreModal from './TennisScoreModal'
+import ScorecardUploadModal from './ScorecardUploadModal'
 import { validateGameScore, getSportValidationHelp, getExampleScores } from '../utils/scoreValidator'
 
 const BracketView = ({ eventId, eventName, eventFormat, registrationCount, isOrganizer, tournament }) => {
@@ -162,12 +163,20 @@ const BracketView = ({ eventId, eventName, eventFormat, registrationCount, isOrg
                 <p className="font-semibold text-gray-900">There may be a corrupted bracket.</p>
                 <p className="text-sm text-gray-500 mt-1">Delete it to start fresh.</p>
               </div>
-              <button
-                onClick={() => setShowDeleteConfirm(true)}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-all"
-              >
-                Delete Bracket
-              </button>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => window.open(`/events/${eventId}/scorecards`, '_blank')}
+                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-all"
+                >
+                  📥 Download Scorecards
+                </button>
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-all"
+                >
+                  Delete Bracket
+                </button>
+              </div>
             </div>
             {showDeleteConfirm && (
               <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
@@ -253,12 +262,20 @@ const BracketView = ({ eventId, eventName, eventFormat, registrationCount, isOrg
                 )}
               </div>
             </div>
-            <button
-              onClick={() => setShowDeleteConfirm(true)}
-              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-all"
-            >
-              Delete Bracket
-            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={() => window.open(`/events/${eventId}/scorecards`, '_blank')}
+                className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-all"
+              >
+                📥 Download Scorecards
+              </button>
+              <button
+                onClick={() => setShowDeleteConfirm(true)}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-all"
+              >
+                Delete Bracket
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -314,6 +331,18 @@ const BracketView = ({ eventId, eventName, eventFormat, registrationCount, isOrg
           />
         )
       )}
+
+      {/* Scorecard Upload Modal */}
+      <ScorecardUploadModal
+        isOpen={showScorecardModal}
+        onClose={() => setShowScorecardModal(false)}
+        match={scorecardMatch}
+        onScoreExtracted={(extractedData) => {
+          // TODO: Parse extracted data and auto-fill match scores
+          console.log('Extracted scorecard data:', extractedData)
+          setShowScorecardModal(false)
+        }}
+      />
 
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
@@ -460,8 +489,8 @@ const BracketView = ({ eventId, eventName, eventFormat, registrationCount, isOrg
                   </pre>
                 </div>
                 <p className="text-xs text-green-700 mt-2">
-                  ✅ Found {ocrResult.extracted?.numbers?.length || 0} numbers •
-                  Confidence: {(ocrResult.extracted?.confidence * 100).toFixed(1)}% •
+                  ✅ Parsed: {ocrResult.parsed?.success ? 'Success' : 'Failed'} •
+                  {ocrResult.parsed?.sets?.length || 0} sets extracted •
                   {ocrResult.processing_time_ms}ms
                 </p>
               </div>

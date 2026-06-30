@@ -4,6 +4,7 @@ import api from '../services/api'
 import ConfirmationModal from './ConfirmationModal'
 import SuccessModal from './SuccessModal'
 import ErrorModal from './ErrorModal'
+import Toast from './Toast'
 
 const CalendarIcon = () => (
   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -61,6 +62,12 @@ const MatchScheduler = ({ eventId, tournament }) => {
   const [successData, setSuccessData] = useState({ title: '', message: '', details: [] })
   const [showErrorModal, setShowErrorModal] = useState(false)
   const [errorData, setErrorData] = useState({ title: '', message: '', details: [] })
+  const [showSuggestionsModal, setShowSuggestionsModal] = useState(false)
+  const [suggestions, setSuggestions] = useState([])
+  const [currentConflicts, setCurrentConflicts] = useState([])
+  const [showToast, setShowToast] = useState(false)
+  const [toastMessage, setToastMessage] = useState('')
+  const [toastType, setToastType] = useState('success')
 
   const handleGenerate = async () => {
     setLoading(true)
@@ -97,9 +104,33 @@ const MatchScheduler = ({ eventId, tournament }) => {
         setShowSaveConfirm(true)
       }
     } catch (err) {
-      // STEP 3: If invalid, show error modal immediately (no confirmation needed)
+      // STEP 3: If invalid, show conflicts FIRST, then let user choose AI or manual
       setSaving(false)
       const responseData = err.response?.data
+
+      // DEBUG: Log the full response to see what we're getting
+      console.log('🔍 VALIDATION ERROR RESPONSE:', responseData)
+      console.log('🔍 Suggestions:', responseData?.suggestions)
+      console.log('🔍 Suggestions length:', responseData?.suggestions?.length)
+      console.log('🔍 Has suggestions?', responseData?.suggestions && responseData.suggestions.length > 0)
+
+      // Store conflicts and suggestions for later
+      if (responseData?.conflicts) {
+        setCurrentConflicts(responseData.conflicts)
+        setSuggestions(responseData?.suggestions || [])
+
+        // Show error modal with conflicts FIRST
+        setErrorData({
+          title: '⚠️ Scheduling Conflicts Found',
+          message: `Found ${responseData.conflicts.length} conflict(s) in your schedule.`,
+          details: responseData.conflicts.map(c => c.message),
+          hasSmartSuggestions: responseData.suggestions && responseData.suggestions.length > 0
+        })
+        setShowErrorModal(true)
+        return
+      }
+
+      // Otherwise show regular error modal
       if (responseData?.conflicts && responseData.conflicts.length > 0) {
         setErrorData({
           title: '⚠️ Schedule Validation Failed',
@@ -213,10 +244,13 @@ const MatchScheduler = ({ eventId, tournament }) => {
     fetchSavedSchedule()
   }
 
-  const updateMatchSchedule = (index, field, value) => {
+  const updateMatchSchedule = (matchId, field, value) => {
     const updated = [...editedSchedule]
-    updated[index][field] = value
-    setEditedSchedule(updated)
+    const matchIndex = updated.findIndex(m => m.matchId === matchId)
+    if (matchIndex !== -1) {
+      updated[matchIndex][field] = value
+      setEditedSchedule(updated)
+    }
   }
 
   if (loadingSaved) {
@@ -571,48 +605,64 @@ const MatchScheduler = ({ eventId, tournament }) => {
                   .map((match, idx) => {
                   // Extract round label from bracketPosition (e.g., "R3-M1" -> "R3")
                   const roundLabel = match.bracketPosition?.split('-')[0] || ''
+                  const isLocked = match.isLocked || match.status === 'COMPLETED' || match.status === 'BYE'
 
                   return (
-                  <tr key={idx} className={`border-b border-gray-100 hover:bg-gray-50 ${isEditing ? 'bg-amber-50' : ''}`}>
-                    <td className="py-3 px-4 text-sm font-medium text-gray-900">M{match.matchNumber} {roundLabel}</td>
+                  <tr key={idx} className={`border-b border-gray-100 hover:bg-gray-50 ${
+                    isLocked ? 'bg-green-50' : isEditing ? 'bg-amber-50' : ''
+                  }`}>
+                    <td className="py-3 px-4 text-sm font-medium text-gray-900 flex items-center gap-2">
+                      {isLocked && (
+                        <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                      M{match.matchNumber} {roundLabel}
+                    </td>
                     <td className="py-3 px-4 text-sm text-gray-600">{match.bracketPosition}</td>
                     <td className="py-3 px-4 text-sm text-gray-900">
                       {match.participant1} <span className="text-gray-400">vs</span> {match.participant2}
                     </td>
                     <td className="py-3 px-4 text-sm text-gray-600">
-                      {isEditing ? (
+                      {isEditing && !isLocked ? (
                         <input
                           type="date"
                           value={match.date}
-                          onChange={(e) => updateMatchSchedule(idx, 'date', e.target.value)}
+                          onChange={(e) => updateMatchSchedule(match.matchId, 'date', e.target.value)}
                           className="w-full px-2 py-1 border border-amber-300 rounded focus:ring-2 focus:ring-amber-500 bg-white"
                         />
                       ) : (
-                        new Date(match.date).toLocaleDateString()
+                        <span className={isLocked ? 'text-green-700 font-medium' : ''}>
+                          {new Date(match.date).toLocaleDateString()}
+                        </span>
                       )}
                     </td>
                     <td className="py-3 px-4 text-sm font-medium text-gray-900">
-                      {isEditing ? (
+                      {isEditing && !isLocked ? (
                         <input
                           type="time"
                           value={match.time}
-                          onChange={(e) => updateMatchSchedule(idx, 'time', e.target.value)}
+                          onChange={(e) => updateMatchSchedule(match.matchId, 'time', e.target.value)}
                           className="w-full px-2 py-1 border border-amber-300 rounded focus:ring-2 focus:ring-amber-500 bg-white"
                         />
                       ) : (
-                        match.time
+                        <span className={isLocked ? 'text-green-700 font-medium' : ''}>
+                          {match.time}
+                        </span>
                       )}
                     </td>
                     <td className="py-3 px-4 text-sm font-medium text-blue-600">
-                      {isEditing ? (
+                      {isEditing && !isLocked ? (
                         <input
                           type="text"
                           value={match.court}
-                          onChange={(e) => updateMatchSchedule(idx, 'court', e.target.value)}
+                          onChange={(e) => updateMatchSchedule(match.matchId, 'court', e.target.value)}
                           className="w-full px-2 py-1 border border-amber-300 rounded focus:ring-2 focus:ring-amber-500 bg-white"
                         />
                       ) : (
-                        match.court
+                        <span className={isLocked ? 'text-green-700 font-medium' : ''}>
+                          {match.court}
+                        </span>
                       )}
                     </td>
                   </tr>
@@ -622,6 +672,19 @@ const MatchScheduler = ({ eventId, tournament }) => {
             </table>
           </div>
 
+          {/* Legend for locked matches */}
+          <div className="mt-4 p-4 bg-green-50 border-l-4 border-green-500 rounded-lg">
+            <div className="flex items-start gap-3">
+              <svg className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+              </svg>
+              <div>
+                <p className="text-sm font-semibold text-green-900">🔒 Locked Matches (Green)</p>
+                <p className="text-sm text-green-800 mt-1">Completed or BYE matches are locked and cannot be rescheduled. They appear in green with a lock icon.</p>
+              </div>
+            </div>
+          </div>
+
           {isEditing && (
             <div className="mt-4 p-4 bg-amber-50 border-l-4 border-amber-500 rounded-lg">
               <div className="flex items-start gap-3">
@@ -629,8 +692,8 @@ const MatchScheduler = ({ eventId, tournament }) => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                 </svg>
                 <div>
-                  <p className="text-sm font-semibold text-amber-900">Edit Mode Active</p>
-                  <p className="text-sm text-amber-800 mt-1">Modify the date, time, or court for any match. Click "Save Changes" when done or "Cancel" to discard changes.</p>
+                  <p className="text-sm font-semibold text-amber-900">✏️ Edit Mode Active</p>
+                  <p className="text-sm text-amber-800 mt-1">Modify the date, time, or court for unlocked matches. Locked (green) matches cannot be edited. Click "Save Changes" when done.</p>
                 </div>
               </div>
             </div>
@@ -701,7 +764,218 @@ const MatchScheduler = ({ eventId, tournament }) => {
         title={errorData.title}
         message={errorData.message}
         details={errorData.details}
+        hasSmartSuggestions={errorData.hasSmartSuggestions}
+        onShowSuggestions={() => setShowSuggestionsModal(true)}
       />
+
+      {showToast && (
+        <Toast message={toastMessage} type={toastType} onClose={() => setShowToast(false)} />
+      )}
+
+      {/* 🧠 Smart Suggestions Modal */}
+      {showSuggestionsModal && suggestions.length > 0 && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-md" onClick={() => setShowSuggestionsModal(false)} />
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-3xl p-8 max-h-[80vh] overflow-y-auto">
+            <button
+              onClick={() => setShowSuggestionsModal(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+            >
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+
+            <div className="mb-6">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-blue-600 rounded-2xl flex items-center justify-center">
+                  <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-2xl font-bold text-gray-900">🧠 Smart Suggestions</h3>
+                  <p className="text-sm text-gray-600">AI-powered conflict resolution</p>
+                </div>
+              </div>
+              <p className="text-gray-700 mt-4">
+                We found scheduling conflicts. Here are intelligent suggestions to fix them:
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              {suggestions.map((suggestion, idx) => (
+                <div key={idx} className="border-2 border-gray-200 rounded-xl p-5 hover:border-primary-500 transition-all">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                          suggestion.confidence === 'high' ? 'bg-green-100 text-green-700' :
+                          suggestion.confidence === 'medium' ? 'bg-yellow-100 text-yellow-700' :
+                          'bg-gray-100 text-gray-700'
+                        }`}>
+                          {suggestion.confidence} confidence
+                        </span>
+                        {suggestion.action === 'swap' && (
+                          <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold">
+                            SWAP TIMES
+                          </span>
+                        )}
+                        {suggestion.action === 'reschedule' && (
+                          <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-bold">
+                            RESCHEDULE
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-gray-900 font-medium mb-2">{suggestion.reason}</p>
+
+                      {/* RESCHEDULE suggestion */}
+                      {suggestion.action === 'reschedule' && suggestion.suggestedTime && (
+                        <div className="text-sm text-gray-600 bg-gray-50 rounded-lg p-3 mt-2">
+                          <div className="font-semibold text-gray-700 mb-1">Suggested Change:</div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-red-600 line-through">{suggestion.currentTime}</span>
+                            <span className="text-gray-400">→</span>
+                            <span className="text-green-600 font-bold">{suggestion.suggestedTime}</span>
+                            {suggestion.suggestedDate && (
+                              <span className="text-gray-500">on {new Date(suggestion.suggestedDate).toLocaleDateString()}</span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* SWAP suggestion */}
+                      {suggestion.action === 'swap' && suggestion.match1Time && suggestion.match2Time && (
+                        <div className="text-sm text-gray-600 bg-blue-50 rounded-lg p-3 mt-2 border border-blue-200">
+                          <div className="font-semibold text-blue-900 mb-2">Swap Details:</div>
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-gray-700">Match {suggestion.match1Number}:</span>
+                              <span className="text-red-600">{suggestion.match1Time}</span>
+                              <span className="text-gray-400">↔</span>
+                              <span className="text-green-600 font-bold">{suggestion.match2Time}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-gray-700">Match {suggestion.match2Number}:</span>
+                              <span className="text-red-600">{suggestion.match2Time}</span>
+                              <span className="text-gray-400">↔</span>
+                              <span className="text-green-600 font-bold">{suggestion.match1Time}</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <button
+                      onClick={async () => {
+                        // Apply the suggestion - use matchId for unique lookup
+                        let updated = [...editedSchedule]
+                        let applied = false
+
+                        if (suggestion.action === 'reschedule') {
+                          const matchIdx = updated.findIndex(m => m.matchId === suggestion.matchId)
+                          if (matchIdx !== -1) {
+                            console.log(`🔧 Rescheduling match ${suggestion.matchNumber} from ${updated[matchIdx].time} to ${suggestion.suggestedTime}`)
+                            updated[matchIdx].time = suggestion.suggestedTime
+                            if (suggestion.suggestedDate) {
+                              updated[matchIdx].date = suggestion.suggestedDate
+                            }
+                            applied = true
+                          } else {
+                            console.error('❌ Match not found:', suggestion.matchId)
+                            setToastMessage('Error: Match not found')
+                            setToastType('error')
+                            setShowToast(true)
+                            return
+                          }
+                        } else if (suggestion.action === 'swap') {
+                          // Swap BOTH time AND date between two matches
+                          const match1Idx = updated.findIndex(m => m.matchId === suggestion.match1Id)
+                          const match2Idx = updated.findIndex(m => m.matchId === suggestion.match2Id)
+
+                          if (match1Idx !== -1 && match2Idx !== -1) {
+                            console.log(`🔧 Swapping Match ${suggestion.match1Number} (${updated[match1Idx].time}) with Match ${suggestion.match2Number} (${updated[match2Idx].time})`)
+
+                            // Swap times
+                            const tempTime = updated[match1Idx].time
+                            updated[match1Idx].time = updated[match2Idx].time
+                            updated[match2Idx].time = tempTime
+
+                            // Also swap dates in case they're different
+                            const tempDate = updated[match1Idx].date
+                            updated[match1Idx].date = updated[match2Idx].date
+                            updated[match2Idx].date = tempDate
+
+                            applied = true
+                          } else {
+                            console.error('❌ Matches not found:', suggestion.match1Id, suggestion.match2Id)
+                            setToastMessage('Error: Matches not found')
+                            setToastType('error')
+                            setShowToast(true)
+                            return
+                          }
+                        }
+
+                        if (!applied) return
+
+                        // Update schedule immediately
+                        setEditedSchedule(updated)
+                        setToastMessage(`Applied: ${suggestion.reason.split('-')[0].trim()}`)
+                        setToastType('success')
+                        setShowToast(true)
+
+                        // Re-validate after applying to check if conflicts resolved
+                        try {
+                          const validateResponse = await api.post(`/events/${eventId}/validate-schedule`, {
+                            schedule: updated
+                          })
+
+                          // If valid now, close modal and show success!
+                          if (validateResponse.data.valid) {
+                            setShowSuggestionsModal(false)
+                            setToastMessage('✅ All conflicts resolved!')
+                            setToastType('success')
+                            setShowToast(true)
+                          }
+                        } catch (err) {
+                          // Still has conflicts - update suggestions list
+                          const responseData = err.response?.data
+                          console.log('🔄 Still has conflicts after apply:', responseData?.conflicts)
+                          if (responseData?.suggestions && responseData.suggestions.length > 0) {
+                            setSuggestions(responseData.suggestions)
+                            setCurrentConflicts(responseData.conflicts)
+                            setToastMessage(`${responseData.conflicts.length} conflict(s) remaining - try another suggestion`)
+                            setToastType('warning')
+                            setShowToast(true)
+                            // Keep modal open with updated suggestions
+                          } else {
+                            // No more suggestions but still has conflicts
+                            setShowSuggestionsModal(false)
+                            setToastMessage('Conflicts remain but no more AI suggestions available')
+                            setToastType('warning')
+                            setShowToast(true)
+                          }
+                        }
+                      }}
+                      className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-lg transition-all whitespace-nowrap"
+                    >
+                      Apply
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-6 flex gap-3">
+              <button
+                onClick={() => setShowSuggestionsModal(false)}
+                className="flex-1 px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-900 font-semibold rounded-xl transition-all"
+              >
+                I'll Fix Manually
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

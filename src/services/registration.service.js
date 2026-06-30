@@ -109,15 +109,22 @@ class RegistrationService {
         },
       });
     } else {
-      // Create new registration
+      // Get next player ID for this event
+      const { getNextPlayerId } = require('../utils/playerIdGenerator');
+      const playerId = await getNextPlayerId(eventId);
+
+      // Create new registration with player ID
       registration = await prisma.registration.create({
         data: {
           userId,
           eventId,
           partnerId,
+          playerId,
           status: 'CONFIRMED'
         },
       });
+
+      console.log(`✅ Assigned player ID ${playerId} to new registration`);
     }
 
     // Fetch the complete registration with relations

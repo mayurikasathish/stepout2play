@@ -1,4 +1,5 @@
 const ocrService = require('../services/ocr.service');
+const { extractNumbers, parseBadmintonScorecard } = require('../utils/scorecardParser');
 const path = require('path');
 const fs = require('fs');
 
@@ -34,13 +35,19 @@ class OCRController {
         });
       }
 
-      // Return OCR results
-      // Keep the uploaded file for debugging (can delete later)
+      // Parse the extracted text
+      const extractedText = ocrResult.data.extracted;
+      const parsed = parseBadmintonScorecard(extractedText);
+
+      // Log extraction preview to console (first 500 chars)
+      console.log('✅ Extraction complete in', ocrResult.data.processing_time_ms + 'ms');
+      console.log('Extracted text preview:', extractedText.substring(0, 500));
+
+      // Return ONLY parsed data to frontend (not the huge extracted text)
       res.status(200).json({
         success: true,
-        extracted: ocrResult.data.extracted,
-        processing_time_ms: ocrResult.data.processing_time_ms,
-        upload_path: imagePath
+        parsed,
+        processing_time_ms: ocrResult.data.processing_time_ms
       });
     } catch (error) {
       next(error);

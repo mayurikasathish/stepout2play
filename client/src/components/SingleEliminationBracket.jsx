@@ -109,18 +109,19 @@ const SingleEliminationBracket = ({ matches, onMatchClick, onCaptureScorecard, e
   }
 
   const getParticipantLabel = (participant, match, position) => {
-    // If participant exists, show their name with null safety
+    // If participant exists, show their player ID and name
     if (participant) {
       if (participant.user) {
+        const playerId = participant.playerId ? `${participant.playerId}: ` : ''
         const userName = `${participant.user.firstName || ''} ${participant.user.lastName || ''}`.trim()
         if (participant.partner && participant.partner.firstName) {
           const partnerName = `${participant.partner.firstName} ${participant.partner.lastName || ''}`.trim()
-          return userName ? `${userName} / ${partnerName}` : partnerName
+          return `${playerId}${userName ? `${userName} / ${partnerName}` : partnerName}`
         }
-        return userName || 'Unknown Player'
+        return `${playerId}${userName || 'Unknown Player'}`
       }
       // Fallback if user object is missing but participant exists
-      return 'Player TBD'
+      return participant.playerId ? `${participant.playerId}: Player TBD` : 'Player TBD'
     }
 
     // Find source match that feeds into this position
