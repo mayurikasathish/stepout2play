@@ -175,9 +175,10 @@ class MatchSchedulerController {
             // Same day - check time overlap
             if (startMinutes < existing.endTime && endMinutes > existing.startTime) {
               // OVERLAP DETECTED!
+              const matchName = this._formatMatchName(match);
               conflicts.push({
                 type: 'PLAYER_OVERLAP',
-                message: `Player conflict: Participant in Match ${item.matchNumber} is already playing Match ${existing.matchNumber} at ${this._formatTimeFromMinutes(existing.startTime)} on ${item.date}`,
+                message: `Player conflict: Participant in ${matchName} is already scheduled for another match at ${this._formatTimeFromMinutes(existing.startTime)} on ${item.date}`,
                 match1: item.matchNumber,
                 match2: existing.matchNumber,
                 date: item.date,
@@ -205,9 +206,10 @@ class MatchSchedulerController {
         for (const existing of p2Matches) {
           if (existing.date === item.date) {
             if (startMinutes < existing.endTime && endMinutes > existing.startTime) {
+              const matchName = this._formatMatchName(match);
               conflicts.push({
                 type: 'PLAYER_OVERLAP',
-                message: `Player conflict: Participant in Match ${item.matchNumber} is already playing Match ${existing.matchNumber} at ${this._formatTimeFromMinutes(existing.startTime)} on ${item.date}`,
+                message: `Player conflict: Participant in ${matchName} is already scheduled for another match at ${this._formatTimeFromMinutes(existing.startTime)} on ${item.date}`,
                 match1: item.matchNumber,
                 match2: existing.matchNumber,
                 date: item.date,
@@ -251,10 +253,14 @@ class MatchSchedulerController {
       const nextDate = new Date(nextMatchSchedule.date);
 
       // Next match must be AFTER this match (same day or later)
+      const currentMatchName = this._formatMatchName(match);
+      const nextMatch = matchMap.get(match.nextMatchId);
+      const nextMatchName = this._formatMatchName(nextMatch);
+
       if (nextDate < currentDate) {
         conflicts.push({
           type: 'DEPENDENCY_VIOLATION',
-          message: `Match ${nextMatchSchedule.matchNumber} (${nextDate.toISOString().split('T')[0]}) cannot happen before Match ${item.matchNumber} (${currentSchedule.date}) which feeds into it`,
+          message: `${nextMatchName} (${nextDate.toISOString().split('T')[0]}) cannot happen before ${currentMatchName} (${currentSchedule.date}) which feeds into it`,
           sourceMatch: item.matchNumber,
           nextMatch: nextMatchSchedule.matchNumber
         });
@@ -263,7 +269,7 @@ class MatchSchedulerController {
         if (nextMatchSchedule.startTime < currentSchedule.endTime + minRestTime) {
           conflicts.push({
             type: 'DEPENDENCY_VIOLATION',
-            message: `Match ${nextMatchSchedule.matchNumber} starts at ${this._formatTimeFromMinutes(nextMatchSchedule.startTime)} but Match ${item.matchNumber} (which feeds into it) doesn't finish until ${this._formatTimeFromMinutes(currentSchedule.endTime + minRestTime)}`,
+            message: `${nextMatchName} starts at ${this._formatTimeFromMinutes(nextMatchSchedule.startTime)} but ${currentMatchName} (which feeds into it) doesn't finish until ${this._formatTimeFromMinutes(currentSchedule.endTime + minRestTime)}`,
             sourceMatch: item.matchNumber,
             nextMatch: nextMatchSchedule.matchNumber,
             date: currentSchedule.date
@@ -288,6 +294,19 @@ class MatchSchedulerController {
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
     return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+  }
+
+  /**
+   * Helper: Format match name with round label (e.g., "M1 R6", "M3 R2")
+   * Simple and consistent - just use R{roundNumber}
+   */
+  _formatMatchName(match) {
+    if (!match) return 'Unknown Match';
+
+    const matchNum = match.matchNumber || '?';
+    const roundNum = match.roundNumber;
+
+    return roundNum ? `M${matchNum} R${roundNum}` : `M${matchNum}`;
   }
 
   /**
@@ -438,7 +457,10 @@ class MatchSchedulerController {
       await prisma.$transaction(
         schedule.map(item => {
           const scheduledDateTime = new Date(`${item.date}T${item.time}`);
-          console.log(`  Match ${item.matchNumber}: ${scheduledDateTime.toISOString()} on ${item.court}`);
+          // Extract round label from bracketPosition for logging
+          const roundLabel = item.bracketPosition?.split('-')[0] || '';
+          const matchLabel = roundLabel ? `M${item.matchNumber} ${roundLabel}` : `M${item.matchNumber}`;
+          console.log(`  ${matchLabel}: ${scheduledDateTime.toISOString()} on ${item.court}`);
 
           return prisma.match.update({
             where: { id: item.matchId },

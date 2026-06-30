@@ -49,6 +49,8 @@ const MatchScheduler = ({ eventId, tournament }) => {
   const [loadingSaved, setLoadingSaved] = useState(true)
   const [isEditing, setIsEditing] = useState(false)
   const [editedSchedule, setEditedSchedule] = useState(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [exactMatch, setExactMatch] = useState(false)
 
   // Modal states
   const [showEditConfirm, setShowEditConfirm] = useState(false)
@@ -428,9 +430,22 @@ const MatchScheduler = ({ eventId, tournament }) => {
               <p className="text-xs text-green-600 font-medium">Days Used</p>
               <p className="text-2xl font-bold text-green-900">{schedule.metadata.daysUsed} / {schedule.metadata.daysAvailable}</p>
             </div>
-            <div className="p-4 bg-purple-50 rounded-lg">
-              <p className="text-xs text-purple-600 font-medium">Daily Capacity</p>
+            <div className="p-4 bg-purple-50 rounded-lg relative group">
+              <p className="text-xs text-purple-600 font-medium flex items-center gap-1">
+                Daily Capacity
+                <svg className="w-3 h-3 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </p>
               <p className="text-2xl font-bold text-purple-900">{schedule.metadata.dailyCapacity}</p>
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-10">
+                <div className="bg-gray-900 text-white text-xs rounded-lg py-2 px-3 whitespace-nowrap">
+                  Max matches per day with current settings<br/>
+                  (Actual usage may be lower due to player<br/>
+                  rest times & knockout dependencies)
+                </div>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-gray-900"></div>
+              </div>
             </div>
             <div className="p-4 bg-orange-50 rounded-lg">
               <p className="text-xs text-orange-600 font-medium">Courts</p>
@@ -456,6 +471,58 @@ const MatchScheduler = ({ eventId, tournament }) => {
             </div>
           )}
 
+          {/* Search Bar */}
+          <div className="mb-4">
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search by match number, participant name, or court... (Press Enter for exact match)"
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value)
+                  setExactMatch(false) // Reset to fuzzy search when typing
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    setExactMatch(true) // Enable exact match on Enter
+                  }
+                }}
+                className="w-full px-4 py-3 pl-10 pr-24 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              />
+              <svg className="w-5 h-5 text-gray-400 absolute left-3 top-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <div className="absolute right-3 top-3 flex items-center gap-2">
+                {exactMatch && searchQuery && (
+                  <span className="px-2 py-1 bg-primary-600 text-white text-[10px] font-bold rounded uppercase">
+                    Exact
+                  </span>
+                )}
+                {searchQuery && (
+                  <button
+                    onClick={() => {
+                      setSearchQuery('')
+                      setExactMatch(false)
+                    }}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+            </div>
+            {exactMatch && searchQuery && (
+              <p className="text-xs text-gray-600 mt-1 flex items-center gap-1">
+                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Showing exact matches only. Start typing to search again.
+              </p>
+            )}
+          </div>
+
           {/* Schedule Table */}
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -470,9 +537,44 @@ const MatchScheduler = ({ eventId, tournament }) => {
                 </tr>
               </thead>
               <tbody>
-                {(isEditing ? editedSchedule : schedule.schedule.scheduledMatches).map((match, idx) => (
+                {(isEditing ? editedSchedule : schedule.schedule.scheduledMatches)
+                  .filter(match => {
+                    if (!searchQuery) return true
+                    const query = searchQuery.toLowerCase().trim()
+                    const roundLabel = match.bracketPosition?.split('-')[0] || ''
+                    const matchLabel = `m${match.matchNumber} ${roundLabel}`.toLowerCase()
+                    const participant1 = (match.participant1 || '').toLowerCase()
+                    const participant2 = (match.participant2 || '').toLowerCase()
+                    const court = (match.court || '').toLowerCase()
+                    const bracketPos = (match.bracketPosition || '').toLowerCase()
+                    const matchNum = `${match.matchNumber}`.toLowerCase()
+
+                    if (exactMatch) {
+                      // Exact match mode: check if any field EQUALS the query exactly
+                      return matchLabel === query ||
+                             participant1 === query ||
+                             participant2 === query ||
+                             court === query ||
+                             bracketPos === query ||
+                             matchNum === query ||
+                             roundLabel.toLowerCase() === query
+                    } else {
+                      // Fuzzy match mode: check if any field INCLUDES the query
+                      return matchLabel.includes(query) ||
+                             participant1.includes(query) ||
+                             participant2.includes(query) ||
+                             court.includes(query) ||
+                             bracketPos.includes(query) ||
+                             matchNum.includes(query)
+                    }
+                  })
+                  .map((match, idx) => {
+                  // Extract round label from bracketPosition (e.g., "R3-M1" -> "R3")
+                  const roundLabel = match.bracketPosition?.split('-')[0] || ''
+
+                  return (
                   <tr key={idx} className={`border-b border-gray-100 hover:bg-gray-50 ${isEditing ? 'bg-amber-50' : ''}`}>
-                    <td className="py-3 px-4 text-sm font-medium text-gray-900">M{match.matchNumber}</td>
+                    <td className="py-3 px-4 text-sm font-medium text-gray-900">M{match.matchNumber} {roundLabel}</td>
                     <td className="py-3 px-4 text-sm text-gray-600">{match.bracketPosition}</td>
                     <td className="py-3 px-4 text-sm text-gray-900">
                       {match.participant1} <span className="text-gray-400">vs</span> {match.participant2}
@@ -514,7 +616,8 @@ const MatchScheduler = ({ eventId, tournament }) => {
                       )}
                     </td>
                   </tr>
-                ))}
+                  )
+                })}
               </tbody>
             </table>
           </div>

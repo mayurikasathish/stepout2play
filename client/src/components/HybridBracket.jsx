@@ -34,6 +34,11 @@ const HybridBracket = ({ bracket, onMatchClick, onCaptureScorecard, isOrganizer 
     return `Round of ${matchesInRound * 2}`
   }
 
+  const getRoundLabel = (roundNum, totalRounds) => {
+    // Simple and consistent: just show R{roundNumber}
+    return `R${roundNum}`
+  }
+
   const getParticipantDisplay = (participant) => {
     if (!participant) return { name: 'TBD', subtext: 'To be determined' }
 
@@ -323,6 +328,12 @@ const HybridBracket = ({ bracket, onMatchClick, onCaptureScorecard, isOrganizer 
                               isOrganizer && match.status === 'READY' ? 'cursor-pointer hover:shadow-lg' : ''
                             }`}
                           >
+                            {/* Match Header */}
+                            <div className="px-3 pt-2 pb-1">
+                              <div className="text-xs font-bold text-gray-700">
+                                M{match.matchNumber} {getRoundLabel(roundNum, knockoutRoundsWithoutBronze.length)}
+                              </div>
+                            </div>
                             <div className="p-3 space-y-1">
                               <div className={`p-3 rounded-lg ${
                                 match.winnerId === match.participant1Id
@@ -394,6 +405,12 @@ const HybridBracket = ({ bracket, onMatchClick, onCaptureScorecard, isOrganizer 
                     isOrganizer && bronzeMatch.status === 'READY' ? 'cursor-pointer hover:shadow-lg' : ''
                   }`}
                 >
+                  {/* Match Header */}
+                  <div className="px-4 pt-3 pb-1">
+                    <div className="text-xs font-bold text-amber-700">
+                      M{bronzeMatch.matchNumber} Bronze
+                    </div>
+                  </div>
                   <div className="p-4 space-y-2">
                     {[bronzeMatch.participant1, bronzeMatch.participant2].map((participant, idx) => {
                       const display = getParticipantDisplay(participant)

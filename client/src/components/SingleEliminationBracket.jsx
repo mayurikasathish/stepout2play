@@ -103,6 +103,11 @@ const SingleEliminationBracket = ({ matches, onMatchClick, onCaptureScorecard, e
     return `Round of ${totalMatches * 2}`
   }
 
+  const getRoundLabel = (roundNumber) => {
+    // Simple and consistent: just show R{roundNumber}
+    return `R${roundNumber}`
+  }
+
   const getParticipantLabel = (participant, match, position) => {
     // If participant exists, show their name with null safety
     if (participant) {
@@ -241,7 +246,7 @@ const SingleEliminationBracket = ({ matches, onMatchClick, onCaptureScorecard, e
 
         {/* Header */}
         <div className="flex items-center justify-between px-3 py-2 flex-shrink-0 bg-gray-50 border-b border-gray-100">
-          <span className="text-xs font-bold text-gray-800">Match #{match.matchNumber}</span>
+          <span className="text-xs font-bold text-gray-800">M{match.matchNumber} {getRoundLabel(match.roundNumber)}</span>
           {getStatusIndicator(match)}
         </div>
 
@@ -300,7 +305,7 @@ const SingleEliminationBracket = ({ matches, onMatchClick, onCaptureScorecard, e
 
         {/* Match number + status */}
         <div className="flex items-center justify-between px-3 py-2 flex-shrink-0 bg-gray-50 border-b border-gray-100">
-          <span className="text-xs font-bold text-gray-800">Match #{match.matchNumber}</span>
+          <span className="text-xs font-bold text-gray-800">M{match.matchNumber} {getRoundLabel(match.roundNumber)}</span>
           {getStatusIndicator(match)}
         </div>
 
