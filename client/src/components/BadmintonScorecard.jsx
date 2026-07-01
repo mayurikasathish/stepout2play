@@ -4,9 +4,19 @@ import html2canvas from 'html2canvas'
 /**
  * Badminton Scorecard Template
  * Optimized for OCR extraction with high contrast, clear labels, and structured layout
+ * Dynamically generates sets based on event's bestOf configuration
  */
-const BadmintonScorecard = ({ match, eventName }) => {
+const BadmintonScorecard = ({ match, eventName, event }) => {
   const scorecardRef = useRef(null)
+
+  // Get bestOf from event, default to 3 if not specified
+  const bestOf = event?.bestOf || event?.scoringRules?.bestOf || 3
+
+  // Calculate sets needed to win (best of 3 = need 2, best of 5 = need 3, best of 7 = need 4)
+  const setsNeededToWin = Math.ceil(bestOf / 2)
+
+  // Generate array of set numbers [1, 2, 3] or [1, 2, 3, 4, 5] based on bestOf
+  const sets = Array.from({ length: bestOf }, (_, i) => i + 1)
 
   const handlePrint = () => {
     window.print()
@@ -111,57 +121,30 @@ const BadmintonScorecard = ({ match, eventName }) => {
           )}
         </div>
 
-        {/* Scores Section */}
+        {/* Scores Section - Dynamic based on bestOf */}
         <div className="border-4 border-black p-6 mb-8">
-          <div className="text-2xl font-black mb-6 text-center">SCORES</div>
+          <div className="text-2xl font-black mb-6 text-center">SCORES (Best of {bestOf})</div>
 
-          {/* Set 1 */}
-          <div className="mb-6">
-            <div className="text-xl font-bold mb-3">SET 1</div>
-            <div className="grid grid-cols-3 gap-4">
-              <div className="border-4 border-black p-6 text-center">
-                <div className="text-sm mb-2">PLAYER 1</div>
-                <div className="text-7xl font-black">__</div>
-              </div>
-              <div className="flex items-center justify-center text-4xl font-black">-</div>
-              <div className="border-4 border-black p-6 text-center">
-                <div className="text-sm mb-2">PLAYER 2</div>
-                <div className="text-7xl font-black">__</div>
-              </div>
-            </div>
-          </div>
+          {sets.map((setNum, index) => {
+            const isLast = index === sets.length - 1
 
-          {/* Set 2 */}
-          <div className="mb-6">
-            <div className="text-xl font-bold mb-3">SET 2</div>
-            <div className="grid grid-cols-3 gap-4">
-              <div className="border-4 border-black p-6 text-center">
-                <div className="text-sm mb-2">PLAYER 1</div>
-                <div className="text-7xl font-black">__</div>
+            return (
+              <div key={setNum} className={isLast ? '' : 'mb-6'}>
+                <div className="text-xl font-bold mb-3">SET {setNum}</div>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="border-4 border-black p-6 text-center">
+                    <div className="text-sm mb-2">PLAYER 1</div>
+                    <div className="text-7xl font-black">__</div>
+                  </div>
+                  <div className="flex items-center justify-center text-4xl font-black">-</div>
+                  <div className="border-4 border-black p-6 text-center">
+                    <div className="text-sm mb-2">PLAYER 2</div>
+                    <div className="text-7xl font-black">__</div>
+                  </div>
+                </div>
               </div>
-              <div className="flex items-center justify-center text-4xl font-black">-</div>
-              <div className="border-4 border-black p-6 text-center">
-                <div className="text-sm mb-2">PLAYER 2</div>
-                <div className="text-7xl font-black">__</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Set 3 */}
-          <div>
-            <div className="text-xl font-bold mb-3">SET 3 (IF REQUIRED)</div>
-            <div className="grid grid-cols-3 gap-4">
-              <div className="border-4 border-black p-6 text-center">
-                <div className="text-sm mb-2">PLAYER 1</div>
-                <div className="text-7xl font-black">__</div>
-              </div>
-              <div className="flex items-center justify-center text-4xl font-black">-</div>
-              <div className="border-4 border-black p-6 text-center">
-                <div className="text-sm mb-2">PLAYER 2</div>
-                <div className="text-7xl font-black">__</div>
-              </div>
-            </div>
-          </div>
+            )
+          })}
         </div>
 
         {/* Winner */}

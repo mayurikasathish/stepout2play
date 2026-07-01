@@ -21,6 +21,8 @@ const BracketView = ({ eventId, eventName, eventFormat, registrationCount, isOrg
   const [toastType, setToastType] = useState('success')
   const [showScorecardModal, setShowScorecardModal] = useState(false)
   const [scorecardMatch, setScorecardMatch] = useState(null)
+  const [showEditConfirmModal, setShowEditConfirmModal] = useState(false)
+  const [pendingMatchToEdit, setPendingMatchToEdit] = useState(null)
 
   useEffect(() => {
     loadBracket()
@@ -73,8 +75,23 @@ const BracketView = ({ eventId, eventName, eventFormat, registrationCount, isOrg
   }
 
   const handleMatchClick = (match) => {
-    setSelectedMatch(match)
+    // Check if match is already completed
+    if (match.status === 'COMPLETED' && match.score) {
+      // Show confirmation modal for editing completed match
+      setPendingMatchToEdit(match)
+      setShowEditConfirmModal(true)
+    } else {
+      // Open modal directly for non-completed matches
+      setSelectedMatch(match)
+      setShowMatchModal(true)
+    }
+  }
+
+  const confirmEditCompletedMatch = () => {
+    setSelectedMatch(pendingMatchToEdit)
     setShowMatchModal(true)
+    setShowEditConfirmModal(false)
+    setPendingMatchToEdit(null)
   }
 
   const handleCaptureScorecard = (match) => {
@@ -305,10 +322,90 @@ const BracketView = ({ eventId, eventName, eventFormat, registrationCount, isOrg
         isOpen={showScorecardModal}
         onClose={() => setShowScorecardModal(false)}
         match={scorecardMatch}
-        onScoreExtracted={(extractedData) => {
-          // TODO: Parse extracted data and auto-fill match scores
-          console.log('Extracted scorecard data:', extractedData)
-          setShowScorecardModal(false)
+        onScoreExtracted={async (extractedData) => {
+          try {
+            console.log('📊 Updating bracket with extracted data:', extractedData)
+            console.log('📋 Match data:', {
+              matchId: scorecardMatch.id,
+              participant1: scorecardMatch.participant1,
+              participant2: scorecardMatch.participant2
+            })
+
+            const scrollX = window.scrollX
+            const scrollY = window.scrollY
+
+            // Map scorecard player IDs to actual participant IDs
+            // extractedData.winnerId is like "P031" or "P034"
+            // We need to check if participant1 or participant2 matches
+            let actualWinnerId = null
+
+            console.log('🔍 Checking participant1 playerCode:', scorecardMatch.participant1?.playerCode)
+            console.log('🔍 Checking participant2 playerCode:', scorecardMatch.participant2?.playerCode)
+            console.log('🏆 Winner from scorecard:', extractedData.winnerId)
+
+            if (scorecardMatch.participant1?.playerCode === extractedData.winnerId) {
+              actualWinnerId = scorecardMatch.participant1.id
+              console.log('✅ Winner is participant1:', actualWinnerId)
+            } else if (scorecardMatch.participant2?.playerCode === extractedData.winnerId) {
+              actualWinnerId = scorecardMatch.participant2.id
+              console.log('✅ Winner is participant2:', actualWinnerId)
+            } else {
+              // Fallback: determine winner by comparing player IDs
+              // If player1Id from scorecard won, use participant1
+              console.log('⚠️ playerCode not found, using fallback logic')
+              if (extractedData.winnerId === extractedData.player1Id) {
+                actualWinnerId = scorecardMatch.participant1?.id
+                console.log('✅ Fallback: Winner is participant1:', actualWinnerId)
+              } else {
+                actualWinnerId = scorecardMatch.participant2?.id
+                console.log('✅ Fallback: Winner is participant2:', actualWinnerId)
+              }
+            }
+
+            if (!actualWinnerId) {
+              throw new Error('Could not determine winner participant ID')
+            }
+
+            console.log('🎯 Final winnerId to send:', actualWinnerId)
+
+            // Format score data for API
+            const score = {
+              sets: extractedData.sets,
+              player1Wins: extractedData.player1Wins,
+              player2Wins: extractedData.player2Wins
+            }
+
+            console.log('📤 Sending PATCH request:', {
+              url: `/matches/${scorecardMatch.id}/result`,
+              body: { winnerId: actualWinnerId, score }
+            })
+
+            // Update match with winner and scores
+            const response = await api.patch(`/matches/${scorecardMatch.id}/result`, {
+              winnerId: actualWinnerId,
+              score
+            })
+
+            console.log('✅ API Response:', response.data)
+
+            setShowScorecardModal(false)
+            setScorecardMatch(null)
+
+            // Reload bracket to show progression
+            await loadBracket()
+
+            requestAnimationFrame(() => window.scrollTo(scrollX, scrollY))
+
+            setToastMessage('✅ Match result updated successfully! Winner progressed.')
+            setToastType('success')
+            setShowToast(true)
+          } catch (err) {
+            console.error('❌ Error updating match from OCR:', err)
+            setShowScorecardModal(false)
+            setToastMessage(err.response?.data?.error || 'Failed to update match result')
+            setToastType('error')
+            setShowToast(true)
+          }
         }}
       />
 
@@ -346,6 +443,54 @@ const BracketView = ({ eventId, eventName, eventFormat, registrationCount, isOrg
         </div>
       )}
 
+
+      {/* Edit Completed Match Confirmation Modal */}
+      {showEditConfirmModal && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-md" onClick={() => setShowEditConfirmModal(false)} />
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 animate-slide-up">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">Edit Saved Match?</h3>
+              <p className="text-gray-600">
+                This match has already been completed and saved. Editing may affect tournament progression and standings.
+              </p>
+            </div>
+            <div className="space-y-3 mb-6">
+              <div className="flex items-start gap-2 text-sm text-gray-700">
+                <svg className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+                <span>Players may have already advanced to next rounds</span>
+              </div>
+              <div className="flex items-start gap-2 text-sm text-gray-700">
+                <svg className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+                <span>Standings and statistics will be recalculated</span>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowEditConfirmModal(false)}
+                className="flex-1 px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-900 font-semibold rounded-xl transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmEditCompletedMatch}
+                className="flex-1 px-6 py-3 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-semibold rounded-xl transition-all shadow-lg"
+              >
+                Yes, Edit Match
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showToast && (
         <Toast message={toastMessage} type={toastType} onClose={() => setShowToast(false)} />
@@ -386,6 +531,8 @@ const MatchResultModal = ({ match, event, isRoundRobin, onClose, onSubmit }) => 
 
   const bestOf = scoringRules.bestOf
   const pointsPerSet = scoringRules.pointsPerSet
+
+  console.log('🎯 MatchResultModal - bestOf:', bestOf, 'scoringRules:', scoringRules)
 
   // Initialize set scores from existing score string if available
   const initializeSetScores = () => {

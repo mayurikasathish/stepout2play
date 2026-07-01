@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import EditScoreButton from './EditScoreButton'
+import { formatMatchScore } from '../utils/scoreFormatter'
 
 const HybridBracket = ({ bracket, onMatchClick, onCaptureScorecard, isOrganizer }) => {
   const { event, groups, matches } = bracket
@@ -264,7 +265,7 @@ const HybridBracket = ({ bracket, onMatchClick, onCaptureScorecard, isOrganizer 
                               </div>
                             </div>
                             <div className="px-4 text-xs font-semibold text-gray-500">
-                              {match.status === 'COMPLETED' ? match.score || 'vs' : 'vs'}
+                              {match.status === 'COMPLETED' ? formatMatchScore(match.score) || 'vs' : 'vs'}
                             </div>
                             <div className="flex-1 text-right">
                               <div className={`font-medium ${match.winnerId === match.participant2Id ? 'text-green-700 font-bold' : 'text-gray-700'}`}>
@@ -349,7 +350,7 @@ const HybridBracket = ({ bracket, onMatchClick, onCaptureScorecard, isOrganizer 
                               </div>
 
                               <div className="text-center text-xs font-semibold text-gray-500 py-1">
-                                {match.status === 'COMPLETED' ? match.score || 'vs' : 'vs'}
+                                {match.status === 'COMPLETED' ? formatMatchScore(match.score) || 'vs' : 'vs'}
                               </div>
 
                               <div className={`p-3 rounded-lg ${

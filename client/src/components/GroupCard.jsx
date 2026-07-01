@@ -1,6 +1,7 @@
 // GroupCard.jsx
 // Displays one Round Robin group: standings table + fixture list
 import EditScoreButton from './EditScoreButton'
+import { formatMatchScore } from '../utils/scoreFormatter'
 
 const STATUS_CONFIG = {
   PENDING:     { label: 'Upcoming', dot: 'bg-gray-400',   text: 'text-gray-600',   bg: 'bg-gray-50'   },
@@ -139,7 +140,7 @@ const GroupCard = ({ group, isOrganizer, onMatchClick, onCaptureScorecard }) => 
                   </span>
 
                   <span className="text-xs text-gray-400 shrink-0 font-medium">
-                    {isCompleted && match.score ? match.score : 'vs'}
+                    {isCompleted && match.score ? formatMatchScore(match.score) : 'vs'}
                   </span>
 
                   <span className={`text-sm font-medium truncate max-w-[100px] text-left ${

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import EditScoreButton from './EditScoreButton'
+import { formatMatchScore } from '../utils/scoreFormatter'
 
 const SingleEliminationBracket = ({ matches, onMatchClick, onCaptureScorecard, eventName, tournamentName }) => {
   const [zoom, setZoom] = useState(100)
@@ -284,10 +285,7 @@ const SingleEliminationBracket = ({ matches, onMatchClick, onCaptureScorecard, e
       <div
         key={match.id}
         data-match-id={match.id}
-        onClick={() => isClickable && onMatchClick(match)}
-        className={`compact-match-card border-2 rounded-xl transition-all relative z-10 flex flex-col overflow-hidden ${getStatusColor(match)} ${
-          isClickable ? 'hover:border-primary-500 hover:shadow-md cursor-pointer' : ''
-        }`}
+        className={`compact-match-card border-2 rounded-xl transition-all relative z-10 flex flex-col overflow-hidden ${getStatusColor(match)}`}
         style={{ width: '260px', minHeight: '280px' }}
       >
         {/* Schedule strip */}
@@ -342,7 +340,9 @@ const SingleEliminationBracket = ({ matches, onMatchClick, onCaptureScorecard, e
         {/* Score display and Edit button - consistent spacing */}
         <div className="px-3 pb-3 pt-1 flex-shrink-0">
           {match.score && match.status === 'COMPLETED' && (
-            <div className="text-[10px] text-gray-500 font-medium text-center mb-1">{match.score}</div>
+            <div className="text-[10px] text-gray-500 font-medium text-center mb-1">
+              {formatMatchScore(match.score)}
+            </div>
           )}
           {showButton && (
             <EditScoreButton

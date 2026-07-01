@@ -1103,7 +1103,12 @@ class BracketService {
     await prisma.$transaction(async (tx) => {
       await tx.match.update({
         where: { id: matchId },
-        data: { winnerId, score, status: 'COMPLETED', completedAt: new Date() }
+        data: {
+          winnerId,
+          score: score ? JSON.stringify(score) : null,
+          status: 'COMPLETED',
+          completedAt: new Date()
+        }
       });
       if (match.nextMatchId) {
         await this.advanceWinnerInBracket(tx, match, winnerId);

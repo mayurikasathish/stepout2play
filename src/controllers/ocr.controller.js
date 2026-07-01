@@ -41,12 +41,14 @@ class OCRController {
 
       // Log extraction preview to console (first 500 chars)
       console.log('✅ Extraction complete in', ocrResult.data.processing_time_ms + 'ms');
-      console.log('Extracted text preview:', extractedText.substring(0, 500));
+      console.log('📄 Extracted text (first 1000 chars):', extractedText.substring(0, 1000));
+      console.log('🔍 Parser result:', JSON.stringify(parsed, null, 2));
 
-      // Return ONLY parsed data to frontend (not the huge extracted text)
+      // Return parsed data + extracted text for debugging (will show in frontend if parsing fails)
       res.status(200).json({
         success: true,
         parsed,
+        extracted: extractedText, // Include for debugging partial extractions
         processing_time_ms: ocrResult.data.processing_time_ms
       });
     } catch (error) {

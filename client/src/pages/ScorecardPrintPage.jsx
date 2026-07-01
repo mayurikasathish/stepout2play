@@ -81,6 +81,7 @@ const ScorecardPrintPage = () => {
               key={index}
               match={match}
               eventName={event?.name}
+              event={event}
             />
           ))}
         </div>

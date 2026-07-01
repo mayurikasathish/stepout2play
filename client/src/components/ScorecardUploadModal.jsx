@@ -9,6 +9,16 @@ const ScorecardUploadModal = ({ isOpen, onClose, match, onScoreExtracted }) => {
   const [result, setResult] = useState(null)
   const [error, setError] = useState(null)
   const [showValidation, setShowValidation] = useState(false)
+  const [showManualEntry, setShowManualEntry] = useState(false)
+  const [manualScores, setManualScores] = useState({
+    player1Id: '',
+    player2Id: '',
+    sets: [
+      { player1Score: '', player2Score: '' },
+      { player1Score: '', player2Score: '' },
+      { player1Score: '', player2Score: '' }
+    ]
+  })
 
   const handleImageSelect = (e) => {
     const file = e.target.files[0]
@@ -50,6 +60,13 @@ const ScorecardUploadModal = ({ isOpen, onClose, match, onScoreExtracted }) => {
 
       console.log('✅ OCR Response:', response.data)
       console.log('📊 Parsed success?', response.data.parsed?.success)
+      console.log('📄 Extracted text (first 1500 chars):', response.data.extracted?.substring(0, 1500))
+
+      if (!response.data.parsed?.success) {
+        console.log('❌ Parser error:', response.data.parsed?.error)
+        console.log('🔍 Parsed data:', response.data.parsed)
+      }
+
       setResult(response.data)
 
       // Show validation modal if parsing succeeded
@@ -58,6 +75,15 @@ const ScorecardUploadModal = ({ isOpen, onClose, match, onScoreExtracted }) => {
         setShowValidation(true)
       } else {
         console.log('⚠️ Not showing validation - parsed.success is false')
+
+        // If we got player IDs but no scores, pre-fill manual entry
+        if (response.data.parsed?.playerIds && response.data.parsed.playerIds.length >= 2) {
+          setManualScores(prev => ({
+            ...prev,
+            player1Id: response.data.parsed.playerIds[0] || '',
+            player2Id: response.data.parsed.playerIds[1] || ''
+          }))
+        }
       }
     } catch (err) {
       console.error('❌ OCR Error:', err)
@@ -74,6 +100,16 @@ const ScorecardUploadModal = ({ isOpen, onClose, match, onScoreExtracted }) => {
     setError(null)
     setExtracting(false)
     setShowValidation(false)
+    setShowManualEntry(false)
+    setManualScores({
+      player1Id: '',
+      player2Id: '',
+      sets: [
+        { player1Score: '', player2Score: '' },
+        { player1Score: '', player2Score: '' },
+        { player1Score: '', player2Score: '' }
+      ]
+    })
     onClose()
   }
 
@@ -91,6 +127,71 @@ const ScorecardUploadModal = ({ isOpen, onClose, match, onScoreExtracted }) => {
     setResult(null)
     setSelectedImage(null)
     setPreviewUrl(null)
+    setShowManualEntry(false)
+  }
+
+  const handleManualEntry = () => {
+    setShowManualEntry(true)
+  }
+
+  const handleManualScoreChange = (setIndex, player, value) => {
+    setManualScores(prev => {
+      const newSets = [...prev.sets]
+      newSets[setIndex][player] = value
+      return { ...prev, sets: newSets }
+    })
+  }
+
+  const handleManualPlayerIdChange = (player, value) => {
+    setManualScores(prev => ({
+      ...prev,
+      [player]: value.toUpperCase()
+    }))
+  }
+
+  const handleManualSubmit = () => {
+    // Validate inputs
+    if (!manualScores.player1Id || !manualScores.player2Id) {
+      setError('Please enter both player IDs')
+      return
+    }
+
+    // Count non-empty sets
+    const validSets = manualScores.sets.filter(
+      set => set.player1Score !== '' && set.player2Score !== ''
+    )
+
+    if (validSets.length === 0) {
+      setError('Please enter at least one set score')
+      return
+    }
+
+    // Convert to parsed format
+    const parsedData = {
+      success: true,
+      player1Id: manualScores.player1Id,
+      player2Id: manualScores.player2Id,
+      sets: validSets.map(set => ({
+        player1Score: parseInt(set.player1Score),
+        player2Score: parseInt(set.player2Score)
+      }))
+    }
+
+    // Calculate winner
+    let player1Wins = 0
+    let player2Wins = 0
+    parsedData.sets.forEach(set => {
+      if (set.player1Score > set.player2Score) player1Wins++
+      else if (set.player2Score > set.player1Score) player2Wins++
+    })
+    parsedData.winnerId = player1Wins > player2Wins ? parsedData.player1Id : parsedData.player2Id
+    parsedData.player1Wins = player1Wins
+    parsedData.player2Wins = player2Wins
+
+    // Update result and show validation
+    setResult({ ...result, parsed: parsedData })
+    setShowManualEntry(false)
+    setShowValidation(true)
   }
 
   if (!isOpen) return null
@@ -98,12 +199,24 @@ const ScorecardUploadModal = ({ isOpen, onClose, match, onScoreExtracted }) => {
   // Hide upload modal when validation modal is showing
   if (showValidation) {
     console.log('🎨 Rendering ScoreValidationModal with:', result?.parsed)
+
+    // Prepare match data with player names
+    const enrichedMatchData = {
+      ...match,
+      player1Name: match?.participant1
+        ? `${match.participant1.user.firstName} ${match.participant1.user.lastName}`
+        : 'TBD',
+      player2Name: match?.participant2
+        ? `${match.participant2.user.firstName} ${match.participant2.user.lastName}`
+        : 'TBD'
+    }
+
     return (
       <ScoreValidationModal
         isOpen={showValidation}
         onClose={() => setShowValidation(false)}
         parsedData={result.parsed}
-        matchData={match}
+        matchData={enrichedMatchData}
         onConfirm={handleConfirmScores}
         onRetake={handleRetake}
       />
@@ -294,21 +407,114 @@ const ScorecardUploadModal = ({ isOpen, onClose, match, onScoreExtracted }) => {
                       )}
                     </div>
                   </div>
+                ) : showManualEntry ? (
+                  <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
+                    <h4 className="text-blue-900 font-bold mb-3">✏️ Manual Score Entry</h4>
+
+                    {/* Player IDs */}
+                    <div className="space-y-3 mb-4">
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-1">Player 1 ID</label>
+                        <input
+                          type="text"
+                          value={manualScores.player1Id}
+                          onChange={(e) => handleManualPlayerIdChange('player1Id', e.target.value)}
+                          placeholder="P001"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-1">Player 2 ID</label>
+                        <input
+                          type="text"
+                          value={manualScores.player2Id}
+                          onChange={(e) => handleManualPlayerIdChange('player2Id', e.target.value)}
+                          placeholder="P002"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Sets */}
+                    <div className="space-y-3 mb-4">
+                      <label className="block text-sm font-semibold text-gray-700">Scores</label>
+                      {manualScores.sets.map((set, idx) => (
+                        <div key={idx} className="flex items-center gap-3">
+                          <span className="text-sm text-gray-600 w-16">Set {idx + 1}:</span>
+                          <input
+                            type="number"
+                            min="0"
+                            max="30"
+                            value={set.player1Score}
+                            onChange={(e) => handleManualScoreChange(idx, 'player1Score', e.target.value)}
+                            placeholder="21"
+                            className="w-20 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center"
+                          />
+                          <span className="text-gray-400">-</span>
+                          <input
+                            type="number"
+                            min="0"
+                            max="30"
+                            value={set.player2Score}
+                            onChange={(e) => handleManualScoreChange(idx, 'player2Score', e.target.value)}
+                            placeholder="19"
+                            className="w-20 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center"
+                          />
+                        </div>
+                      ))}
+                      <p className="text-xs text-gray-500">Leave unused sets empty</p>
+                    </div>
+
+                    {/* Buttons */}
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => setShowManualEntry(false)}
+                        className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg transition-all"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleManualSubmit}
+                        className="flex-1 px-6 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-lg transition-all shadow-lg"
+                      >
+                        Continue with Manual Entry
+                      </button>
+                    </div>
+                  </div>
                 ) : (
                   <div className="bg-yellow-50 border-2 border-yellow-200 rounded-lg p-4">
                     <h4 className="text-yellow-900 font-bold mb-2">⚠️ Partial Extraction</h4>
-                    <p className="text-sm text-yellow-800 mb-2">{result.parsed?.error || 'Could not parse scorecard format'}</p>
+                    <p className="text-sm text-yellow-800 mb-3">{result.parsed?.error || 'Could not parse scorecard format'}</p>
 
-                    {result.numbers && result.numbers.length > 0 && (
-                      <div className="bg-white rounded p-3 border border-yellow-200 mt-2">
-                        <div className="text-sm font-semibold text-gray-700 mb-1">Numbers Found:</div>
-                        <div className="text-lg font-mono">{result.numbers.join(', ')}</div>
+                    {result.parsed?.playerIds && result.parsed.playerIds.length > 0 && (
+                      <div className="bg-white rounded p-3 border border-yellow-200 mb-3">
+                        <div className="text-sm font-semibold text-gray-700 mb-1">Player IDs Found:</div>
+                        <div className="text-lg font-mono">{result.parsed.playerIds.join(', ')}</div>
                       </div>
                     )}
 
-                    <details className="text-xs mt-3">
-                      <summary className="cursor-pointer text-gray-600">View Raw Extracted Text</summary>
-                      <pre className="mt-2 text-xs text-gray-600 whitespace-pre-wrap overflow-x-auto bg-white p-3 rounded border border-yellow-200">
+                    {result.parsed?.sets && result.parsed.sets.length > 0 && (
+                      <div className="bg-white rounded p-3 border border-yellow-200 mb-3">
+                        <div className="text-sm font-semibold text-gray-700 mb-1">Sets Found:</div>
+                        {result.parsed.sets.map((set, idx) => (
+                          <div key={idx} className="text-sm">
+                            Set {idx + 1}: {set.player1Score}-{set.player2Score}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Manual Entry Button */}
+                    <button
+                      onClick={handleManualEntry}
+                      className="w-full px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-lg transition-all shadow-lg mb-3"
+                    >
+                      ✏️ Enter Scores Manually
+                    </button>
+
+                    <details className="text-xs">
+                      <summary className="cursor-pointer text-gray-600 font-semibold">🔍 View Raw OCR Text (for debugging)</summary>
+                      <pre className="mt-2 text-xs text-gray-600 whitespace-pre-wrap overflow-x-auto bg-white p-3 rounded border border-yellow-200 max-h-60 overflow-y-auto">
                         {result.extracted}
                       </pre>
                     </details>
