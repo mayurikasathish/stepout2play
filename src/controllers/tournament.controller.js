@@ -15,6 +15,8 @@ class TournamentController {
         sports,
         startDate,
         endDate,
+        startTime,
+        endTime,
         venueName,
         venueAddress,
         city,
@@ -84,6 +86,42 @@ class TournamentController {
         errors.push('Registration deadline is required');
       }
 
+      // Validate registration deadline is before tournament start
+      if (registrationDeadline && startDate) {
+        const regDeadline = new Date(registrationDeadline);
+        const tournamentStart = new Date(startDate);
+
+        // If startTime is provided, add it to the comparison
+        if (startTime) {
+          const [hours, minutes] = startTime.split(':');
+          tournamentStart.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+        }
+
+        if (regDeadline >= tournamentStart) {
+          errors.push('Registration deadline must be before the tournament start date and time');
+        }
+      }
+
+      // Validate end date/time is after start date/time
+      if (startDate && endDate) {
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+
+        if (startTime) {
+          const [hours, minutes] = startTime.split(':');
+          start.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+        }
+
+        if (endTime) {
+          const [hours, minutes] = endTime.split(':');
+          end.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+        }
+
+        if (end <= start) {
+          errors.push('Tournament end date and time must be after the start date and time');
+        }
+      }
+
       if (entryFee !== undefined && entryFee !== null) {
         const fee = parseFloat(entryFee);
         if (isNaN(fee) || fee < 0) {
@@ -115,6 +153,8 @@ class TournamentController {
         format,
         startDate,
         endDate,
+        startTime,
+        endTime,
         venueName: venueName.trim(),
         venueAddress: venueAddress?.trim(),
         city: city.trim(),
@@ -216,6 +256,8 @@ class TournamentController {
         format,
         startDate,
         endDate,
+        startTime,
+        endTime,
         venueName,
         venueAddress,
         city,
@@ -241,6 +283,8 @@ class TournamentController {
       if (format !== undefined) updateData.format = format;
       if (startDate !== undefined) updateData.startDate = new Date(startDate);
       if (endDate !== undefined) updateData.endDate = new Date(endDate);
+      if (startTime !== undefined) updateData.startTime = startTime || null;
+      if (endTime !== undefined) updateData.endTime = endTime || null;
       if (venueName !== undefined) updateData.venueName = venueName.trim();
       if (venueAddress !== undefined) updateData.venueAddress = venueAddress?.trim() || null;
       if (city !== undefined) updateData.city = city.trim();

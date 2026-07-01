@@ -144,7 +144,12 @@ const MatchesPage = () => {
             ) : (
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {displayRegistrations.map((reg) => (
-                  <RegistrationCard key={reg.id} registration={reg} navigate={navigate} />
+                  <RegistrationCard
+                    key={reg.id}
+                    registration={reg}
+                    navigate={navigate}
+                    isUpcoming={activeTab === 'upcoming'}
+                  />
                 ))}
               </div>
             )}
@@ -156,7 +161,9 @@ const MatchesPage = () => {
 }
 
 // Registration Card Component
-const RegistrationCard = ({ registration, navigate }) => {
+const RegistrationCard = ({ registration, navigate, isUpcoming }) => {
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false)
+
   const formatDate = (dateString) => {
     const date = new Date(dateString)
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
@@ -171,48 +178,113 @@ const RegistrationCard = ({ registration, navigate }) => {
     return labels[format] || format
   }
 
+  const handleWithdraw = (e) => {
+    e.stopPropagation()
+    setShowWithdrawModal(true)
+  }
+
+  const confirmWithdraw = async () => {
+    // TODO: API call to withdraw from event
+    console.log('Withdrawing from registration:', registration.id)
+    alert('Withdrawal functionality will be implemented soon. Organization will be notified.')
+    setShowWithdrawModal(false)
+  }
+
   return (
-    <div
-      onClick={() => navigate(`/tournaments/${registration.event.tournament.id}`)}
-      className="glass-card rounded-xl p-5 hover:shadow-glass-lg transition-all duration-300 cursor-pointer group"
-    >
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex-1">
-          <h3 className="font-semibold text-gray-900 mb-1 group-hover:text-primary-600 transition-colors">
-            {registration.event.name}
-          </h3>
-          <p className="text-sm text-gray-600">{registration.event.tournament.name}</p>
-          <span className="inline-block mt-1 px-2 py-0.5 bg-gray-100 text-gray-700 text-xs font-medium rounded">
-            {getFormatLabel(registration.event.format)}
+    <>
+      <div
+        onClick={() => navigate(`/tournaments/${registration.event.tournament.id}`)}
+        className="glass-card rounded-xl p-5 hover:shadow-glass-lg transition-all duration-300 cursor-pointer group"
+      >
+        <div className="flex items-start justify-between mb-3">
+          <div className="flex-1">
+            <h3 className="font-semibold text-gray-900 mb-1 group-hover:text-primary-600 transition-colors">
+              {registration.event.name}
+            </h3>
+            <p className="text-sm text-gray-600">{registration.event.tournament.name}</p>
+            <span className="inline-block mt-1 px-2 py-0.5 bg-gray-100 text-gray-700 text-xs font-medium rounded">
+              {getFormatLabel(registration.event.format)}
+            </span>
+          </div>
+          <span className="px-2 py-1 bg-success-50 text-success-700 text-xs font-medium rounded-full border border-success-100">
+            {registration.status}
           </span>
         </div>
-        <span className="px-2 py-1 bg-success-50 text-success-700 text-xs font-medium rounded-full border border-success-100">
-          {registration.status}
-        </span>
-      </div>
 
-      <div className="space-y-1.5">
-        <div className="flex items-center gap-2 text-xs text-gray-500">
-          <CalendarIcon className="w-4 h-4" />
-          <span>{formatDate(registration.event.tournament.startDate)}</span>
-        </div>
-        <div className="flex items-center gap-2 text-xs text-gray-500">
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-          <span>{registration.event.tournament.venueName}</span>
-        </div>
-        {registration.partner && (
+        <div className="space-y-1.5 mb-3">
+          <div className="flex items-center gap-2 text-xs text-gray-500">
+            <CalendarIcon className="w-4 h-4" />
+            <span>{formatDate(registration.event.tournament.startDate)}</span>
+          </div>
           <div className="flex items-center gap-2 text-xs text-gray-500">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
-            <span>Partner: {registration.partner.firstName} {registration.partner.lastName}</span>
+            <span>{registration.event.tournament.venueName}</span>
           </div>
+          {registration.partner && (
+            <div className="flex items-center gap-2 text-xs text-gray-500">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+              </svg>
+              <span>Partner: {registration.partner.firstName} {registration.partner.lastName}</span>
+            </div>
+          )}
+        </div>
+
+        {isUpcoming && (
+          <button
+            onClick={handleWithdraw}
+            className="w-full mt-3 px-4 py-2 bg-red-50 hover:bg-red-100 text-red-700 font-semibold text-sm rounded-lg border border-red-200 transition-colors"
+          >
+            Withdraw from Event
+          </button>
         )}
       </div>
-    </div>
+
+      {/* Withdraw Confirmation Modal */}
+      {showWithdrawModal && (
+        <div className="fixed inset-0 z-50 overflow-y-auto" onClick={() => setShowWithdrawModal(false)}>
+          <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm" />
+          <div className="flex min-h-full items-center justify-center p-4">
+            <div
+              className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-8"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex flex-col items-center text-center">
+                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+                  <svg className="w-8 h-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">Confirm Withdrawal</h3>
+                <p className="text-gray-600 mb-2">
+                  Are you sure you want to withdraw from <span className="font-semibold">{registration.event.name}</span>?
+                </p>
+                <p className="text-sm text-gray-500 mb-6">
+                  The tournament organizer will be notified of your withdrawal.
+                </p>
+                <div className="flex gap-3 w-full">
+                  <button
+                    onClick={() => setShowWithdrawModal(false)}
+                    className="flex-1 px-6 py-3 bg-white hover:bg-gray-50 text-gray-700 font-semibold rounded-xl border border-gray-300 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={confirmWithdraw}
+                    className="flex-1 px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl transition-colors"
+                  >
+                    Yes, Withdraw
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   )
 }
 

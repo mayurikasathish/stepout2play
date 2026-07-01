@@ -135,6 +135,8 @@ model Tournament {
   sports               String[]         // Array of sport IDs (e.g., ["badminton", "table-tennis"])
   startDate            DateTime
   endDate              DateTime
+  startTime            String?          // Tournament start time (HH:MM format)
+  endTime              String?          // Tournament end time (HH:MM format)
   venueName            String
   venueAddress         String?
   city                 String

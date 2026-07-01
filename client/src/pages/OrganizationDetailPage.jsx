@@ -352,15 +352,46 @@ const EditOrgModal = ({ organization, onClose, onSubmit }) => {
   )
 }
 
+// Validation Error Modal Component
+const ValidationErrorModal = ({ message, onClose }) => {
+  return (
+    <div className="fixed inset-0 z-[60] overflow-y-auto" style={{ fontFamily: "'Talina', 'Inter', sans-serif" }}>
+      <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="flex min-h-full items-center justify-center p-4">
+        <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
+          <div className="flex flex-col items-center text-center">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+              <svg className="w-8 h-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900 mb-2">Invalid Date</h3>
+            <p className="text-gray-600 mb-6">{message}</p>
+            <button
+              onClick={onClose}
+              className="w-full px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-xl transition-colors"
+            >
+              Got it
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // Create Tournament Modal Component
 const CreateTournamentModal = ({ onClose, onSubmit }) => {
   const [sportType, setSportType] = useState('single') // 'single' or 'multi'
   const [selectedSports, setSelectedSports] = useState(['badminton'])
+  const [validationError, setValidationError] = useState(null)
   const [formData, setFormData] = useState({
     name: '',
     sport: 'badminton', // Legacy field
     startDate: '',
     endDate: '',
+    startTime: '',
+    endTime: '',
     venueName: '',
     venueAddress: '',
     city: '',
@@ -371,13 +402,24 @@ const CreateTournamentModal = ({ onClose, onSubmit }) => {
   })
 
   const availableSports = [
-    { id: 'badminton', name: 'Badminton', icon: '🏸' },
-    { id: 'table-tennis', name: 'Table Tennis', icon: '🏓' },
-    { id: 'squash', name: 'Squash', icon: '🎾' },
-    { id: 'pickleball', name: 'Pickleball', icon: '🥒' },
-    { id: 'tennis', name: 'Tennis', icon: '🎾' },
-    { id: 'padel', name: 'Padel', icon: '🎾' }
+    { id: 'badminton', name: 'Badminton' },
+    { id: 'table-tennis', name: 'Table Tennis' },
+    { id: 'squash', name: 'Squash' },
+    { id: 'pickleball', name: 'Pickleball' },
+    { id: 'tennis', name: 'Tennis' },
+    { id: 'padel', name: 'Padel' }
   ]
+
+  const indianCities = [
+    'Mumbai', 'Delhi', 'Bangalore', 'Hyderabad', 'Chennai', 'Kolkata', 'Pune',
+    'Ahmedabad', 'Jaipur', 'Surat', 'Lucknow', 'Kanpur', 'Nagpur', 'Indore',
+    'Thane', 'Bhopal', 'Visakhapatnam', 'Pimpri-Chinchwad', 'Patna', 'Vadodara',
+    'Ghaziabad', 'Ludhiana', 'Agra', 'Nashik', 'Faridabad', 'Meerut', 'Rajkot',
+    'Kalyan-Dombivali', 'Vasai-Virar', 'Varanasi', 'Srinagar', 'Aurangabad',
+    'Dhanbad', 'Amritsar', 'Navi Mumbai', 'Allahabad', 'Ranchi', 'Howrah',
+    'Coimbatore', 'Jabalpur', 'Gwalior', 'Vijayawada', 'Jodhpur', 'Madurai',
+    'Raipur', 'Kota', 'Chandigarh', 'Guwahati', 'Mysore', 'Bareilly'
+  ].sort()
 
   const toggleSport = (sportId) => {
     if (sportType === 'single') {
@@ -404,6 +446,22 @@ const CreateTournamentModal = ({ onClose, onSubmit }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault()
+
+    // Validate registration deadline is before tournament start
+    const regDeadline = new Date(formData.registrationDeadline)
+    const tournamentStart = new Date(`${formData.startDate}T${formData.startTime || '00:00'}`)
+    const tournamentEnd = new Date(`${formData.endDate}T${formData.endTime || '23:59'}`)
+
+    if (regDeadline >= tournamentStart) {
+      setValidationError('Registration deadline must be before the tournament start date and time.')
+      return
+    }
+
+    if (tournamentEnd <= tournamentStart) {
+      setValidationError('Tournament end date and time must be after the start date and time.')
+      return
+    }
+
     const submitData = {
       ...formData,
       sportType,
@@ -414,56 +472,63 @@ const CreateTournamentModal = ({ onClose, onSubmit }) => {
   }
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="flex min-h-full items-center justify-center p-4">
-        <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-3xl p-8 max-h-[90vh] overflow-y-auto">
-          <h2 className="text-2xl font-bold mb-6">Create Tournament</h2>
-          <form onSubmit={handleSubmit} className="space-y-4">
+    <>
+      {validationError && (
+        <ValidationErrorModal
+          message={validationError}
+          onClose={() => setValidationError(null)}
+        />
+      )}
+      <div className="fixed inset-0 z-50 overflow-y-auto">
+        <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm" onClick={onClose} />
+        <div className="flex min-h-full items-center justify-center p-4">
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-3xl p-8 max-h-[90vh] overflow-y-auto" style={{ fontFamily: "'Talina', 'Inter', 'Segoe UI', system-ui, sans-serif" }}>
+            <h2 className="text-3xl font-bold mb-8 text-gray-900" style={{ fontFamily: "'Talina', sans-serif" }}>Create Tournament</h2>
+            <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label className="block text-sm font-medium mb-2">Tournament Name *</label>
+              <label className="block text-sm font-semibold mb-2 text-gray-700">Tournament Name *</label>
               <input
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 placeholder="e.g., Summer Championship 2024"
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
                 required
               />
             </div>
 
             {/* Sport Type Selection */}
             <div>
-              <label className="block text-sm font-medium mb-2">Tournament Type *</label>
-              <div className="grid grid-cols-2 gap-3">
+              <label className="block text-sm font-semibold mb-3 text-gray-700">Tournament Type *</label>
+              <div className="grid grid-cols-2 gap-4">
                 <button
                   type="button"
                   onClick={() => handleSportTypeChange('single')}
-                  className={`px-4 py-3 rounded-xl border-2 font-medium transition-all ${
+                  className={`px-5 py-4 rounded-xl border-2 font-semibold transition-all ${
                     sportType === 'single'
-                      ? 'border-primary-500 bg-primary-50 text-primary-700'
-                      : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                      ? 'border-primary-500 bg-primary-50 text-primary-700 shadow-sm'
+                      : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:shadow-sm'
                   }`}
                 >
-                  🏆 Single Sport
+                  Single Sport
                 </button>
                 <button
                   type="button"
                   onClick={() => handleSportTypeChange('multi')}
-                  className={`px-4 py-3 rounded-xl border-2 font-medium transition-all ${
+                  className={`px-5 py-4 rounded-xl border-2 font-semibold transition-all ${
                     sportType === 'multi'
-                      ? 'border-primary-500 bg-primary-50 text-primary-700'
-                      : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                      ? 'border-primary-500 bg-primary-50 text-primary-700 shadow-sm'
+                      : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:shadow-sm'
                   }`}
                 >
-                  🎯 Multi Sport
+                  Multi Sport
                 </button>
               </div>
             </div>
 
             {/* Sports Selection */}
             <div>
-              <label className="block text-sm font-medium mb-2">
+              <label className="block text-sm font-semibold mb-3 text-gray-700">
                 Select Sport{sportType === 'multi' ? 's' : ''} *
               </label>
               <div className="grid grid-cols-2 gap-3">
@@ -472,151 +537,182 @@ const CreateTournamentModal = ({ onClose, onSubmit }) => {
                     key={sport.id}
                     type="button"
                     onClick={() => toggleSport(sport.id)}
-                    className={`px-4 py-3 rounded-xl border-2 font-medium transition-all text-left ${
+                    className={`px-4 py-3 rounded-xl border-2 font-semibold transition-all text-left ${
                       selectedSports.includes(sport.id)
-                        ? 'border-green-500 bg-green-50 text-green-700'
+                        ? 'border-green-500 bg-green-50 text-green-700 shadow-sm'
                         : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
                     }`}
                   >
-                    <span className="text-lg mr-2">{sport.icon}</span>
                     {sport.name}
                     {selectedSports.includes(sport.id) && (
-                      <span className="ml-2 text-green-600">✓</span>
+                      <span className="ml-2 text-green-600 float-right">✓</span>
                     )}
                   </button>
                 ))}
               </div>
               {sportType === 'single' && (
-                <p className="text-xs text-gray-500 mt-2">
-                  💡 Events in this tournament will use {availableSports.find(s => s.id === selectedSports[0])?.name} scoring rules
+                <p className="text-xs text-gray-600 mt-2">
+                  Events in this tournament will use {availableSports.find(s => s.id === selectedSports[0])?.name} scoring rules
                 </p>
               )}
               {sportType === 'multi' && (
-                <p className="text-xs text-gray-500 mt-2">
-                  💡 Events can choose from the selected sports above
+                <p className="text-xs text-gray-600 mt-2">
+                  Events can choose from the selected sports above
                 </p>
               )}
             </div>
 
             <div className="grid md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-2">Start Date *</label>
+                <label className="block text-sm font-semibold mb-2 text-gray-700">Start Date *</label>
                 <input
                   type="date"
                   value={formData.startDate}
                   onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">End Date *</label>
+                <label className="block text-sm font-semibold mb-2 text-gray-700">Start Time *</label>
+                <input
+                  type="time"
+                  value={formData.startTime}
+                  onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold mb-2 text-gray-700">End Date *</label>
                 <input
                   type="date"
                   value={formData.endDate}
                   onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold mb-2 text-gray-700">End Time *</label>
+                <input
+                  type="time"
+                  value={formData.endTime}
+                  onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
                   required
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">Venue Name *</label>
+              <label className="block text-sm font-semibold mb-2 text-gray-700">Venue Name *</label>
               <input
                 type="text"
                 value={formData.venueName}
                 onChange={(e) => setFormData({ ...formData, venueName: e.target.value })}
                 placeholder="e.g., Sports Complex Arena"
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">Venue Address</label>
+              <label className="block text-sm font-semibold mb-2 text-gray-700">Venue Address</label>
               <input
                 type="text"
                 value={formData.venueAddress}
                 onChange={(e) => setFormData({ ...formData, venueAddress: e.target.value })}
                 placeholder="Street address"
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">City *</label>
+              <label className="block text-sm font-semibold mb-2 text-gray-700">City *</label>
               <input
                 type="text"
+                list="cities"
                 value={formData.city}
                 onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                 placeholder="e.g., Mumbai"
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
                 required
               />
+              <datalist id="cities">
+                {indianCities.map(city => (
+                  <option key={city} value={city} />
+                ))}
+              </datalist>
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">Registration Deadline *</label>
+              <label className="block text-sm font-semibold mb-2 text-gray-700">Registration Deadline *</label>
               <input
                 type="datetime-local"
                 value={formData.registrationDeadline}
                 onChange={(e) => setFormData({ ...formData, registrationDeadline: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
                 required
               />
+              <p className="mt-2 text-xs text-gray-600">
+                Must be before tournament start date and time
+              </p>
             </div>
 
-
             <div>
-              <label className="block text-sm font-medium mb-2">Status</label>
+              <label className="block text-sm font-semibold mb-2 text-gray-700">Status</label>
               <select
                 value={formData.status}
                 onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
               >
                 <option value="DRAFT">Draft</option>
                 <option value="OPEN">Open</option>
               </select>
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-2 text-xs text-gray-600">
                 Other statuses (Closed, Ongoing, Completed) are calculated automatically based on dates
               </p>
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">Description</label>
+              <label className="block text-sm font-semibold mb-2 text-gray-700">Description</label>
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={3}
                 placeholder="Tournament details..."
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all resize-none"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">Tournament Rules</label>
+              <label className="block text-sm font-semibold mb-2 text-gray-700">Tournament Rules</label>
               <textarea
                 value={formData.rules}
                 onChange={(e) => setFormData({ ...formData, rules: e.target.value })}
                 rows={6}
                 placeholder="Enter tournament rules, regulations, and guidelines..."
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all resize-none"
               />
             </div>
 
-            <div className="flex gap-3 pt-4">
+            <div className="flex gap-4 pt-6">
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 px-6 py-3 bg-white hover:bg-gray-50 text-gray-700 font-medium rounded-xl border border-gray-300"
+                className="flex-1 px-6 py-3 bg-white hover:bg-gray-50 text-gray-700 font-semibold rounded-xl border border-gray-300 transition-colors"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="flex-1 px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-xl"
+                className="flex-1 px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-xl transition-colors shadow-sm hover:shadow-md"
               >
                 Create Tournament
               </button>
@@ -625,6 +721,7 @@ const CreateTournamentModal = ({ onClose, onSubmit }) => {
         </div>
       </div>
     </div>
+    </>
   )
 }
 
