@@ -314,6 +314,36 @@ const RegistrationsView = ({ tournamentId }) => {
             </div>
           </div>
 
+          {/* Jump to Event */}
+          <div className="relative">
+            <select
+              onChange={(e) => {
+                const eventId = e.target.value
+                if (eventId && eventId !== 'jump') {
+                  const element = document.getElementById(`event-${eventId}`)
+                  if (element) {
+                    element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                  }
+                }
+                e.target.value = 'jump' // Reset dropdown
+              }}
+              defaultValue="jump"
+              className="appearance-none px-4 py-2.5 pr-10 border border-primary-300 bg-primary-50 text-primary-700 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all cursor-pointer font-medium"
+            >
+              <option value="jump" disabled>Jump to Event...</option>
+              {events.filter(event =>
+                filteredRegistrations.some(reg => reg.eventId === event.id)
+              ).map(event => (
+                <option key={event.id} value={event.id}>{event.name}</option>
+              ))}
+            </select>
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+              <svg className="w-4 h-4 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+          </div>
+
           {/* Export Button */}
           <button
             onClick={handleExportCSV}
@@ -342,7 +372,7 @@ const RegistrationsView = ({ tournamentId }) => {
             const group = groupedRegistrations[groupKey]
 
             return (
-              <div key={groupKey} className="glass-card rounded-xl overflow-hidden">
+              <div key={groupKey} id={`event-${group.event.id}`} className="glass-card rounded-xl overflow-hidden scroll-mt-6">
                 {/* Group Header */}
                 <div className="bg-gradient-to-r from-primary-50 to-primary-100/50 px-6 py-4 border-b border-primary-200">
                   <div className="flex items-center justify-between">
