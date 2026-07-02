@@ -47,7 +47,6 @@ app.use('/api', uploadRoutes); // Upload routes for images
 app.use('/api/ocr', ocrRoutes); // OCR routes for scorecard extraction
 app.use('/api/notifications', notificationRoutes); // Notification routes
 app.use('/api/live-feed', liveFeedRoutes); // Live feed routes
-app.use('/api', require('./routes/test-email.routes')); // Test email route (DEV ONLY)
 
 // Health check
 app.get('/api/health', (req, res) => {
