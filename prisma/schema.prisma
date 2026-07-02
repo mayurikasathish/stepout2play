@@ -29,6 +29,8 @@ model User {
   orgMemberships       OrgMember[]
   partnerRegistrations Registration[] @relation("PartnerRegistrations")
   registrations        Registration[] @relation("UserRegistrations")
+  notifications        Notification[]
+  liveFeedItems        LiveFeedItem[]
 
   @@map("users")
 }
@@ -358,4 +360,48 @@ enum MatchStatus {
   BYE
   READY
   CANCELLED
+}
+
+enum NotificationPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model Notification {
+  id         String               @id @default(uuid())
+  userId     String
+  type       String               // Flexible string, not enum
+  title      String
+  message    String
+  data       Json?                // Flexible JSON for any extra data
+  actionUrl  String?
+  actionText String?
+  icon       String?              // Icon name
+  priority   NotificationPriority @default(MEDIUM)
+  read       Boolean              @default(false)
+  createdAt  DateTime             @default(now())
+  user       User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+model LiveFeedItem {
+  id         String   @id @default(uuid())
+  type       String   // e.g., "PLAYER_REGISTERED", "TOURNAMENT_CREATED"
+  actorId    String   // User who performed the action
+  title      String
+  message    String
+  data       Json?    // Flexible JSON
+  targetId   String?  // Tournament/Event/Match ID
+  targetType String?  // "tournament", "event", "match"
+  visibility String   @default("public") // "public", "followers", "city"
+  createdAt  DateTime @default(now())
+  actor      User     @relation(fields: [actorId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
+  @@index([visibility])
+  @@map("live_feed")
 }

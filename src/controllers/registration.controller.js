@@ -2,6 +2,7 @@ const registrationService = require('../services/registration.service');
 const eligibilityService = require('../services/eligibility.service');
 const partnerService = require('../services/partner.service');
 const prisma = require('../lib/prisma');
+const { LiveFeedHelpers } = require('../utils/notificationHelpers');
 
 class RegistrationController {
   /**
@@ -65,6 +66,19 @@ class RegistrationController {
       const registration = await registrationService.registerForEvent(userId, eventId, {
         partnerId: partnerId || null
       });
+
+      // Create live feed item when player registers
+      try {
+        await LiveFeedHelpers.playerRegistered({
+          actorId: userId,
+          playerName: `${req.user.firstName} ${req.user.lastName}`,
+          eventName: registration.event?.name || 'an event',
+          tournamentId: registration.event?.tournamentId
+        });
+      } catch (feedError) {
+        console.error('Error creating live feed item:', feedError);
+        // Don't fail the registration if feed fails
+      }
 
       res.status(201).json({
         success: true,

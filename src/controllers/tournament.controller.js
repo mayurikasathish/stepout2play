@@ -1,4 +1,5 @@
 const tournamentService = require('../services/tournament.service');
+const { LiveFeedHelpers } = require('../utils/notificationHelpers');
 
 class TournamentController {
   /**
@@ -163,6 +164,19 @@ class TournamentController {
         rules: req.body.rules?.trim(),
         status: status || 'DRAFT'
       });
+
+      // Create live feed item when tournament is created
+      try {
+        await LiveFeedHelpers.tournamentCreated({
+          actorId: req.user.id,
+          tournamentName: tournament.name,
+          city: tournament.city,
+          tournamentId: tournament.id
+        });
+      } catch (feedError) {
+        console.error('Error creating live feed item:', feedError);
+        // Don't fail the tournament creation if feed fails
+      }
 
       res.status(201).json({
         success: true,

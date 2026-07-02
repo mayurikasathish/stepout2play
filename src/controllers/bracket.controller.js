@@ -1,4 +1,6 @@
 const bracketService = require('../services/bracket.service');
+const { LiveFeedHelpers, NotificationHelpers } = require('../utils/notificationHelpers');
+const prisma = require('../lib/prisma');
 
 class BracketController {
   /**
@@ -31,6 +33,33 @@ class BracketController {
       if (hasBronzeMatch !== undefined) options.hasBronzeMatch = hasBronzeMatch;
 
       const result = await bracketService.generateBracket(eventId, bracketFormat, seedingMethod, options);
+
+      // Notify all registered players that bracket is ready
+      try {
+        const registrations = await prisma.registration.findMany({
+          where: { eventId },
+          include: {
+            user: true,
+            event: {
+              include: {
+                tournament: true
+              }
+            }
+          }
+        });
+
+        // Send notification to all participants
+        for (const reg of registrations) {
+          await NotificationHelpers.sendBracketReady({
+            userId: reg.userId,
+            tournamentName: reg.event.tournament.name,
+            tournamentId: reg.event.tournamentId
+          });
+        }
+      } catch (notifError) {
+        console.error('Error sending bracket ready notifications:', notifError);
+        // Don't fail bracket generation if notifications fail
+      }
 
       res.status(201).json({ success: true, message: 'Bracket generated successfully', ...result });
     } catch (error) {
@@ -93,6 +122,34 @@ class BracketController {
 
       // winnerId is optional for round robin (draw support)
       const match = await bracketService.updateMatchResult(matchId, winnerId || null, score);
+
+      // Create live feed item when match is won
+      if (winnerId) {
+        try {
+          const winnerReg = await prisma.registration.findUnique({
+            where: { id: winnerId },
+            include: {
+              user: true,
+              event: {
+                include: {
+                  tournament: true
+                }
+              }
+            }
+          });
+
+          if (winnerReg) {
+            await LiveFeedHelpers.playerWonMatch({
+              actorId: winnerReg.userId,
+              eventName: winnerReg.event.name,
+              tournamentId: winnerReg.event.tournamentId
+            });
+          }
+        } catch (feedError) {
+          console.error('Error creating live feed item:', feedError);
+          // Don't fail the match update if feed fails
+        }
+      }
 
       res.status(200).json({ success: true, message: 'Match result updated successfully', match });
     } catch (error) {

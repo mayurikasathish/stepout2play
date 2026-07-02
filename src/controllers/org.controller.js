@@ -1,4 +1,6 @@
 const prisma = require('../lib/prisma');
+const { NotificationHelpers } = require('../utils/notificationHelpers');
+const notificationService = require('../services/notification.service');
 
 // Utility: convert "NBC Sports Academy" → "nbc-sports-academy"
 function generateSlug(name) {
@@ -649,6 +651,11 @@ const sendInvitation = async (req, res, next) => {
       await prisma.orgInvitation.delete({ where: { id: existingInvite.id } });
     }
 
+    // Get org name first
+    const org = await prisma.organization.findUnique({
+      where: { id: orgId }
+    });
+
     // Create invitation (expires in 7 days)
     const invitation = await prisma.orgInvitation.create({
       data: {
@@ -660,6 +667,20 @@ const sendInvitation = async (req, res, next) => {
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
       }
     });
+
+    // Send notification to invitee
+    try {
+      await NotificationHelpers.sendOrgInvitation({
+        inviteeId: userId,
+        inviterName: `${req.user.firstName} ${req.user.lastName}`,
+        orgName: org?.name || 'an organization',
+        orgId: orgId,
+        role: role.toUpperCase()
+      });
+    } catch (notifError) {
+      console.error('Error sending invitation notification:', notifError);
+      // Don't fail the invitation if notification fails
+    }
 
     res.status(201).json({ success: true, invitation });
   } catch (err) {
@@ -730,6 +751,15 @@ const acceptInvitation = async (req, res, next) => {
       return res.status(400).json({ success: false, error: 'Invitation expired' });
     }
 
+    // Get org and inviter details
+    const org = await prisma.organization.findUnique({
+      where: { id: invitation.orgId }
+    });
+
+    const inviter = await prisma.user.findUnique({
+      where: { id: invitation.inviterId }
+    });
+
     // Add user to org and update invitation
     await prisma.$transaction([
       prisma.orgMember.create({
@@ -744,6 +774,23 @@ const acceptInvitation = async (req, res, next) => {
         data: { status: 'ACCEPTED' }
       })
     ]);
+
+    // Notify the inviter that their invitation was accepted
+    try {
+      await notificationService.createNotification({
+        userId: invitation.inviterId,
+        type: 'INVITE_ACCEPTED',
+        title: 'Invitation Accepted',
+        message: `${req.user.firstName} ${req.user.lastName} accepted your invitation to join ${org?.name || 'your organization'}`,
+        data: { orgId: invitation.orgId, inviteeId: invitation.inviteeId },
+        actionUrl: `/manage/org/${invitation.orgId}`,
+        actionText: 'View Organization',
+        icon: 'user-group',
+        priority: 'MEDIUM'
+      });
+    } catch (notifError) {
+      console.error('Error sending acceptance notification:', notifError);
+    }
 
     res.json({ success: true, message: 'Invitation accepted' });
   } catch (err) {
