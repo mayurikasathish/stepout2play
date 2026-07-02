@@ -52,17 +52,27 @@ const NotificationHelpers = {
   },
 
   // Player withdrawal notification (to organizer)
-  async sendWithdrawalNotification({ organizerId, playerName, eventName, tournamentId }) {
+  async sendWithdrawalNotification({ organizerId, playerName, eventName, tournamentId, eventId, standbyCount, replacementWindowOpen }) {
+    let message = `${playerName} withdrew from ${eventName}`;
+    let actionUrl = `/tournaments/${tournamentId}/manage`;
+    let actionText = 'Manage Tournament';
+
+    if (replacementWindowOpen && standbyCount > 0) {
+      message = `${playerName} withdrew from ${eventName}. ${standbyCount} standby player(s) waiting.`;
+      actionUrl = `/tournaments/${tournamentId}/manage?event=${eventId}&tab=registrations`;
+      actionText = 'Notify Standby Players';
+    }
+
     return await notificationService.createNotification({
       userId: organizerId,
       type: 'PLAYER_WITHDREW',
       title: 'Player Withdrawal',
-      message: `${playerName} withdrew from ${eventName}`,
-      data: { playerName, eventName },
-      actionUrl: `/tournaments/${tournamentId}/manage`,
-      actionText: 'Manage Tournament',
+      message,
+      data: { playerName, eventName, eventId, standbyCount, replacementWindowOpen },
+      actionUrl,
+      actionText,
       icon: 'warning',
-      priority: 'MEDIUM'
+      priority: 'HIGH'
     });
   },
 

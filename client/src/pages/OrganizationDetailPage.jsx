@@ -293,7 +293,9 @@ const OrganizationDetailPage = () => {
 const EditOrgModal = ({ organization, onClose, onSubmit }) => {
   const [formData, setFormData] = useState({
     name: organization.name || '',
-    logoUrl: organization.logoUrl || ''
+    logoUrl: organization.logoUrl || '',
+    contactEmail: organization.contactEmail || '',
+    contactPhone: organization.contactPhone || ''
   })
 
   const handleSubmit = (e) => {
@@ -328,6 +330,30 @@ const EditOrgModal = ({ organization, onClose, onSubmit }) => {
                 placeholder="https://example.com/logo.png"
                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">Contact Email</label>
+              <input
+                type="email"
+                value={formData.contactEmail}
+                onChange={(e) => setFormData({ ...formData, contactEmail: e.target.value })}
+                placeholder="contact@organization.com"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              />
+              <p className="mt-1 text-xs text-gray-500">Players can use this to contact you about tournaments</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">Contact Phone</label>
+              <input
+                type="tel"
+                value={formData.contactPhone}
+                onChange={(e) => setFormData({ ...formData, contactPhone: e.target.value })}
+                placeholder="+91 98765 43210"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              />
+              <p className="mt-1 text-xs text-gray-500">Shown on tournament pages for inquiries</p>
             </div>
 
             <div className="flex gap-3 pt-4">
@@ -398,7 +424,9 @@ const CreateTournamentModal = ({ onClose, onSubmit }) => {
     registrationDeadline: '',
     description: '',
     rules: '',
-    status: 'DRAFT'
+    status: 'DRAFT',
+    allowReplacement: true,
+    replacementWindowHours: 24
   })
 
   const availableSports = [
@@ -663,6 +691,50 @@ const CreateTournamentModal = ({ onClose, onSubmit }) => {
               <p className="mt-2 text-xs text-gray-600">
                 Must be before tournament start date and time
               </p>
+            </div>
+
+            {/* Replacement Window */}
+            <div>
+              <label className="flex items-center gap-2 mb-3">
+                <input
+                  type="checkbox"
+                  checked={formData.allowReplacement}
+                  onChange={(e) => setFormData({ ...formData, allowReplacement: e.target.checked })}
+                  className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                />
+                <span className="text-sm font-semibold text-gray-700">
+                  Allow standby players to replace withdrawals
+                </span>
+              </label>
+
+              {formData.allowReplacement && (
+                <div>
+                  <label className="block text-sm font-semibold mb-2 text-gray-700">
+                    Replacement Deadline (hours before tournament start) *
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="168"
+                    value={formData.replacementWindowHours}
+                    onChange={(e) => setFormData({ ...formData, replacementWindowHours: parseInt(e.target.value) || 24 })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
+                    required
+                  />
+                  <p className="mt-2 text-xs text-gray-600 leading-relaxed">
+                    <svg className="w-4 h-4 inline mr-1 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <strong>How it works:</strong> If a confirmed player withdraws before this deadline, ALL standby players receive an email notification. The first standby player to accept (by clicking the link in the email) gets the spot. After the deadline, withdrawals are still allowed but standby players won't be notified (to avoid last-minute bracket changes).
+                  </p>
+                </div>
+              )}
+
+              {!formData.allowReplacement && (
+                <p className="mt-2 text-xs text-gray-600">
+                  Waitlist players will not be automatically promoted if someone withdraws
+                </p>
+              )}
             </div>
 
             <div>

@@ -163,6 +163,8 @@ const MatchesPage = () => {
 // Registration Card Component
 const RegistrationCard = ({ registration, navigate, isUpcoming }) => {
   const [showWithdrawModal, setShowWithdrawModal] = useState(false)
+  const [withdrawing, setWithdrawing] = useState(false)
+  const [withdrawalReason, setWithdrawalReason] = useState('')
 
   const formatDate = (dateString) => {
     const date = new Date(dateString)
@@ -184,10 +186,24 @@ const RegistrationCard = ({ registration, navigate, isUpcoming }) => {
   }
 
   const confirmWithdraw = async () => {
-    // TODO: API call to withdraw from event
-    console.log('Withdrawing from registration:', registration.id)
-    alert('Withdrawal functionality will be implemented soon. Organization will be notified.')
-    setShowWithdrawModal(false)
+    setWithdrawing(true)
+    try {
+      const response = await api.post(`/registrations/${registration.id}/withdraw`, {
+        reason: withdrawalReason || null
+      })
+
+      if (response.data.success) {
+        alert(response.data.message || 'Withdrawal successful. The organizer has been notified.')
+        setShowWithdrawModal(false)
+        // Reload the page to reflect the change
+        window.location.reload()
+      }
+    } catch (err) {
+      console.error('Error withdrawing:', err)
+      alert(err.response?.data?.error || 'Failed to withdraw from event')
+    } finally {
+      setWithdrawing(false)
+    }
   }
 
   return (
@@ -206,8 +222,14 @@ const RegistrationCard = ({ registration, navigate, isUpcoming }) => {
               {getFormatLabel(registration.event.format)}
             </span>
           </div>
-          <span className="px-2 py-1 bg-success-50 text-success-700 text-xs font-medium rounded-full border border-success-100">
-            {registration.status}
+          <span className={`px-2 py-1 text-xs font-medium rounded-full border ${
+            registration.status === 'STANDBY'
+              ? 'bg-amber-50 text-amber-700 border-amber-200'
+              : registration.status === 'WITHDRAWN'
+              ? 'bg-gray-50 text-gray-700 border-gray-200'
+              : 'bg-success-50 text-success-700 border-success-100'
+          }`}>
+            {registration.status === 'STANDBY' ? `Waitlist ${registration.standbyPosition ? `#${registration.standbyPosition}` : ''}` : registration.status}
           </span>
         </div>
 
@@ -233,12 +255,20 @@ const RegistrationCard = ({ registration, navigate, isUpcoming }) => {
           )}
         </div>
 
-        {isUpcoming && (
+        {registration.status === 'STANDBY' && (
+          <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+            <p className="text-xs text-amber-800">
+              <span className="font-semibold">You're on the waitlist!</span> You'll be automatically confirmed if someone withdraws before the event.
+            </p>
+          </div>
+        )}
+
+        {isUpcoming && registration.status !== 'WITHDRAWN' && (
           <button
             onClick={handleWithdraw}
             className="w-full mt-3 px-4 py-2 bg-red-50 hover:bg-red-100 text-red-700 font-semibold text-sm rounded-lg border border-red-200 transition-colors"
           >
-            Withdraw from Event
+            {registration.status === 'STANDBY' ? 'Remove from Waitlist' : 'Withdraw from Event'}
           </button>
         )}
       </div>
@@ -262,21 +292,37 @@ const RegistrationCard = ({ registration, navigate, isUpcoming }) => {
                 <p className="text-gray-600 mb-2">
                   Are you sure you want to withdraw from <span className="font-semibold">{registration.event.name}</span>?
                 </p>
-                <p className="text-sm text-gray-500 mb-6">
+                <p className="text-sm text-gray-500 mb-4">
                   The tournament organizer will be notified of your withdrawal.
                 </p>
+
+                <div className="w-full mb-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-2 text-left">
+                    Reason (optional)
+                  </label>
+                  <textarea
+                    value={withdrawalReason}
+                    onChange={(e) => setWithdrawalReason(e.target.value)}
+                    placeholder="e.g., Injury, Schedule conflict..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none resize-none"
+                    rows={3}
+                  />
+                </div>
+
                 <div className="flex gap-3 w-full">
                   <button
                     onClick={() => setShowWithdrawModal(false)}
-                    className="flex-1 px-6 py-3 bg-white hover:bg-gray-50 text-gray-700 font-semibold rounded-xl border border-gray-300 transition-colors"
+                    disabled={withdrawing}
+                    className="flex-1 px-6 py-3 bg-white hover:bg-gray-50 text-gray-700 font-semibold rounded-xl border border-gray-300 transition-colors disabled:opacity-50"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={confirmWithdraw}
-                    className="flex-1 px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl transition-colors"
+                    disabled={withdrawing}
+                    className="flex-1 px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl transition-colors disabled:opacity-50"
                   >
-                    Yes, Withdraw
+                    {withdrawing ? 'Withdrawing...' : 'Yes, Withdraw'}
                   </button>
                 </div>
               </div>

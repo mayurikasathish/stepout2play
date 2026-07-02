@@ -132,8 +132,8 @@ class EligibilityService {
       };
     }
 
-    // No gender restriction on event
-    if (!eventGender || eventGender === 'Mixed') {
+    // No gender restriction on event - allow any gender
+    if (!eventGender || eventGender === 'Mixed' || eventGender === 'Any' || eventGender.toLowerCase() === 'any') {
       return { eligible: true };
     }
 
@@ -144,7 +144,9 @@ class EligibilityService {
     // Check if genders match
     if (
       (eventGenderNorm === 'men' && userGenderNorm === 'male') ||
-      (eventGenderNorm === 'women' && userGenderNorm === 'female')
+      (eventGenderNorm === 'women' && userGenderNorm === 'female') ||
+      (eventGenderNorm === 'male' && userGenderNorm === 'male') ||
+      (eventGenderNorm === 'female' && userGenderNorm === 'female')
     ) {
       return { eligible: true };
     }

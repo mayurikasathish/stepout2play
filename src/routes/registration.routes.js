@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const registrationController = require('../controllers/registration.controller');
+const withdrawalController = require('../controllers/withdrawal.controller');
 const authenticate = require('../middleware/authenticate');
 const requireEventOrgRole = require('../middleware/requireEventOrgRole');
 
@@ -33,6 +34,36 @@ router.delete(
   '/registrations/:registrationId',
   authenticate,
   registrationController.cancelRegistration.bind(registrationController)
+);
+
+// POST /registrations/:registrationId/withdraw - Withdraw from event
+router.post(
+  '/registrations/:registrationId/withdraw',
+  authenticate,
+  withdrawalController.withdrawFromEvent.bind(withdrawalController)
+);
+
+// GET /events/:eventId/standby - Get standby list (organizer only)
+router.get(
+  '/events/:eventId/standby',
+  authenticate,
+  requireEventOrgRole(['OWNER', 'ADMIN']),
+  withdrawalController.getStandbyList.bind(withdrawalController)
+);
+
+// POST /events/:eventId/accept-spot - Accept standby promotion
+router.post(
+  '/events/:eventId/accept-spot',
+  authenticate,
+  withdrawalController.acceptSpot.bind(withdrawalController)
+);
+
+// POST /events/:eventId/notify-standby - Notify standby players (organizer only)
+router.post(
+  '/events/:eventId/notify-standby',
+  authenticate,
+  requireEventOrgRole(['OWNER', 'ADMIN']),
+  withdrawalController.notifyStandbyPlayers.bind(withdrawalController)
 );
 
 // POST /events/:eventId/search-partner - Search for a partner by email

@@ -38,11 +38,34 @@ class RegistrationService {
       throw error;
     }
 
-    // Check if event is full
-    if (event.maxParticipants && event._count.registrations >= event.maxParticipants) {
-      const error = new Error('Event is full');
-      error.statusCode = 400;
-      throw error;
+    // Count confirmed registrations (excluding withdrawn and standby)
+    const confirmedCount = await prisma.registration.count({
+      where: {
+        eventId,
+        status: 'CONFIRMED',
+        isWithdrawn: false
+      }
+    });
+
+    // Determine if this should be confirmed or standby
+    let isStandby = false;
+    let standbyPosition = null;
+    let status = 'CONFIRMED';
+
+    if (event.maxParticipants && confirmedCount >= event.maxParticipants) {
+      // Event is full - add to standby
+      const standbyCount = await prisma.registration.count({
+        where: {
+          eventId,
+          status: 'STANDBY',
+          isStandby: true,
+          isWithdrawn: false
+        }
+      });
+
+      isStandby = true;
+      standbyPosition = standbyCount + 1;
+      status = 'STANDBY';
     }
 
     // Check if user has any existing registration (confirmed or cancelled)
@@ -97,15 +120,23 @@ class RegistrationService {
       // For doubles, partnerId can be null if registering solo and will find partner later
     }
 
+    // Get registration order
+    const registrationOrder = await prisma.registration.count({
+      where: { eventId }
+    }) + 1;
+
     // If there's a cancelled registration, update it. Otherwise create new
     let registration;
     if (existingRegistration && existingRegistration.status === 'CANCELLED') {
-      // Update the cancelled registration back to CONFIRMED
+      // Update the cancelled registration back to CONFIRMED or STANDBY
       registration = await prisma.registration.update({
         where: { id: existingRegistration.id },
         data: {
           partnerId,
-          status: 'CONFIRMED'
+          status,
+          isStandby,
+          standbyPosition,
+          registrationOrder
         },
       });
     } else {
@@ -120,7 +151,10 @@ class RegistrationService {
           eventId,
           partnerId,
           playerId,
-          status: 'CONFIRMED'
+          status,
+          isStandby,
+          standbyPosition,
+          registrationOrder
         },
       });
 

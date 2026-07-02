@@ -214,10 +214,16 @@ const TournamentDetailPage = () => {
         // Mark event as registered
         setRegisteredEvents(prev => new Set([...prev, eventId]))
 
-        // Show success modal
+        // Check if registration is on standby/waitlist
+        const registration = response.data.registration
+        const isWaitlisted = registration?.status === 'STANDBY' || registration?.isStandby
+
+        // Show success modal with appropriate message
         setSuccessMessage({
-          title: 'Registration Successful!',
-          message: partnerId
+          title: isWaitlisted ? 'Added to Waitlist!' : 'Registration Successful!',
+          message: isWaitlisted
+            ? `You've been added to the waitlist for ${eventName}${registration?.standbyPosition ? ` (Position: ${registration.standbyPosition})` : ''}. You'll be notified if a spot opens up due to a withdrawal.`
+            : partnerId
             ? `You've successfully registered for ${eventName} with your partner. Check "My Matches" to see all your registrations and match schedules.`
             : `You've successfully registered for ${eventName}. Check "My Matches" to see all your registrations and match schedules.`
         })
@@ -404,6 +410,36 @@ const TournamentDetailPage = () => {
               </div>
             </div>
 
+            {/* Contact Info */}
+            {(tournament.organization?.contactEmail || tournament.organization?.contactPhone) && (
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-lg bg-primary-50 flex items-center justify-center flex-shrink-0">
+                  <svg className="w-5 h-5 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500 mb-1">Contact</p>
+                  {tournament.organization?.contactEmail && (
+                    <a
+                      href={`mailto:${tournament.organization.contactEmail}`}
+                      className="block text-sm text-primary-600 hover:text-primary-700 font-medium"
+                    >
+                      {tournament.organization.contactEmail}
+                    </a>
+                  )}
+                  {tournament.organization?.contactPhone && (
+                    <a
+                      href={`tel:${tournament.organization.contactPhone}`}
+                      className="block text-sm text-gray-900 font-semibold hover:text-primary-600"
+                    >
+                      {tournament.organization.contactPhone}
+                    </a>
+                  )}
+                </div>
+              </div>
+            )}
+
           </div>
 
           {/* Description */}
@@ -550,7 +586,7 @@ const EventCard = ({ event, tournament, canRegister, onRegister, onCancelRegistr
     return labels[format] || format
   }
 
-  const isFull = event.maxParticipants && event.participantCount >= event.maxParticipants
+  const isFull = event.maxParticipants && (event.confirmedCount || 0) >= event.maxParticipants
   const registrationDeadline = tournament ? new Date(tournament.registrationDeadline) : null
   const isDeadlinePassed = registrationDeadline ? registrationDeadline < new Date() : false
 
@@ -613,13 +649,23 @@ const EventCard = ({ event, tournament, canRegister, onRegister, onCancelRegistr
             <div className="flex flex-wrap items-center gap-4 text-sm">
               <div className="flex items-center gap-2 text-gray-600">
                 <UsersIcon className="w-4 h-4" />
-                <span>
-                  <span className="font-semibold text-gray-900">{event.participantCount || 0}</span>
-                  {event.maxParticipants ? ` / ${event.maxParticipants}` : ''} registered
-                </span>
+                {event.maxParticipants ? (
+                  <span>
+                    <span className="font-semibold text-gray-900">{event.confirmedCount || 0}/{event.maxParticipants}</span> full
+                    {event.standbyCount > 0 && (
+                      <span className="ml-2 text-amber-700">
+                        and <span className="font-semibold">{event.standbyCount}</span> on stand-by
+                      </span>
+                    )}
+                  </span>
+                ) : (
+                  <span>
+                    <span className="font-semibold text-gray-900">{event.confirmedCount || 0}</span> registered
+                  </span>
+                )}
               </div>
 
-              {event.spotsRemaining > 0 && (
+              {event.spotsRemaining > 0 && !isFull && (
                 <span className="px-2 py-1 bg-success-50 text-success-700 text-xs font-medium rounded-md border border-success-200">
                   {event.spotsRemaining} spots left
                 </span>
@@ -679,17 +725,33 @@ const EventCard = ({ event, tournament, canRegister, onRegister, onCancelRegistr
                   Cancel
                 </button>
               </div>
+            ) : isFull ? (
+              <div className="flex flex-col gap-2">
+                <div className="px-4 py-2 bg-danger-50 text-danger-700 font-medium rounded-lg border border-danger-200 text-center text-sm">
+                  Event Full
+                </div>
+                <button
+                  onClick={() => onRegister(event.id, event.name)}
+                  disabled={!canRegister || registering}
+                  className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-medium rounded-lg transition-all shadow-sm hover:shadow-md text-sm whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {registering ? 'Joining...' : 'Join Waitlist'}
+                </button>
+                <p className="text-xs text-gray-500 text-center">
+                  You'll be notified if a spot opens up
+                </p>
+              </div>
             ) : (
               <button
                 onClick={() => onRegister(event.id, event.name)}
-                disabled={!canRegister || isFull || registering}
+                disabled={!canRegister || registering}
                 className={`px-6 py-3 font-medium rounded-lg transition-all shadow-sm hover:shadow-md whitespace-nowrap ${
-                  !canRegister || isFull
+                  !canRegister
                     ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                     : 'bg-primary-600 hover:bg-primary-700 text-white'
                 }`}
               >
-                {registering ? 'Registering...' : isFull ? 'Full' : 'Register'}
+                {registering ? 'Registering...' : 'Register'}
               </button>
             )}
           </div>

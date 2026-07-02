@@ -158,6 +158,7 @@ model Tournament {
   rules                String?
   entryFee             Decimal?         @db.Decimal(10, 2)
   maxParticipants      Int?
+  replacementWindowHours Int?           @default(24) // Hours before event start when replacement window closes
   events               Event[]
   organization         Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
@@ -245,11 +246,15 @@ model Registration {
   partnerId      String?
   playerId       String?         // Unique player ID for this event (e.g., "P001", "P002")
   status         RegistrationStatus @default(CONFIRMED)
+  registrationOrder Int?          // Order of registration (for seeding)
+  isStandby      Boolean         @default(false) // Whether this is a standby registration
+  standbyPosition Int?           // Position in standby queue (1, 2, 3...)
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
   seedNumber     Int?
   isWithdrawn    Boolean         @default(false)
   withdrawnAt    DateTime?
+  withdrawalReason String?       // Optional reason for withdrawal
   matchesAsP1    Match[]         @relation("Match_Participant1")
   matchesAsP2    Match[]         @relation("Match_Participant2")
   matchesWon     Match[]         @relation("Match_Winner")
@@ -349,6 +354,8 @@ enum EventFormat {
 
 enum RegistrationStatus {
   CONFIRMED
+  STANDBY
+  WITHDRAWN
   CANCELLED
 }
 

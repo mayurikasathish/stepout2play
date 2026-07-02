@@ -140,7 +140,9 @@ class TournamentService {
             id: true,
             name: true,
             slug: true,
-            logoUrl: true
+            logoUrl: true,
+            contactEmail: true,
+            contactPhone: true
           }
         },
         events: {
@@ -202,7 +204,9 @@ class TournamentService {
             id: true,
             name: true,
             slug: true,
-            logoUrl: true
+            logoUrl: true,
+            contactEmail: true,
+            contactPhone: true
           }
         },
         events: {
@@ -217,7 +221,20 @@ class TournamentService {
             rules: true,
             _count: {
               select: {
-                registrations: true
+                registrations: {
+                  where: {
+                    isWithdrawn: false
+                  }
+                }
+              }
+            },
+            registrations: {
+              where: {
+                isWithdrawn: false
+              },
+              select: {
+                status: true,
+                isStandby: true
               }
             }
           },
@@ -235,13 +252,21 @@ class TournamentService {
     }
 
     // Add counts to events only
-    const eventsWithCounts = tournament.events.map(event => ({
-      ...event,
-      participantCount: event._count.registrations,
-      spotsRemaining: event.maxParticipants
-        ? event.maxParticipants - event._count.registrations
-        : null
-    }));
+    const eventsWithCounts = tournament.events.map(event => {
+      const confirmedCount = event.registrations.filter(r => r.status === 'CONFIRMED' && !r.isStandby).length;
+      const standbyCount = event.registrations.filter(r => r.status === 'STANDBY' && r.isStandby).length;
+
+      return {
+        ...event,
+        participantCount: event._count.registrations, // Total (for backward compatibility)
+        confirmedCount,
+        standbyCount,
+        spotsRemaining: event.maxParticipants
+          ? event.maxParticipants - confirmedCount
+          : null,
+        registrations: undefined // Remove registrations from response
+      };
+    });
 
     return {
       ...tournament,

@@ -2,7 +2,12 @@ import { useState } from 'react'
 import api from '../services/api'
 
 const CreateOrganizationModal = ({ isOpen, onClose, onSuccess }) => {
-  const [formData, setFormData] = useState({ name: '', logoUrl: '' })
+  const [formData, setFormData] = useState({
+    name: '',
+    logoUrl: '',
+    contactEmail: '',
+    contactPhone: ''
+  })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -20,12 +25,14 @@ const CreateOrganizationModal = ({ isOpen, onClose, onSuccess }) => {
     try {
       const response = await api.post('/orgs', {
         name: formData.name.trim(),
-        logoUrl: formData.logoUrl.trim() || null
+        logoUrl: formData.logoUrl.trim() || null,
+        contactEmail: formData.contactEmail.trim() || null,
+        contactPhone: formData.contactPhone.trim() || null
       })
 
       if (response.data.success) {
         onSuccess(response.data.org)
-        setFormData({ name: '', logoUrl: '' })
+        setFormData({ name: '', logoUrl: '', contactEmail: '', contactPhone: '' })
         onClose()
       }
     } catch (err) {
@@ -37,7 +44,7 @@ const CreateOrganizationModal = ({ isOpen, onClose, onSuccess }) => {
 
   const handleClose = () => {
     if (!loading) {
-      setFormData({ name: '', logoUrl: '' })
+      setFormData({ name: '', logoUrl: '', contactEmail: '', contactPhone: '' })
       setError('')
       onClose()
     }
@@ -101,6 +108,36 @@ const CreateOrganizationModal = ({ isOpen, onClose, onSuccess }) => {
                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all bg-white"
                 disabled={loading}
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-900 mb-2">
+                Contact Email (Optional)
+              </label>
+              <input
+                type="email"
+                value={formData.contactEmail}
+                onChange={(e) => setFormData({ ...formData, contactEmail: e.target.value })}
+                placeholder="contact@organization.com"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all bg-white"
+                disabled={loading}
+              />
+              <p className="mt-1 text-xs text-gray-500">Players can use this to contact you about tournaments</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-900 mb-2">
+                Contact Phone (Optional)
+              </label>
+              <input
+                type="tel"
+                value={formData.contactPhone}
+                onChange={(e) => setFormData({ ...formData, contactPhone: e.target.value })}
+                placeholder="+91 98765 43210"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all bg-white"
+                disabled={loading}
+              />
+              <p className="mt-1 text-xs text-gray-500">Shown on tournament pages for inquiries</p>
             </div>
 
             {/* Actions */}

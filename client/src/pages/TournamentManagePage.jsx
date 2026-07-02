@@ -1036,6 +1036,8 @@ const EditTournamentModal = ({ tournament, onClose, onSubmit }) => {
     sport: tournament.sport || 'badminton',
     startDate: tournament.startDate ? tournament.startDate.split('T')[0] : '',
     endDate: tournament.endDate ? tournament.endDate.split('T')[0] : '',
+    startTime: tournament.startTime || '',
+    endTime: tournament.endTime || '',
     venueName: tournament.venueName || '',
     venueAddress: tournament.venueAddress || '',
     city: tournament.city || '',
@@ -1043,7 +1045,9 @@ const EditTournamentModal = ({ tournament, onClose, onSubmit }) => {
     description: tournament.description || '',
     rules: tournament.rules || '',
     // Only allow DRAFT/OPEN - map computed statuses back to OPEN
-    status: ['DRAFT', 'OPEN'].includes(tournament.status) ? tournament.status : 'OPEN'
+    status: ['DRAFT', 'OPEN'].includes(tournament.status) ? tournament.status : 'OPEN',
+    allowReplacement: tournament.replacementWindowHours !== null && tournament.replacementWindowHours !== undefined,
+    replacementWindowHours: tournament.replacementWindowHours || 24
   })
 
   const availableSports = [
@@ -1084,7 +1088,8 @@ const EditTournamentModal = ({ tournament, onClose, onSubmit }) => {
       ...formData,
       sportType,
       sports: selectedSports,
-      sport: selectedSports[0] // Legacy field - first sport
+      sport: selectedSports[0], // Legacy field - first sport
+      replacementWindowHours: formData.allowReplacement ? formData.replacementWindowHours : null
     }
     onSubmit(submitData)
   }
@@ -1240,6 +1245,49 @@ const EditTournamentModal = ({ tournament, onClose, onSubmit }) => {
               />
             </div>
 
+            {/* Replacement Window */}
+            <div>
+              <label className="flex items-center gap-2 mb-3">
+                <input
+                  type="checkbox"
+                  checked={formData.allowReplacement}
+                  onChange={(e) => setFormData({ ...formData, allowReplacement: e.target.checked })}
+                  className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                />
+                <span className="text-sm font-medium text-gray-700">
+                  Allow standby players to replace withdrawals
+                </span>
+              </label>
+
+              {formData.allowReplacement && (
+                <div>
+                  <label className="block text-sm font-medium mb-2 text-gray-700">
+                    Replacement Deadline (hours before tournament start) *
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="168"
+                    value={formData.replacementWindowHours}
+                    onChange={(e) => setFormData({ ...formData, replacementWindowHours: parseInt(e.target.value) || 24 })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                    required
+                  />
+                  <p className="mt-2 text-xs text-gray-600 leading-relaxed">
+                    <svg className="w-4 h-4 inline mr-1 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <strong>How it works:</strong> If a confirmed player withdraws before this deadline, ALL standby players receive an email notification. The first standby player to accept (by clicking the link in the email) gets the spot. After the deadline, withdrawals are still allowed but standby players won't be notified (to avoid last-minute bracket changes).
+                  </p>
+                </div>
+              )}
+
+              {!formData.allowReplacement && (
+                <p className="mt-2 text-xs text-gray-600">
+                  Waitlist players will not be automatically promoted if someone withdraws
+                </p>
+              )}
+            </div>
 
             <div>
               <label className="block text-sm font-medium mb-2">Status</label>

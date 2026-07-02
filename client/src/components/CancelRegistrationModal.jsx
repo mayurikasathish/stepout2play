@@ -14,15 +14,19 @@ const CancelRegistrationModal = ({ registration, onClose, onCancelled }) => {
   const [toastMessage, setToastMessage] = useState('')
   const [toastType, setToastType] = useState('success')
   const [deadlinePassed, setDeadlinePassed] = useState(false)
+  const [withdrawalReason, setWithdrawalReason] = useState('')
 
   const handleCancel = async () => {
     setCancelling(true)
 
     try {
-      const response = await api.delete(`/registrations/${registration.id}`)
+      // Use withdrawal endpoint instead of delete
+      const response = await api.post(`/registrations/${registration.id}/withdraw`, {
+        reason: withdrawalReason || null
+      })
 
       if (response.data.success) {
-        setToastMessage('Registration cancelled successfully')
+        setToastMessage(response.data.message || 'Withdrawal successful. The organizer has been notified.')
         setToastType('success')
         setShowToast(true)
         setTimeout(() => {
@@ -31,13 +35,13 @@ const CancelRegistrationModal = ({ registration, onClose, onCancelled }) => {
         }, 1500)
       }
     } catch (err) {
-      console.error('Error cancelling registration:', err)
+      console.error('Error withdrawing:', err)
 
-      // Check if deadline passed
-      if (err.response?.data?.deadlinePassed) {
+      // Check if it's a specific error
+      if (err.response?.status === 400 && err.response?.data?.error?.includes('after event has started')) {
         setDeadlinePassed(true)
       } else {
-        const errorMessage = err.response?.data?.error || 'Failed to cancel registration'
+        const errorMessage = err.response?.data?.error || 'Failed to withdraw from event'
         setToastMessage(errorMessage)
         setToastType('error')
         setShowToast(true)
@@ -101,16 +105,29 @@ const CancelRegistrationModal = ({ registration, onClose, onCancelled }) => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-2">Cancel Registration?</h3>
+            <h3 className="text-2xl font-bold text-gray-900 mb-2">Withdraw from Event?</h3>
             <p className="text-gray-600">
-              Are you sure you want to cancel your registration for <strong>{registration.event.name}</strong>?
+              Are you sure you want to withdraw from <strong>{registration.event.name}</strong>?
             </p>
           </div>
 
-          <div className="p-4 bg-red-50 border border-red-200 rounded-xl mb-6">
-            <p className="text-sm text-red-800">
-              <strong>Warning:</strong> This action cannot be undone. You'll need to register again if you change your mind.
+          <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl mb-4">
+            <p className="text-sm text-amber-800">
+              The tournament organizer will be notified of your withdrawal.
             </p>
+          </div>
+
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2 text-left">
+              Reason (optional)
+            </label>
+            <textarea
+              value={withdrawalReason}
+              onChange={(e) => setWithdrawalReason(e.target.value)}
+              placeholder="e.g., Injury, Schedule conflict..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none resize-none"
+              rows={3}
+            />
           </div>
 
           <div className="flex gap-3">
@@ -132,10 +149,10 @@ const CancelRegistrationModal = ({ registration, onClose, onCancelled }) => {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                   </svg>
-                  Cancelling...
+                  Withdrawing...
                 </>
               ) : (
-                'Yes, Cancel'
+                'Yes, Withdraw'
               )}
             </button>
           </div>

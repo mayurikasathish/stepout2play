@@ -20,6 +20,7 @@ import EditOrgPage from './pages/EditOrgPage'
 import PlayersPage from './pages/PlayersPage'
 import OCRTestPage from './pages/OCRTestPage'
 import ScorecardPrintPage from './pages/ScorecardPrintPage'
+import AcceptSpotPage from './pages/AcceptSpotPage'
 // import PlayerProfilePage from './pages/PlayerProfilePage' // wire up when ready
 
 function App() {
@@ -43,6 +44,9 @@ function App() {
           {/* Players directory – public */}
           <Route path="/players" element={<PlayersPage />} />
           {/* <Route path="/players/:id" element={<PlayerProfilePage />} /> */}
+
+          {/* Accept standby spot – requires auth */}
+          <Route path="/events/:eventId/accept-spot" element={<AcceptSpotPage />} />
 
           {/* Onboarding – auth required but no onboardingComplete check */}
           <Route path="/onboarding" element={<OnboardingPage />} />

@@ -15,7 +15,7 @@ function generateSlug(name) {
 // POST /orgs — create a new organization
 // The creating user automatically becomes OWNER
 const createOrg = async (req, res) => {
-  const { name, logoUrl } = req.body;
+  const { name, logoUrl, contactEmail, contactPhone } = req.body;
 
   if (!name || name.trim().length < 2) {
     return res.status(400).json({ success: false, error: 'Organization name is required' });
@@ -35,7 +35,13 @@ const createOrg = async (req, res) => {
   // A transaction means: both operations succeed, or neither does
   const org = await prisma.$transaction(async (tx) => {
     const newOrg = await tx.organization.create({
-      data: { name: name.trim(), slug, logoUrl }
+      data: {
+        name: name.trim(),
+        slug,
+        logoUrl,
+        contactEmail: contactEmail?.trim() || null,
+        contactPhone: contactPhone?.trim() || null
+      }
     });
 
     await tx.orgMember.create({

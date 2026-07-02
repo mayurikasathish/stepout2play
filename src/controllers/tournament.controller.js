@@ -25,7 +25,9 @@ class TournamentController {
         entryFee,
         description,
         maxParticipants,
-        status
+        status,
+        allowReplacement,
+        replacementWindowHours
       } = req.body;
 
       // Validation
@@ -142,6 +144,14 @@ class TournamentController {
         errors.push(`Status must be one of: ${validStatuses.join(', ')} (other statuses are calculated automatically)`);
       }
 
+      // Validate replacement window hours
+      if (allowReplacement && replacementWindowHours !== undefined) {
+        const hours = parseInt(replacementWindowHours, 10);
+        if (isNaN(hours) || hours < 0 || hours > 168) {
+          errors.push('Replacement window must be between 0 and 168 hours (7 days)');
+        }
+      }
+
       if (errors.length > 0) {
         return res.status(400).json({ success: false, errors });
       }
@@ -162,7 +172,8 @@ class TournamentController {
         registrationDeadline,
         description: description?.trim(),
         rules: req.body.rules?.trim(),
-        status: status || 'DRAFT'
+        status: status || 'DRAFT',
+        replacementWindowHours: allowReplacement && replacementWindowHours ? parseInt(replacementWindowHours, 10) : null
       });
 
       // Create live feed item when tournament is created
@@ -278,7 +289,9 @@ class TournamentController {
         registrationDeadline,
         description,
         rules,
-        status
+        status,
+        allowReplacement,
+        replacementWindowHours
       } = req.body;
 
       const updateData = {};
@@ -305,6 +318,18 @@ class TournamentController {
       if (registrationDeadline !== undefined) updateData.registrationDeadline = new Date(registrationDeadline);
       if (description !== undefined) updateData.description = description?.trim() || null;
       if (rules !== undefined) updateData.rules = rules?.trim() || null;
+
+      // Handle replacement window
+      if (allowReplacement !== undefined) {
+        if (allowReplacement && replacementWindowHours !== undefined) {
+          const hours = parseInt(replacementWindowHours, 10);
+          if (!isNaN(hours) && hours >= 0 && hours <= 168) {
+            updateData.replacementWindowHours = hours;
+          }
+        } else if (!allowReplacement) {
+          updateData.replacementWindowHours = null;
+        }
+      }
 
       // Only allow DRAFT or OPEN status
       if (status !== undefined) {
