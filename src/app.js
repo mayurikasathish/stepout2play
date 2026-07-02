@@ -24,8 +24,10 @@ app.use((req, res, next) => {
 app.use(cors({
   origin: [
     process.env.CLIENT_URL || 'http://localhost:5173',
+    'http://localhost:5173', // Always allow local dev
     'http://localhost:5174',
-    'http://localhost:5175'
+    'http://localhost:5175',
+    'https://stepout2play-web.onrender.com' // Production frontend
   ],
   credentials: true,
 }));
@@ -45,6 +47,7 @@ app.use('/api', uploadRoutes); // Upload routes for images
 app.use('/api/ocr', ocrRoutes); // OCR routes for scorecard extraction
 app.use('/api/notifications', notificationRoutes); // Notification routes
 app.use('/api/live-feed', liveFeedRoutes); // Live feed routes
+app.use('/api', require('./routes/test-email.routes')); // Test email route (DEV ONLY)
 
 // Health check
 app.get('/api/health', (req, res) => {
