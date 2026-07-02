@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import EmptyState from '../components/EmptyState'
 import api from '../services/api'
@@ -24,13 +24,32 @@ const ClockIcon = (props) => (
 
 const MatchesPage = () => {
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [registrations, setRegistrations] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [activeTab, setActiveTab] = useState('upcoming') // upcoming | past
 
+  // Standby promotion modal state
+  const [showPromotionModal, setShowPromotionModal] = useState(false)
+  const [promotionEventId, setPromotionEventId] = useState(null)
+  const [promotionEvent, setPromotionEvent] = useState(null)
+  const [accepting, setAccepting] = useState(false)
+  const [promotionSuccess, setPromotionSuccess] = useState(false)
+
   useEffect(() => {
     fetchMyRegistrations()
+
+    // Check for standby promotion query params
+    const eventId = searchParams.get('eventId')
+    const standbyPromotion = searchParams.get('standbyPromotion')
+
+    if (eventId && standbyPromotion === 'true') {
+      setPromotionEventId(eventId)
+      setShowPromotionModal(true)
+      // Clear query params to avoid showing modal again on refresh
+      setSearchParams({})
+    }
   }, [])
 
   const fetchMyRegistrations = async () => {
@@ -48,6 +67,49 @@ const MatchesPage = () => {
       setError('Failed to load your registrations. Please try again.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  // Fetch event details for promotion modal
+  useEffect(() => {
+    if (promotionEventId && registrations.length > 0) {
+      const registration = registrations.find(r => r.eventId === promotionEventId && r.isStandby)
+      if (registration) {
+        setPromotionEvent(registration.event)
+      }
+    }
+  }, [promotionEventId, registrations])
+
+  const handleAcceptPromotion = async () => {
+    if (!promotionEventId) return
+
+    setAccepting(true)
+    try {
+      const response = await api.post(`/events/${promotionEventId}/accept-spot`)
+
+      if (response.data.success) {
+        setPromotionSuccess(true)
+        // Refresh registrations to show updated status
+        setTimeout(() => {
+          fetchMyRegistrations()
+          setShowPromotionModal(false)
+          setPromotionSuccess(false)
+        }, 3000)
+      }
+    } catch (err) {
+      console.error('Error accepting spot:', err)
+      const errorMsg = err.response?.data?.error || 'Failed to accept spot'
+
+      if (errorMsg.includes('already full')) {
+        alert('⚠️ Sorry, someone else accepted the spot first! The event is now full.')
+      } else if (errorMsg.includes('not on the standby list')) {
+        alert('⚠️ You are not on the standby list for this event.')
+      } else {
+        alert(errorMsg)
+      }
+      setShowPromotionModal(false)
+    } finally {
+      setAccepting(false)
     }
   }
 
@@ -156,6 +218,112 @@ const MatchesPage = () => {
           </>
         )}
       </main>
+
+      {/* Standby Promotion Modal */}
+      {showPromotionModal && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm" />
+          <div className="flex min-h-full items-center justify-center p-4">
+            <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg p-8">
+              {promotionSuccess ? (
+                <div className="text-center">
+                  <div className="w-20 h-20 bg-success-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <svg className="w-10 h-10 text-success-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-4">
+                    🎉 Congratulations!
+                  </h3>
+                  <p className="text-lg text-gray-600 mb-6">
+                    You've been successfully promoted from the waitlist to a confirmed player!
+                  </p>
+                  {promotionEvent && (
+                    <div className="bg-success-50 border border-success-200 rounded-xl p-4 mb-6">
+                      <p className="text-sm text-gray-600 mb-1">You're now confirmed for:</p>
+                      <p className="text-lg font-bold text-gray-900">{promotionEvent.name}</p>
+                    </div>
+                  )}
+                  <p className="text-sm text-gray-500">
+                    Updating your registrations...
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <div className="text-center mb-6">
+                    <div className="w-20 h-20 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                      <svg className="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-2xl font-bold text-gray-900 mb-4">
+                      🎾 A Spot Has Opened Up!
+                    </h3>
+                    <p className="text-gray-600">
+                      You have the opportunity to be promoted from the waitlist to a confirmed player!
+                    </p>
+                  </div>
+
+                  {promotionEvent && (
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 mb-6">
+                      <p className="text-sm text-gray-600 mb-2">Event:</p>
+                      <p className="text-xl font-bold text-gray-900 mb-4">{promotionEvent.name}</p>
+                      <p className="text-sm text-gray-600">
+                        A confirmed player has withdrawn, and you're eligible to take their place!
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
+                    <div className="flex items-start gap-3">
+                      <svg className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <div>
+                        <p className="text-sm font-semibold text-red-800 mb-1">⏰ Time Sensitive</p>
+                        <p className="text-sm text-red-700">
+                          All waitlist players have been notified. The first person to accept gets the spot!
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setShowPromotionModal(false)}
+                      disabled={accepting}
+                      className="flex-1 px-6 py-3 bg-white hover:bg-gray-50 text-gray-700 font-semibold rounded-xl border border-gray-300 transition-colors disabled:opacity-50"
+                    >
+                      Maybe Later
+                    </button>
+                    <button
+                      onClick={handleAcceptPromotion}
+                      disabled={accepting}
+                      className="flex-1 px-6 py-4 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-bold rounded-xl transition-all shadow-lg disabled:opacity-50"
+                    >
+                      {accepting ? (
+                        <span className="flex items-center justify-center gap-2">
+                          <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                          </svg>
+                          Accepting...
+                        </span>
+                      ) : (
+                        '✓ Accept Spot'
+                      )}
+                    </button>
+                  </div>
+
+                  <p className="text-center text-sm text-gray-500 mt-4">
+                    If you're no longer interested, simply close this. No action needed.
+                  </p>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

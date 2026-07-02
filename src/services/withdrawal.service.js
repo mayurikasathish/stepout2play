@@ -178,7 +178,7 @@ class WithdrawalService {
     // Send notification email to ALL standby players
     // The email will contain a link to accept the spot
     // First person to click and accept gets promoted
-    const baseUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+    const baseUrl = process.env.CLIENT_URL || 'https://stepout2play-web.onrender.com';
 
     for (const standbyPlayer of standbyPlayers) {
       try {
@@ -192,7 +192,7 @@ class WithdrawalService {
         });
 
         // Email notification with accept link
-        const acceptUrl = `${baseUrl}/events/${standbyPlayer.eventId}/accept-spot`;
+        const acceptUrl = `${baseUrl}/matches?eventId=${standbyPlayer.eventId}&standbyPromotion=true`;
         await emailService.sendStandbyPromotionEmail({
           to: standbyPlayer.user.email,
           userName: `${standbyPlayer.user.firstName} ${standbyPlayer.user.lastName}`,

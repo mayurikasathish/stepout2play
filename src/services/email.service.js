@@ -106,11 +106,8 @@ class EmailService {
             <p class="warning">⏰ Time Sensitive: This spot will go to the first person who accepts!</p>
 
             <center>
-              <a href="${acceptUrl}" class="button">ACCEPT SPOT NOW</a>
+              <a href="${acceptUrl}" class="button">VIEW PROMOTION</a>
             </center>
-
-            <p style="font-size: 14px; color: #6b7280;">If the button doesn't work, copy and paste this link into your browser:</p>
-            <p style="font-size: 12px; color: #9ca3af; word-break: break-all;">${acceptUrl}</p>
 
             <p style="margin-top: 30px;">If you're no longer interested, no action is needed. The spot will automatically go to someone else who accepts.</p>
 
