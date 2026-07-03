@@ -2,6 +2,26 @@ import { useState, useRef, useEffect } from 'react'
 import EditScoreButton from './EditScoreButton'
 import { formatMatchScore } from '../utils/scoreFormatter'
 
+// Helper to get rating change for a participant (registration)
+const getRatingChange = (match, participant) => {
+  if (!match.ratingChanges || match.ratingChanges.length === 0 || !participant) return null
+
+  // participant is a Registration object with userId
+  const userId = participant.userId
+  if (!userId) return null
+
+  // Find the rating change for this user
+  const change = match.ratingChanges.find(rc => rc.userId === userId)
+  if (!change) return null
+
+  const delta = Math.round(change.ratingChange)
+  return {
+    delta,
+    newRating: Math.round(change.newRating),
+    oldRating: Math.round(change.oldRating)
+  }
+}
+
 const SingleEliminationBracket = ({ matches, onMatchClick, onCaptureScorecard, eventName, tournamentName }) => {
   const [zoom, setZoom] = useState(100)
   const bracketRef = useRef(null)
@@ -315,9 +335,21 @@ const SingleEliminationBracket = ({ matches, onMatchClick, onCaptureScorecard, e
               ? 'bg-gradient-to-r from-amber-100 to-yellow-100 border border-amber-400'
               : 'bg-white border border-gray-200'
           }`}>
-            <span className={`text-xs truncate flex-1 min-w-0 ${
-              match.participant1 ? 'font-medium text-gray-900' : 'italic text-gray-400'
-            }`}>{p1Name}</span>
+            <div className="flex flex-col flex-1 min-w-0">
+              <span className={`text-xs truncate ${
+                match.participant1 ? 'font-medium text-gray-900' : 'italic text-gray-400'
+              }`}>{p1Name}</span>
+              {match.status === 'COMPLETED' && match.participant1 && (() => {
+                const ratingChange = getRatingChange(match, match.participant1)
+                if (!ratingChange) return null
+                const isPositive = ratingChange.delta > 0
+                return (
+                  <span className={`text-[9px] font-medium ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
+                    {isPositive ? '+' : ''}{ratingChange.delta} ({ratingChange.newRating})
+                  </span>
+                )
+              })()}
+            </div>
             {isP1Winner && match.status === 'COMPLETED' && (
               <span className="text-[9px] px-2 py-0.5 bg-amber-500 text-white rounded font-bold ml-2 flex-shrink-0">W</span>
             )}
@@ -328,9 +360,21 @@ const SingleEliminationBracket = ({ matches, onMatchClick, onCaptureScorecard, e
               ? 'bg-gradient-to-r from-amber-100 to-yellow-100 border border-amber-400'
               : 'bg-white border border-gray-200'
           }`}>
-            <span className={`text-xs truncate flex-1 min-w-0 ${
-              match.participant2 ? 'font-medium text-gray-900' : 'italic text-gray-400'
-            }`}>{p2Name}</span>
+            <div className="flex flex-col flex-1 min-w-0">
+              <span className={`text-xs truncate ${
+                match.participant2 ? 'font-medium text-gray-900' : 'italic text-gray-400'
+              }`}>{p2Name}</span>
+              {match.status === 'COMPLETED' && match.participant2 && (() => {
+                const ratingChange = getRatingChange(match, match.participant2)
+                if (!ratingChange) return null
+                const isPositive = ratingChange.delta > 0
+                return (
+                  <span className={`text-[9px] font-medium ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
+                    {isPositive ? '+' : ''}{ratingChange.delta} ({ratingChange.newRating})
+                  </span>
+                )
+              })()}
+            </div>
             {isP2Winner && match.status === 'COMPLETED' && (
               <span className="text-[9px] px-2 py-0.5 bg-amber-500 text-white rounded font-bold ml-2 flex-shrink-0">W</span>
             )}

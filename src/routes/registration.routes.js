@@ -58,6 +58,13 @@ router.post(
   withdrawalController.acceptSpot.bind(withdrawalController)
 );
 
+// POST /events/:eventId/reject-spot - Reject standby promotion
+router.post(
+  '/events/:eventId/reject-spot',
+  authenticate,
+  withdrawalController.rejectSpot.bind(withdrawalController)
+);
+
 // POST /events/:eventId/notify-standby - Notify standby players (organizer only)
 router.post(
   '/events/:eventId/notify-standby',

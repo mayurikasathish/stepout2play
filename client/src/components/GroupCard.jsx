@@ -3,6 +3,26 @@
 import EditScoreButton from './EditScoreButton'
 import { formatMatchScore } from '../utils/scoreFormatter'
 
+// Helper to get rating change for a participant (registration)
+const getRatingChange = (match, participant) => {
+  if (!match.ratingChanges || match.ratingChanges.length === 0 || !participant) return null
+
+  // participant is a Registration object with userId
+  const userId = participant.userId
+  if (!userId) return null
+
+  // Find the rating change for this user
+  const change = match.ratingChanges.find(rc => rc.userId === userId)
+  if (!change) return null
+
+  const delta = Math.round(change.ratingChange)
+  return {
+    delta,
+    newRating: Math.round(change.newRating),
+    oldRating: Math.round(change.oldRating)
+  }
+}
+
 const STATUS_CONFIG = {
   PENDING:     { label: 'Upcoming', dot: 'bg-gray-400',   text: 'text-gray-600',   bg: 'bg-gray-50'   },
   READY:       { label: 'Ready',    dot: 'bg-orange-400', text: 'text-orange-700', bg: 'bg-orange-50' },
@@ -133,21 +153,45 @@ const GroupCard = ({ group, isOrganizer, onMatchClick, onCaptureScorecard }) => 
 
                 {/* Players */}
                 <div className="flex-1 flex items-center justify-center gap-2 min-w-0">
-                  <span className={`text-sm font-medium truncate max-w-[100px] text-right ${
-                    isCompleted && match.winnerId === match.participant1Id ? 'text-green-700 font-bold' : 'text-gray-800'
-                  }`}>
-                    {getParticipantName(match.participant1)}
-                  </span>
+                  <div className="flex flex-col items-end max-w-[100px]">
+                    <span className={`text-sm font-medium truncate ${
+                      isCompleted && match.winnerId === match.participant1Id ? 'text-green-700 font-bold' : 'text-gray-800'
+                    }`}>
+                      {getParticipantName(match.participant1)}
+                    </span>
+                    {isCompleted && match.participant1 && (() => {
+                      const ratingChange = getRatingChange(match, match.participant1)
+                      if (!ratingChange) return null
+                      const isPositive = ratingChange.delta > 0
+                      return (
+                        <span className={`text-[9px] font-medium ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
+                          {isPositive ? '+' : ''}{ratingChange.delta}
+                        </span>
+                      )
+                    })()}
+                  </div>
 
                   <span className="text-xs text-gray-400 shrink-0 font-medium">
                     {isCompleted && match.score ? formatMatchScore(match.score) : 'vs'}
                   </span>
 
-                  <span className={`text-sm font-medium truncate max-w-[100px] text-left ${
-                    isCompleted && match.winnerId === match.participant2Id ? 'text-green-700 font-bold' : 'text-gray-800'
-                  }`}>
-                    {getParticipantName(match.participant2)}
-                  </span>
+                  <div className="flex flex-col items-start max-w-[100px]">
+                    <span className={`text-sm font-medium truncate ${
+                      isCompleted && match.winnerId === match.participant2Id ? 'text-green-700 font-bold' : 'text-gray-800'
+                    }`}>
+                      {getParticipantName(match.participant2)}
+                    </span>
+                    {isCompleted && match.participant2 && (() => {
+                      const ratingChange = getRatingChange(match, match.participant2)
+                      if (!ratingChange) return null
+                      const isPositive = ratingChange.delta > 0
+                      return (
+                        <span className={`text-[9px] font-medium ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
+                          {isPositive ? '+' : ''}{ratingChange.delta}
+                        </span>
+                      )
+                    })()}
+                  </div>
                 </div>
 
                   {/* Status badge or Edit button */}

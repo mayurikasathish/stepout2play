@@ -8,7 +8,17 @@ class WithdrawalService {
    */
   isReplacementWindowOpen(tournament, event) {
     const now = new Date();
-    const eventStartTime = new Date(tournament.startDate);
+
+    // Parse the start date properly (tournament.startDate is a Date object from Prisma)
+    const startDate = new Date(tournament.startDate);
+
+    // Create event start time in local timezone
+    const eventStartTime = new Date(
+      startDate.getFullYear(),
+      startDate.getMonth(),
+      startDate.getDate(),
+      0, 0, 0, 0
+    );
 
     // Add start time if available
     if (tournament.startTime) {
@@ -19,7 +29,19 @@ class WithdrawalService {
     const replacementWindowHours = tournament.replacementWindowHours || 24;
     const lockTime = new Date(eventStartTime.getTime() - replacementWindowHours * 60 * 60 * 1000);
 
-    return now < lockTime;
+    console.log('\n=== REPLACEMENT WINDOW CHECK ===');
+    console.log(`Tournament: ${tournament.name}`);
+    console.log(`Current time: ${now.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })} (${now.toISOString()})`);
+    console.log(`Tournament starts: ${eventStartTime.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })} (${eventStartTime.toISOString()})`);
+    console.log(`Replacement window: ${replacementWindowHours} hours before start`);
+    console.log(`Lock time (deadline): ${lockTime.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })} (${lockTime.toISOString()})`);
+
+    const isOpen = now < lockTime;
+    console.log(`\nCurrent < Deadline? ${now.getTime()} < ${lockTime.getTime()}`);
+    console.log(`Window is ${isOpen ? 'OPEN ✅' : 'CLOSED ❌'}`);
+    console.log('================================\n');
+
+    return isOpen;
   }
 
   /**
@@ -149,10 +171,13 @@ class WithdrawalService {
    * First person to accept gets the spot
    */
   async notifyStandbyPlayers(eventId) {
+    console.log('=== NOTIFY STANDBY PLAYERS SERVICE ===');
+    console.log(`Looking for standby players in event: ${eventId}`);
+
     // Get ALL standby players
     const standbyPlayers = await prisma.registration.findMany({
       where: {
-        eventId,
+        eventId: eventId, // eventId is a UUID string, don't parse it!
         isStandby: true,
         status: 'STANDBY',
         isWithdrawn: false
@@ -170,48 +195,88 @@ class WithdrawalService {
       }
     });
 
+    console.log(`Found ${standbyPlayers?.length || 0} standby players`);
+
     if (!standbyPlayers || standbyPlayers.length === 0) {
-      console.log('No standby players available for promotion');
-      return null;
+      console.log('❌ No standby players available for promotion');
+      return {
+        notified: 0,
+        message: 'No standby players available to notify.'
+      };
     }
+
+    console.log('Standby players:', standbyPlayers.map(p => ({
+      id: p.id,
+      userId: p.userId,
+      email: p.user.email,
+      position: p.standbyPosition
+    })));
 
     // Send notification email to ALL standby players
     // The email will contain a link to accept the spot
     // First person to click and accept gets promoted
-    const baseUrl = process.env.CLIENT_URL || 'https://stepout2play-web.onrender.com';
+
+    let successCount = 0;
+    let errors = [];
 
     for (const standbyPlayer of standbyPlayers) {
+      console.log(`\n--- Processing standby player #${standbyPlayer.standbyPosition}: ${standbyPlayer.user.email} ---`);
+
       try {
-        // In-app notification
-        await NotificationHelpers.sendStandbyPromotion({
+        // In-app notification - SPOT AVAILABLE (not promoted yet!)
+        console.log('Sending in-app notification...');
+        const notifResult = await NotificationHelpers.sendStandbySpotAvailable({
           userId: standbyPlayer.userId,
           eventName: standbyPlayer.event.name,
           eventId: standbyPlayer.eventId,
           tournamentName: standbyPlayer.event.tournament.name,
-          standbyPosition: standbyPlayer.standbyPosition
+          standbyPosition: standbyPlayer.standbyPosition,
+          registrationId: standbyPlayer.id
         });
+        console.log('In-app notification result:', notifResult);
 
-        // Email notification with accept link
-        const acceptUrl = `${baseUrl}/matches?eventId=${standbyPlayer.eventId}&standbyPromotion=true`;
-        await emailService.sendStandbyPromotionEmail({
+        // Email notification
+        console.log('Sending email notification...');
+        const emailResult = await emailService.sendStandbyPromotionEmail({
           to: standbyPlayer.user.email,
           userName: `${standbyPlayer.user.firstName} ${standbyPlayer.user.lastName}`,
           eventName: standbyPlayer.event.name,
           tournamentName: standbyPlayer.event.tournament.name,
-          acceptUrl,
+          eventId: standbyPlayer.eventId,
+          userId: standbyPlayer.userId,
           standbyPosition: standbyPlayer.standbyPosition
         });
+        console.log('Email result:', emailResult);
 
-        console.log(`Sent promotion notification to standby player #${standbyPlayer.standbyPosition}: ${standbyPlayer.user.email}`);
+        console.log(`✅ Sent spot available notification to standby player #${standbyPlayer.standbyPosition}: ${standbyPlayer.user.email}`);
+        successCount++;
       } catch (err) {
-        console.error('Error sending standby promotion notification:', err);
+        console.error(`\n\n❌❌❌ ERROR SENDING TO ${standbyPlayer.user.email} ❌❌❌`);
+        console.error('Error message:', err.message);
+        console.error('Error name:', err.name);
+        console.error('Full error:', err);
+        console.error('Stack:', err.stack);
+        errors.push({ email: standbyPlayer.user.email, error: err.message });
       }
+    }
+
+    console.log(`\n=== NOTIFICATION SUMMARY ===`);
+    console.log(`Total standby players: ${standbyPlayers.length}`);
+    console.log(`Successfully notified: ${successCount}`);
+    console.log(`Failed: ${errors.length}`);
+
+    if (errors.length > 0) {
+      console.error('\n❌❌❌ ERRORS OCCURRED ❌❌❌');
+      errors.forEach(e => {
+        console.error(`  - ${e.email}: ${e.error}`);
+      });
+      throw new Error(`Failed to notify ${errors.length} standby player(s). Check server logs for details.`);
     }
 
     // Return info about how many were notified
     return {
-      notified: standbyPlayers.length,
-      message: `${standbyPlayers.length} standby player(s) have been notified via email. First to accept gets the spot.`
+      notified: successCount,
+      message: `${successCount} standby player(s) have been notified via email. First to accept gets the spot.`
     };
   }
 
@@ -272,6 +337,16 @@ class WithdrawalService {
       throw error;
     }
 
+    // Check if replacement window is still open
+    const tournament = standbyRegistration.event.tournament;
+    const replacementWindowOpen = this.isReplacementWindowOpen(tournament, standbyRegistration.event);
+
+    if (!replacementWindowOpen) {
+      const error = new Error('The replacement window has closed. Replacements are no longer being accepted for this event.');
+      error.statusCode = 400;
+      throw error;
+    }
+
     // Check if event still has space (race condition check)
     const event = await prisma.event.findUnique({
       where: { id: eventId },
@@ -308,8 +383,10 @@ class WithdrawalService {
     });
 
     // Send confirmation notification
+    const playerName = `${standbyRegistration.user.firstName} ${standbyRegistration.user.lastName}`;
+
     try {
-      // In-app notification
+      // In-app notification to player
       await NotificationHelpers.sendStandbyPromotion({
         userId: standbyRegistration.userId,
         eventName: standbyRegistration.event.name,
@@ -317,10 +394,10 @@ class WithdrawalService {
         confirmed: true
       });
 
-      // Email confirmation
+      // Email confirmation to player
       await emailService.sendSpotConfirmationEmail({
         to: standbyRegistration.user.email,
-        userName: `${standbyRegistration.user.firstName} ${standbyRegistration.user.lastName}`,
+        userName: playerName,
         eventName: standbyRegistration.event.name,
         tournamentName: standbyRegistration.event.tournament.name
       });
@@ -328,9 +405,90 @@ class WithdrawalService {
       console.error('Error sending confirmation notification:', err);
     }
 
+    // Notify organizers about the acceptance
+    try {
+      const organizers = await prisma.orgMember.findMany({
+        where: {
+          orgId: standbyRegistration.event.tournament.organizationId,
+          role: { in: ['OWNER', 'ADMIN'] }
+        },
+        include: {
+          user: true
+        }
+      });
+
+      for (const member of organizers) {
+        try {
+          // In-app notification to organizer
+          await NotificationHelpers.sendStandbyAcceptedNotification({
+            organizerId: member.userId,
+            playerName,
+            eventName: standbyRegistration.event.name,
+            tournamentId: standbyRegistration.event.tournament.id,
+            eventId: standbyRegistration.eventId
+          });
+
+          // Email to organizer
+          await emailService.sendEmail({
+            to: member.user.email,
+            subject: `✅ Standby Player Confirmed: ${standbyRegistration.event.name}`,
+            html: `
+              <h2>Standby Player Accepted Promotion</h2>
+              <p><strong>${playerName}</strong> has accepted their standby promotion and is now confirmed for:</p>
+              <p><strong>Event:</strong> ${standbyRegistration.event.name}<br>
+              <strong>Tournament:</strong> ${standbyRegistration.event.tournament.name}</p>
+              <p>The player has been automatically promoted to confirmed status.</p>
+            `,
+            text: `${playerName} has accepted their standby promotion for ${standbyRegistration.event.name} and is now confirmed.`
+          });
+        } catch (err) {
+          console.error(`Error notifying organizer ${member.user.email}:`, err);
+        }
+      }
+    } catch (err) {
+      console.error('Error getting organizers:', err);
+    }
+
     return {
       message: 'Successfully promoted from standby to confirmed!',
       registration: promoted
+    };
+  }
+
+  /**
+   * Reject standby promotion
+   */
+  async rejectStandbySpot(eventId, userId) {
+    // Check if user is on standby for this event
+    const standbyRegistration = await prisma.registration.findFirst({
+      where: {
+        eventId,
+        userId,
+        isStandby: true,
+        status: 'STANDBY',
+        isWithdrawn: false
+      },
+      include: {
+        user: true,
+        event: {
+          include: {
+            tournament: true
+          }
+        }
+      }
+    });
+
+    if (!standbyRegistration) {
+      const error = new Error('You are not on the standby list for this event');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    // Just log the rejection (no database change needed, they stay on standby)
+    console.log(`Player ${standbyRegistration.user.email} declined standby promotion for event ${eventId}`);
+
+    return {
+      message: 'You have declined this promotion. You will remain on the standby list.'
     };
   }
 }

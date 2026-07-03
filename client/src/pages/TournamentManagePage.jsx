@@ -1178,27 +1178,57 @@ const EditTournamentModal = ({ tournament, onClose, onSubmit }) => {
               )}
             </div>
 
-            <div className="grid md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">Start Date *</label>
-                <input
-                  type="date"
-                  value={formData.startDate}
-                  onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                  required
-                />
+            {/* Start Date & Time */}
+            <div>
+              <label className="block text-sm font-medium mb-2">Tournament Start *</label>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <input
+                    type="date"
+                    value={formData.startDate}
+                    onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                    required
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Date</p>
+                </div>
+                <div>
+                  <input
+                    type="time"
+                    value={formData.startTime}
+                    onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                    required
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Time</p>
+                </div>
               </div>
+            </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-2">End Date *</label>
-                <input
-                  type="date"
-                  value={formData.endDate}
-                  onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                  required
-                />
+            {/* End Date & Time */}
+            <div>
+              <label className="block text-sm font-medium mb-2">Tournament End *</label>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <input
+                    type="date"
+                    value={formData.endDate}
+                    onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                    required
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Date</p>
+                </div>
+                <div>
+                  <input
+                    type="time"
+                    value={formData.endTime}
+                    onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                    required
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Time</p>
+                </div>
               </div>
             </div>
 
@@ -1277,7 +1307,7 @@ const EditTournamentModal = ({ tournament, onClose, onSubmit }) => {
                     <svg className="w-4 h-4 inline mr-1 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    <strong>How it works:</strong> If a confirmed player withdraws before this deadline, ALL standby players receive an email notification. The first standby player to accept (by clicking the link in the email) gets the spot. After the deadline, withdrawals are still allowed but standby players won't be notified (to avoid last-minute bracket changes).
+                    <strong>How it works:</strong> Replacement window closes {formData.replacementWindowHours} hours before tournament start time. If a confirmed player withdraws before this deadline, ALL standby players receive an email notification. The first standby player to accept (by clicking the link in the email) gets the spot. After the deadline, withdrawals are still allowed but standby players won't be notified (to avoid last-minute bracket changes).
                   </p>
                 </div>
               )}

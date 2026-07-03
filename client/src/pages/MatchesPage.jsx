@@ -41,11 +41,11 @@ const MatchesPage = () => {
     fetchMyRegistrations()
 
     // Check for standby promotion query params
-    const eventId = searchParams.get('eventId')
-    const standbyPromotion = searchParams.get('standbyPromotion')
+    const standbyPromotionModal = searchParams.get('standbyPromotionModal')
 
-    if (eventId && standbyPromotion === 'true') {
-      setPromotionEventId(eventId)
+    if (standbyPromotionModal) {
+      // standbyPromotionModal contains registrationId
+      // We'll get eventId from the registration when registrations load
       setShowPromotionModal(true)
       // Clear query params to avoid showing modal again on refresh
       setSearchParams({})
@@ -70,15 +70,17 @@ const MatchesPage = () => {
     }
   }
 
-  // Fetch event details for promotion modal
+  // Auto-detect standby promotion opportunity when registrations load
   useEffect(() => {
-    if (promotionEventId && registrations.length > 0) {
-      const registration = registrations.find(r => r.eventId === promotionEventId && r.isStandby)
-      if (registration) {
-        setPromotionEvent(registration.event)
+    if (showPromotionModal && registrations.length > 0 && !promotionEvent) {
+      // Find the first standby registration (assuming notification brings them here)
+      const standbyReg = registrations.find(r => r.isStandby && r.status === 'STANDBY')
+      if (standbyReg) {
+        setPromotionEventId(standbyReg.eventId)
+        setPromotionEvent(standbyReg.event)
       }
     }
-  }, [promotionEventId, registrations])
+  }, [showPromotionModal, registrations, promotionEvent])
 
   const handleAcceptPromotion = async () => {
     if (!promotionEventId) return
@@ -104,9 +106,32 @@ const MatchesPage = () => {
         alert('⚠️ Sorry, someone else accepted the spot first! The event is now full.')
       } else if (errorMsg.includes('not on the standby list')) {
         alert('⚠️ You are not on the standby list for this event.')
+      } else if (errorMsg.includes('replacement window has closed')) {
+        alert('⏰ The replacement deadline has passed. Replacements are no longer being accepted for this event.')
       } else {
         alert(errorMsg)
       }
+      setShowPromotionModal(false)
+    } finally {
+      setAccepting(false)
+    }
+  }
+
+  const handleRejectPromotion = async () => {
+    if (!promotionEventId) return
+
+    setAccepting(true)
+    try {
+      const response = await api.post(`/events/${promotionEventId}/reject-spot`)
+
+      if (response.data.success) {
+        alert('You have declined this promotion. You will remain on the standby list.')
+        setShowPromotionModal(false)
+        fetchMyRegistrations()
+      }
+    } catch (err) {
+      console.error('Error rejecting spot:', err)
+      alert(err.response?.data?.error || 'Failed to reject spot')
       setShowPromotionModal(false)
     } finally {
       setAccepting(false)
@@ -290,11 +315,11 @@ const MatchesPage = () => {
 
                   <div className="flex gap-3">
                     <button
-                      onClick={() => setShowPromotionModal(false)}
+                      onClick={handleRejectPromotion}
                       disabled={accepting}
-                      className="flex-1 px-6 py-3 bg-white hover:bg-gray-50 text-gray-700 font-semibold rounded-xl border border-gray-300 transition-colors disabled:opacity-50"
+                      className="flex-1 px-6 py-3 bg-white hover:bg-red-50 text-red-600 font-semibold rounded-xl border-2 border-red-300 transition-colors disabled:opacity-50"
                     >
-                      Maybe Later
+                      {accepting ? 'Processing...' : '✗ Decline'}
                     </button>
                     <button
                       onClick={handleAcceptPromotion}
@@ -310,13 +335,13 @@ const MatchesPage = () => {
                           Accepting...
                         </span>
                       ) : (
-                        '✓ Accept Spot'
+                        '✓ Accept Promotion'
                       )}
                     </button>
                   </div>
 
                   <p className="text-center text-sm text-gray-500 mt-4">
-                    If you're no longer interested, simply close this. No action needed.
+                    Choose wisely! The first person to accept gets confirmed.
                   </p>
                 </>
               )}

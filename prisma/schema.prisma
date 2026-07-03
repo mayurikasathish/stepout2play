@@ -31,6 +31,7 @@ model User {
   registrations        Registration[] @relation("UserRegistrations")
   notifications        Notification[]
   liveFeedItems        LiveFeedItem[]
+  playerRatings        PlayerRating[]
 
   @@map("users")
 }
@@ -268,7 +269,7 @@ model Registration {
 }
 
 model Match {
-  id              String        @id @default(uuid())
+  id              String               @id @default(uuid())
   eventId         String
   roundNumber     Int
   matchNumber     Int
@@ -277,26 +278,27 @@ model Match {
   participant2Id  String?
   winnerId        String?
   score           String?
-  status          MatchStatus   @default(PENDING)
+  status          MatchStatus          @default(PENDING)
   nextMatchId     String?
   feedsPosition   Int?
-  isByeMatch      Boolean       @default(false)
-  isWalkover      Boolean       @default(false)
+  isByeMatch      Boolean              @default(false)
+  isWalkover      Boolean              @default(false)
   scheduledAt     DateTime?
   completedAt     DateTime?
   courtNumber     Int?
   courtName       String?
   duration        Int?
   notes           String?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
   // Round Robin: groupId is set for group stage matches, null for knockout
   groupId         String?
-  event           Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  group           Group?        @relation(fields: [groupId], references: [id])
-  participant1    Registration? @relation("Match_Participant1", fields: [participant1Id], references: [id])
-  participant2    Registration? @relation("Match_Participant2", fields: [participant2Id], references: [id])
-  winner          Registration? @relation("Match_Winner", fields: [winnerId], references: [id])
+  event           Event                @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  group           Group?               @relation(fields: [groupId], references: [id])
+  participant1    Registration?        @relation("Match_Participant1", fields: [participant1Id], references: [id])
+  participant2    Registration?        @relation("Match_Participant2", fields: [participant2Id], references: [id])
+  winner          Registration?        @relation("Match_Winner", fields: [winnerId], references: [id])
+  ratingChanges   MatchRatingChange[]
 
   @@unique([eventId, roundNumber, matchNumber])
   @@index([nextMatchId])
@@ -411,4 +413,45 @@ model LiveFeedItem {
   @@index([createdAt])
   @@index([visibility])
   @@map("live_feed")
+}
+
+model PlayerRating {
+  id            String              @id @default(uuid())
+  userId        String
+  sportId       String              // "badminton", "tennis", "table-tennis", etc.
+  rating        Float               @default(1200.0) // Glicko-2 rating
+  rd            Float               @default(350.0)  // Rating Deviation (uncertainty)
+  volatility    Float               @default(0.06)   // Volatility (rating consistency)
+  matchCount    Int                 @default(0)      // Total matches played for this sport
+  lastMatchDate DateTime?           // Last match played for this sport
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  user          User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ratingChanges MatchRatingChange[]
+
+  @@unique([userId, sportId])
+  @@index([sportId])
+  @@index([rating])
+  @@map("player_ratings")
+}
+
+model MatchRatingChange {
+  id            String        @id @default(uuid())
+  matchId       String
+  userId        String
+  sportId       String
+  oldRating     Float
+  newRating     Float
+  ratingChange  Float         // Positive or negative
+  oldRd         Float
+  newRd         Float
+  oldVolatility Float
+  newVolatility Float
+  createdAt     DateTime      @default(now())
+  match         Match         @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  playerRating  PlayerRating? @relation(fields: [userId, sportId], references: [userId, sportId], onDelete: Cascade)
+
+  @@index([matchId])
+  @@index([userId])
+  @@map("match_rating_changes")
 }

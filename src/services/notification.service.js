@@ -15,7 +15,9 @@ class NotificationService {
     icon = null,
     priority = 'MEDIUM'
   }) {
-    return await prisma.notification.create({
+    console.log(`📬 Creating notification for user ${userId}:`, { type, title });
+
+    const notification = await prisma.notification.create({
       data: {
         userId,
         type,
@@ -28,6 +30,9 @@ class NotificationService {
         priority
       }
     });
+
+    console.log(`✅ Notification created with ID: ${notification.id}`);
+    return notification;
   }
 
   /**

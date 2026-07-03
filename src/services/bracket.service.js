@@ -1,5 +1,6 @@
 const prisma = require('../lib/prisma');
 const { parseScore } = require('../utils/scoreParser');
+const glickoService = require('./glicko.service');
 
 class BracketService {
   // ─────────────────────────────────────────────────────────────────
@@ -733,6 +734,54 @@ class BracketService {
       }
     });
 
+    // ✅ UPDATE GLICKO-2 RATINGS AFTER ROUND ROBIN MATCH
+    if (!isDraw && actualWinnerId) {
+      try {
+        // Check if sportId exists
+        if (!match.event.sportId) {
+          console.log('⚠️ Skipping rating update: Event has no sportId');
+        } else {
+          const isDoubles = match.event.format === 'DOUBLES' || match.event.format === 'MIXED_DOUBLES';
+          const matchType = isDoubles ? 'doubles' : 'singles';
+
+          const loserRegId = actualWinnerId === match.participant1Id ? match.participant2Id : match.participant1Id;
+
+          // Extract actual USER IDs from registrations (actualWinnerId and loserId are REGISTRATION IDs!)
+          const winnerReg = actualWinnerId === match.participant1Id ? match.participant1 : match.participant2;
+          const loserReg = loserRegId === match.participant1Id ? match.participant1 : match.participant2;
+
+          const winnerUserId = winnerReg.userId;
+          const loserUserId = loserReg.userId;
+
+          // For doubles: extract partner IDs correctly
+          const winnerPartnerId = isDoubles ? winnerReg.partnerId : null;
+          const loserPartnerId = isDoubles ? loserReg.partnerId : null;
+
+          const matchData = {
+            matchId,
+            eventId: match.eventId,
+            sportId: match.event.sportId,
+            matchType,
+            winner: {
+              userId: winnerUserId,
+              partnerId: winnerPartnerId
+            },
+            loser: {
+              userId: loserUserId,
+              partnerId: loserPartnerId
+            },
+            score
+          };
+
+          const ratingChanges = await glickoService.processMatchResult(matchData);
+          console.log('📊 Round Robin Rating changes:', JSON.stringify(ratingChanges, null, 2));
+        }
+      } catch (err) {
+        console.error('⚠️ Error updating ratings (non-blocking):', err.message);
+        console.error('⚠️ Full error:', err);
+      }
+    }
+
     return await prisma.match.findUnique({
       where: { id: matchId },
       include: {
@@ -755,7 +804,8 @@ class BracketService {
           include: {
             participant1: { include: { user: { select: { id: true, firstName: true, lastName: true, email: true } }, partner: { select: { id: true, firstName: true, lastName: true, email: true } } } },
             participant2: { include: { user: { select: { id: true, firstName: true, lastName: true, email: true } }, partner: { select: { id: true, firstName: true, lastName: true, email: true } } } },
-            winner: { include: { user: { select: { id: true, firstName: true, lastName: true } }, partner: { select: { id: true, firstName: true, lastName: true } } } }
+            winner: { include: { user: { select: { id: true, firstName: true, lastName: true } }, partner: { select: { id: true, firstName: true, lastName: true } } } },
+            ratingChanges: true  // ✅ Include rating changes
           },
           orderBy: [{ roundNumber: 'asc' }, { matchNumber: 'asc' }]
         }
@@ -785,7 +835,8 @@ class BracketService {
               include: {
                 participant1: { include: { user: { select: { id: true, firstName: true, lastName: true } }, partner: { select: { id: true, firstName: true, lastName: true } } } },
                 participant2: { include: { user: { select: { id: true, firstName: true, lastName: true } }, partner: { select: { id: true, firstName: true, lastName: true } } } },
-                winner: { include: { user: { select: { id: true, firstName: true, lastName: true } } } }
+                winner: { include: { user: { select: { id: true, firstName: true, lastName: true } } } },
+                ratingChanges: true  // ✅ Include rating changes
               },
               orderBy: [{ roundNumber: 'asc' }, { matchNumber: 'asc' }]
             }
@@ -1114,6 +1165,62 @@ class BracketService {
         await this.advanceWinnerInBracket(tx, match, winnerId);
       }
     });
+
+    // ✅ UPDATE GLICKO-2 RATINGS AFTER MATCH
+    try {
+      // Check if sportId exists
+      if (!match.event.sportId) {
+        console.log('⚠️ Skipping rating update: Event has no sportId');
+        return await prisma.match.findUnique({
+          where: { id: matchId },
+          include: {
+            participant1: { include: { user: true, partner: true } },
+            participant2: { include: { user: true, partner: true } },
+            winner: { include: { user: true, partner: true } }
+          }
+        });
+      }
+
+      const isDoubles = match.event.format === 'DOUBLES' || match.event.format === 'MIXED_DOUBLES';
+      const matchType = isDoubles ? 'doubles' : 'singles';
+
+      const loserRegId = winnerId === match.participant1Id ? match.participant2Id : match.participant1Id;
+
+      // Extract actual USER IDs from registrations (winnerId and loserId are REGISTRATION IDs!)
+      const winnerReg = winnerId === match.participant1Id ? match.participant1 : match.participant2;
+      const loserReg = loserRegId === match.participant1Id ? match.participant1 : match.participant2;
+
+      const winnerUserId = winnerReg.userId;
+      const loserUserId = loserReg.userId;
+
+      // For doubles: extract partner IDs correctly
+      const winnerPartnerId = isDoubles ? winnerReg.partnerId : null;
+      const loserPartnerId = isDoubles ? loserReg.partnerId : null;
+
+      const matchData = {
+        matchId,
+        eventId: match.eventId,
+        sportId: match.event.sportId,
+        matchType,
+        winner: {
+          userId: winnerUserId,
+          partnerId: winnerPartnerId
+        },
+        loser: {
+          userId: loserUserId,
+          partnerId: loserPartnerId
+        },
+        score
+      };
+
+      // Process ratings asynchronously (don't block match result)
+      const ratingChanges = await glickoService.processMatchResult(matchData);
+      console.log('📊 Rating changes:', JSON.stringify(ratingChanges, null, 2));
+    } catch (err) {
+      console.error('⚠️ Error updating ratings (non-blocking):', err.message);
+      console.error('⚠️ Full error:', err);
+      // Don't throw - rating update failure shouldn't block match result
+    }
 
     return await prisma.match.findUnique({
       where: { id: matchId },

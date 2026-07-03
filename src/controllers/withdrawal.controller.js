@@ -74,6 +74,26 @@ class WithdrawalController {
   }
 
   /**
+   * Reject standby promotion
+   * POST /events/:eventId/reject-spot
+   */
+  async rejectSpot(req, res, next) {
+    try {
+      const { eventId } = req.params;
+      const userId = req.user.id;
+
+      const result = await withdrawalService.rejectStandbySpot(eventId, userId);
+
+      res.status(200).json({
+        success: true,
+        message: result.message
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * Notify standby players about available spot (organizer only)
    * POST /events/:eventId/notify-standby
    */
@@ -81,7 +101,13 @@ class WithdrawalController {
     try {
       const { eventId } = req.params;
 
+      console.log('=== NOTIFY STANDBY PLAYERS CONTROLLER ===');
+      console.log(`EventId: ${eventId}`);
+      console.log(`Called by user: ${req.user?.id}`);
+
       const result = await withdrawalService.notifyStandbyPlayers(eventId);
+
+      console.log('✅ Notification result:', result);
 
       res.status(200).json({
         success: true,
@@ -89,6 +115,7 @@ class WithdrawalController {
         notifiedCount: result.notified
       });
     } catch (error) {
+      console.error('❌ Error in notifyStandbyPlayers controller:', error);
       next(error);
     }
   }

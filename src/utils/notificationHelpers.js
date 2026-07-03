@@ -36,18 +36,62 @@ const NotificationHelpers = {
     });
   },
 
-  // Standby promoted
-  async sendStandbyPromotion({ userId, eventName, eventId }) {
+  // Standby spot available notification
+  async sendStandbySpotAvailable({ userId, eventName, eventId, tournamentName, standbyPosition, registrationId }) {
+    console.log('📬 sendStandbySpotAvailable called with:', { userId, eventName, eventId, standbyPosition });
+
+    try {
+      const result = await notificationService.createNotification({
+        userId,
+        type: 'STANDBY_SPOT_AVAILABLE',
+        title: '🎾 Spot Available!',
+        message: `A spot opened in ${eventName}. You're #${standbyPosition} on the waitlist. Click to respond!`,
+        data: JSON.stringify({ eventName, eventId, tournamentName, standbyPosition, registrationId }),
+        actionUrl: `/matches?standbyPromotionModal=${registrationId}`,
+        actionText: 'View Details',
+        icon: 'bell',
+        priority: 'HIGH'
+      });
+      console.log('✅ Notification created successfully');
+      return result;
+    } catch (err) {
+      console.error('❌ Error in sendStandbySpotAvailable:', err);
+      throw err;
+    }
+  },
+
+  // Standby promoted (after acceptance)
+  async sendStandbyPromotion({ userId, eventName, eventId, confirmed = false }) {
+    const title = confirmed ? '✅ You\'re Confirmed!' : 'Promoted from Standby!';
+    const message = confirmed
+      ? `You've been confirmed for ${eventName}. See you at the tournament!`
+      : `You've been promoted from standby for ${eventName}`;
+
     return await notificationService.createNotification({
       userId,
       type: 'STANDBY_PROMOTED',
-      title: 'Promoted from Standby!',
-      message: `You've been promoted from standby for ${eventName}`,
-      data: { eventName, eventId },
-      actionUrl: `/events/${eventId}`,
-      actionText: 'View Event',
+      title,
+      message,
+      data: JSON.stringify({ eventName, eventId }),
+      actionUrl: `/matches?eventId=${eventId}`,
+      actionText: 'View Details',
       icon: 'trophy',
       priority: 'HIGH'
+    });
+  },
+
+  // Standby player accepted promotion (to organizer)
+  async sendStandbyAcceptedNotification({ organizerId, playerName, eventName, tournamentId, eventId }) {
+    return await notificationService.createNotification({
+      userId: organizerId,
+      type: 'STANDBY_ACCEPTED',
+      title: '✅ Standby Player Confirmed',
+      message: `${playerName} accepted their promotion and is now confirmed for ${eventName}`,
+      data: JSON.stringify({ playerName, eventName, eventId }),
+      actionUrl: `/tournaments/${tournamentId}/manage?tab=registrations`,
+      actionText: 'View Registrations',
+      icon: 'trophy',
+      priority: 'MEDIUM'
     });
   },
 
@@ -68,7 +112,7 @@ const NotificationHelpers = {
       type: 'PLAYER_WITHDREW',
       title: 'Player Withdrawal',
       message,
-      data: { playerName, eventName, eventId, standbyCount, replacementWindowOpen },
+      data: JSON.stringify({ playerName, eventName, eventId, standbyCount, replacementWindowOpen }),
       actionUrl,
       actionText,
       icon: 'warning',

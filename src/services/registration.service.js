@@ -75,9 +75,16 @@ class RegistrationService {
       }
     });
 
-    // If already confirmed, throw error
-    if (existingRegistration && existingRegistration.status === 'CONFIRMED') {
+    // If already confirmed and NOT withdrawn, throw error
+    if (existingRegistration && existingRegistration.status === 'CONFIRMED' && !existingRegistration.isWithdrawn) {
       const error = new Error('You are already registered for this event');
+      error.statusCode = 409;
+      throw error;
+    }
+
+    // If already on standby and NOT withdrawn, throw error
+    if (existingRegistration && existingRegistration.status === 'STANDBY' && !existingRegistration.isWithdrawn) {
+      const error = new Error('You are already on the standby list for this event');
       error.statusCode = 409;
       throw error;
     }
@@ -125,10 +132,10 @@ class RegistrationService {
       where: { eventId }
     }) + 1;
 
-    // If there's a cancelled registration, update it. Otherwise create new
+    // If there's a cancelled or withdrawn registration, update it. Otherwise create new
     let registration;
-    if (existingRegistration && existingRegistration.status === 'CANCELLED') {
-      // Update the cancelled registration back to CONFIRMED or STANDBY
+    if (existingRegistration && (existingRegistration.status === 'CANCELLED' || existingRegistration.isWithdrawn)) {
+      // Update the cancelled/withdrawn registration back to CONFIRMED or STANDBY
       registration = await prisma.registration.update({
         where: { id: existingRegistration.id },
         data: {
@@ -136,7 +143,10 @@ class RegistrationService {
           status,
           isStandby,
           standbyPosition,
-          registrationOrder
+          registrationOrder,
+          isWithdrawn: false,
+          withdrawnAt: null,
+          withdrawalReason: null
         },
       });
     } else {

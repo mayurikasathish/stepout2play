@@ -67,10 +67,12 @@ class EmailService {
   }
 
   /**
-   * Send standby promotion notification
+   * Send standby spot available notification (informational email)
    */
-  async sendStandbyPromotionEmail({ to, userName, eventName, tournamentName, acceptUrl, standbyPosition }) {
+  async sendStandbyPromotionEmail({ to, userName, eventName, tournamentName, eventId, userId, standbyPosition }) {
     const subject = `🎾 Spot Available: ${eventName}`;
+
+    console.log(`📧 Generating standby email for ${userName} (${to})`);
 
     const html = `
       <!DOCTYPE html>
@@ -105,11 +107,14 @@ class EmailService {
 
             <p class="warning">⏰ Time Sensitive: This spot will go to the first person who accepts!</p>
 
-            <center>
-              <a href="${acceptUrl}" class="button">VIEW PROMOTION</a>
-            </center>
+            <div style="background: #e0f2fe; border-left: 4px solid #0284c7; padding: 15px; margin: 20px 0; border-radius: 5px;">
+              <p style="margin: 0; font-weight: bold; color: #0c4a6e;">📱 Check your StepOut2Play app</p>
+              <p style="margin: 5px 0 0 0; color: #075985; font-size: 14px;">
+                Log in to the app and check your notifications to accept or decline this spot. The first person to accept gets confirmed!
+              </p>
+            </div>
 
-            <p style="margin-top: 30px;">If you're no longer interested, no action is needed. The spot will automatically go to someone else who accepts.</p>
+            <p style="margin-top: 15px; font-size: 14px; color: #6b7280;">If you're no longer interested, you can decline in the app or simply ignore this notification.</p>
 
             <p>Best of luck!</p>
             <p><strong>Team StepOut2Play</strong></p>
@@ -129,11 +134,11 @@ A spot has opened up for ${eventName} in the ${tournamentName} tournament!
 
 You were #${standbyPosition} on the waitlist. All standby players have been notified, and the first person to accept gets the spot.
 
-Click here to accept: ${acceptUrl}
-
 ⚠️ Time sensitive: The first person to accept gets the spot!
 
-If you're no longer interested, no action is needed.
+📱 Log in to the StepOut2Play app and check your notifications to accept or decline this spot.
+
+If you're no longer interested, you can decline or simply ignore this notification.
 
 Best of luck!
 Team StepOut2Play

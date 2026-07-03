@@ -61,9 +61,9 @@ const CancelRegistrationModal = ({ registration, onClose, onCancelled }) => {
               <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-red-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
                 <AlertIcon className="w-8 h-8 text-white" />
               </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">Deadline Passed</h3>
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">Cannot Withdraw</h3>
               <p className="text-gray-600 leading-relaxed">
-                The registration deadline for this event has closed. You can no longer cancel your registration online.
+                The event has already started. You can no longer withdraw online.
               </p>
             </div>
 

@@ -28,6 +28,7 @@ const ProfilePage = () => {
   const { user: authUser } = useAuth()
   const [profile, setProfile] = useState(null)
   const [registrations, setRegistrations] = useState([])
+  const [ratings, setRatings] = useState([])
   const [loading, setLoading] = useState(true)
   const [isEditing, setIsEditing] = useState(false)
   const [formData, setFormData] = useState({})
@@ -41,6 +42,7 @@ const ProfilePage = () => {
   useEffect(() => {
     fetchProfile()
     fetchRegistrations()
+    fetchRatings()
   }, [])
 
   const fetchProfile = async () => {
@@ -65,6 +67,41 @@ const ProfilePage = () => {
       }
     } catch (err) {
       console.error('Error fetching registrations:', err)
+    }
+  }
+
+  const fetchRatings = async () => {
+    try {
+      if (!authUser?.id) return
+
+      // Fetch all available sports
+      const sportsResponse = await api.get('/sports')
+      const allSports = sportsResponse.data.sports || []
+
+      // Fetch user's ratings
+      const response = await api.get(`/ratings/${authUser.id}`)
+      let userRatings = response.data.ratings || []
+
+      // If user has no ratings, create initial ratings for all sports
+      if (userRatings.length === 0 && allSports.length > 0) {
+        // Create initial ratings for all sports
+        const initPromises = allSports.map(sport =>
+          api.get(`/ratings/${authUser.id}/${sport.id}`).catch(err => {
+            console.error(`Error creating rating for ${sport.id}:`, err)
+            return null
+          })
+        )
+
+        await Promise.all(initPromises)
+
+        // Fetch ratings again after creation
+        const refreshResponse = await api.get(`/ratings/${authUser.id}`)
+        userRatings = refreshResponse.data.ratings || []
+      }
+
+      setRatings(userRatings)
+    } catch (err) {
+      console.error('Error fetching ratings:', err)
     }
   }
 
@@ -291,6 +328,96 @@ const ProfilePage = () => {
             </form>
           </div>
         )}
+
+        {/* Player Ratings */}
+        <div className="glass-card rounded-2xl p-8 mb-8">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+            <TrophyIcon className="w-6 h-6 text-primary-600" />
+            Player Ratings
+          </h2>
+
+          {ratings.length === 0 ? (
+            <div className="text-center py-12">
+              <TrophyIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-600">No ratings yet.</p>
+              <p className="text-sm text-gray-500 mt-2">
+                Register and play in tournaments to build your rating!
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {ratings.map((rating) => {
+                const sportName = rating.sportId
+                  .split('-')
+                  .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                  .join(' ')
+
+                // Rating color based on value
+                let ratingColor = 'text-gray-900'
+                let bgColor = 'bg-gray-100'
+                if (rating.rating >= 1400) {
+                  ratingColor = 'text-yellow-700'
+                  bgColor = 'bg-yellow-100'
+                } else if (rating.rating >= 1300) {
+                  ratingColor = 'text-blue-700'
+                  bgColor = 'bg-blue-100'
+                } else if (rating.rating >= 1200) {
+                  ratingColor = 'text-green-700'
+                  bgColor = 'bg-green-100'
+                }
+
+                return (
+                  <div
+                    key={rating.id}
+                    className="border border-gray-200 rounded-xl p-5 hover:border-primary-300 transition-all"
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="font-semibold text-gray-900">{sportName}</h3>
+                      <div className={`px-3 py-1 rounded-full ${bgColor}`}>
+                        <span className={`text-xl font-bold ${ratingColor}`}>
+                          {Math.round(rating.rating)}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Matches Played:</span>
+                        <span className="font-medium text-gray-900">{rating.matchCount}</span>
+                      </div>
+
+                      {rating.matchCount > 0 && (
+                        <>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Uncertainty:</span>
+                            <span className="font-medium text-gray-900">
+                              ±{Math.round(rating.rd)}
+                            </span>
+                          </div>
+
+                          {rating.lastMatchDate && (
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Last Match:</span>
+                              <span className="font-medium text-gray-900">
+                                {new Date(rating.lastMatchDate).toLocaleDateString()}
+                              </span>
+                            </div>
+                          )}
+                        </>
+                      )}
+
+                      {rating.matchCount === 0 && (
+                        <p className="text-xs text-gray-500 italic mt-2">
+                          Base rating - Play matches to establish your rank!
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
 
         {/* Account Settings */}
         <div className="glass-card rounded-2xl p-8 mb-8">
