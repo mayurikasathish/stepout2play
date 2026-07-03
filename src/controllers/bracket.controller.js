@@ -34,34 +34,51 @@ class BracketController {
 
       const result = await bracketService.generateBracket(eventId, bracketFormat, seedingMethod, options);
 
-      // Notify all registered players that bracket is ready
-      try {
-        const registrations = await prisma.registration.findMany({
-          where: { eventId },
-          include: {
-            user: true,
-            event: {
-              include: {
-                tournament: true
-              }
+      res.status(201).json({ success: true, message: 'Bracket generated successfully. Review and publish when ready.', ...result });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * POST /events/:eventId/publish-bracket
+   */
+  async publishBracket(req, res, next) {
+    try {
+      const { eventId } = req.params;
+
+      // Mark bracket as published
+      await prisma.event.update({
+        where: { id: eventId },
+        data: { bracketPublished: true }
+      });
+
+      // Send notifications to all participants
+      const registrations = await prisma.registration.findMany({
+        where: { eventId },
+        include: {
+          user: true,
+          event: {
+            include: {
+              tournament: true
             }
           }
-        });
-
-        // Send notification to all participants
-        for (const reg of registrations) {
-          await NotificationHelpers.sendBracketReady({
-            userId: reg.userId,
-            tournamentName: reg.event.tournament.name,
-            tournamentId: reg.event.tournamentId
-          });
         }
-      } catch (notifError) {
-        console.error('Error sending bracket ready notifications:', notifError);
-        // Don't fail bracket generation if notifications fail
+      });
+
+      for (const reg of registrations) {
+        await NotificationHelpers.sendBracketReady({
+          userId: reg.userId,
+          tournamentName: reg.event.tournament.name,
+          tournamentId: reg.event.tournamentId,
+          eventId: reg.eventId
+        });
       }
 
-      res.status(201).json({ success: true, message: 'Bracket generated successfully', ...result });
+      res.status(200).json({
+        success: true,
+        message: `Bracket published successfully. ${registrations.length} players notified.`
+      });
     } catch (error) {
       next(error);
     }

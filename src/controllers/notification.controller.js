@@ -100,6 +100,25 @@ class NotificationController {
       next(error);
     }
   }
+
+  /**
+   * Clear all notifications
+   * DELETE /notifications/clear-all
+   */
+  async clearAll(req, res, next) {
+    try {
+      const userId = req.user.id;
+
+      await notificationService.clearAllNotifications(userId);
+
+      res.status(200).json({
+        success: true,
+        message: 'All notifications cleared'
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = new NotificationController();

@@ -136,14 +136,14 @@ const NotificationHelpers = {
   },
 
   // Bracket ready
-  async sendBracketReady({ userId, tournamentName, tournamentId }) {
+  async sendBracketReady({ userId, tournamentName, tournamentId, eventId }) {
     return await notificationService.createNotification({
       userId,
       type: 'BRACKET_READY',
       title: 'Bracket Published',
       message: `The bracket for ${tournamentName} is now available`,
-      data: { tournamentName },
-      actionUrl: `/tournaments/${tournamentId}`,
+      data: { tournamentName, eventId },
+      actionUrl: `/matches?highlightEvent=${eventId}`,
       actionText: 'View Bracket',
       icon: 'trophy',
       priority: 'MEDIUM'

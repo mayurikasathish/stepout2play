@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import EmptyState from '../components/EmptyState'
+import BracketViewModal from '../components/BracketViewModal'
 import api from '../services/api'
 
 const CalendarIcon = (props) => (
@@ -29,6 +30,9 @@ const MatchesPage = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [activeTab, setActiveTab] = useState('upcoming') // upcoming | past
+  const [highlightedEventId, setHighlightedEventId] = useState(null)
+  const [showBracketModal, setShowBracketModal] = useState(false)
+  const [selectedEvent, setSelectedEvent] = useState(null)
 
   // Standby promotion modal state
   const [showPromotionModal, setShowPromotionModal] = useState(false)
@@ -42,6 +46,7 @@ const MatchesPage = () => {
 
     // Check for standby promotion query params
     const standbyPromotionModal = searchParams.get('standbyPromotionModal')
+    const highlightEvent = searchParams.get('highlightEvent')
 
     if (standbyPromotionModal) {
       // standbyPromotionModal contains registrationId
@@ -49,6 +54,14 @@ const MatchesPage = () => {
       setShowPromotionModal(true)
       // Clear query params to avoid showing modal again on refresh
       setSearchParams({})
+    }
+
+    if (highlightEvent) {
+      setHighlightedEventId(highlightEvent)
+      // Clear after 10 seconds
+      setTimeout(() => {
+        setHighlightedEventId(null)
+      }, 10000)
     }
   }, [])
 
@@ -81,6 +94,18 @@ const MatchesPage = () => {
       }
     }
   }, [showPromotionModal, registrations, promotionEvent])
+
+  // Scroll to highlighted event
+  useEffect(() => {
+    if (highlightedEventId && registrations.length > 0) {
+      setTimeout(() => {
+        const element = document.getElementById(`event-${highlightedEventId}`)
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }
+      }, 300)
+    }
+  }, [highlightedEventId, registrations])
 
   const handleAcceptPromotion = async () => {
     if (!promotionEventId) return
@@ -236,6 +261,11 @@ const MatchesPage = () => {
                     registration={reg}
                     navigate={navigate}
                     isUpcoming={activeTab === 'upcoming'}
+                    highlightedEventId={highlightedEventId}
+                    onViewBracket={() => {
+                      setSelectedEvent(reg.event)
+                      setShowBracketModal(true)
+                    }}
                   />
                 ))}
               </div>
@@ -243,6 +273,17 @@ const MatchesPage = () => {
           </>
         )}
       </main>
+
+      {/* Bracket View Modal */}
+      {showBracketModal && selectedEvent && (
+        <BracketViewModal
+          eventId={selectedEvent.id}
+          onClose={() => {
+            setShowBracketModal(false)
+            setSelectedEvent(null)
+          }}
+        />
+      )}
 
       {/* Standby Promotion Modal */}
       {showPromotionModal && (
@@ -354,10 +395,18 @@ const MatchesPage = () => {
 }
 
 // Registration Card Component
-const RegistrationCard = ({ registration, navigate, isUpcoming }) => {
+const RegistrationCard = ({ registration, navigate, isUpcoming, highlightedEventId, onViewBracket }) => {
   const [showWithdrawModal, setShowWithdrawModal] = useState(false)
   const [withdrawing, setWithdrawing] = useState(false)
   const [withdrawalReason, setWithdrawalReason] = useState('')
+  const [hasViewedBracket, setHasViewedBracket] = useState(false)
+
+  // Check localStorage for viewed state
+  useEffect(() => {
+    const viewedKey = `bracket_viewed_${registration.eventId}`
+    const viewed = localStorage.getItem(viewedKey) === 'true'
+    setHasViewedBracket(viewed)
+  }, [registration.eventId])
 
   const formatDate = (dateString) => {
     const date = new Date(dateString)
@@ -399,12 +448,37 @@ const RegistrationCard = ({ registration, navigate, isUpcoming }) => {
     }
   }
 
+  const hasBracket = registration.event.bracketGenerated
+
+  const handleViewBracket = (e) => {
+    e.stopPropagation()
+    // Mark as viewed in localStorage
+    const viewedKey = `bracket_viewed_${registration.eventId}`
+    localStorage.setItem(viewedKey, 'true')
+    setHasViewedBracket(true)
+    // Open bracket modal
+    onViewBracket()
+  }
+
+  const isHighlighted = highlightedEventId === registration.eventId
+
   return (
     <>
       <div
+        id={`event-${registration.eventId}`}
         onClick={() => navigate(`/tournaments/${registration.event.tournament.id}`)}
-        className="glass-card rounded-xl p-5 hover:shadow-glass-lg transition-all duration-300 cursor-pointer group"
+        className={`glass-card rounded-xl p-5 hover:shadow-glass-lg transition-all duration-300 cursor-pointer group ${
+          isHighlighted ? 'highlighted-card' : ''
+        }`}
       >
+        {isHighlighted && (
+          <style>{`
+            .highlighted-card {
+              box-shadow: 0 0 15px rgba(34, 197, 94, 0.3), 0 0 30px rgba(34, 197, 94, 0.15);
+              border: 1px solid rgba(34, 197, 94, 0.3);
+            }
+          `}</style>
+        )}
         <div className="flex items-start justify-between mb-3">
           <div className="flex-1">
             <h3 className="font-semibold text-gray-900 mb-1 group-hover:text-primary-600 transition-colors">
@@ -453,6 +527,33 @@ const RegistrationCard = ({ registration, navigate, isUpcoming }) => {
             <p className="text-xs text-amber-800">
               <span className="font-semibold">You're on the waitlist!</span> You'll be automatically confirmed if someone withdraws before the event.
             </p>
+          </div>
+        )}
+
+        {hasBracket && (
+          <div className="flex justify-center mt-3">
+            <button
+              onClick={handleViewBracket}
+              className={`w-14 h-14 rounded-full bg-gradient-to-br from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white font-bold text-xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center ${
+                !hasViewedBracket ? 'view-bracket-pulse' : ''
+              }`}
+              title="View Bracket"
+            >
+              🏆
+            </button>
+            <style>{`
+              @keyframes glowPulse {
+                0%, 100% {
+                  box-shadow: 0 0 10px rgba(34, 197, 94, 0.4), 0 0 20px rgba(34, 197, 94, 0.2);
+                }
+                50% {
+                  box-shadow: 0 0 20px rgba(34, 197, 94, 0.6), 0 0 40px rgba(34, 197, 94, 0.4);
+                }
+              }
+              .view-bracket-pulse {
+                animation: glowPulse 2s ease-in-out infinite;
+              }
+            `}</style>
           </div>
         )}
 

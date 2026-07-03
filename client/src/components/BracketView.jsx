@@ -23,6 +23,13 @@ const BracketView = ({ eventId, eventName, eventFormat, registrationCount, isOrg
   const [scorecardMatch, setScorecardMatch] = useState(null)
   const [showEditConfirmModal, setShowEditConfirmModal] = useState(false)
   const [pendingMatchToEdit, setPendingMatchToEdit] = useState(null)
+  const [publishing, setPublishing] = useState(false)
+  const [showPublishConfirm, setShowPublishConfirm] = useState(false)
+
+  // Debug logging
+  useEffect(() => {
+    console.log('showPublishConfirm changed to:', showPublishConfirm)
+  }, [showPublishConfirm])
 
   useEffect(() => {
     loadBracket()
@@ -71,6 +78,29 @@ const BracketView = ({ eventId, eventName, eventFormat, registrationCount, isOrg
       setToastMessage('Failed to delete bracket')
       setToastType('error')
       setShowToast(true)
+    }
+  }
+
+  const handlePublishBracket = async () => {
+    try {
+      setPublishing(true)
+      console.log('Publishing bracket for event:', eventId)
+      const response = await api.post(`/events/${eventId}/publish-bracket`)
+      console.log('Publish response:', response.data)
+      setShowPublishConfirm(false)
+      loadBracket()
+      setToastMessage(response.data.message || 'Bracket published successfully!')
+      setToastType('success')
+      setShowToast(true)
+    } catch (err) {
+      console.error('Error publishing bracket:', err)
+      console.error('Error details:', err.response?.data)
+      setShowPublishConfirm(false)
+      setToastMessage(err.response?.data?.error || err.message || 'Failed to publish bracket')
+      setToastType('error')
+      setShowToast(true)
+    } finally {
+      setPublishing(false)
     }
   }
 
@@ -248,6 +278,23 @@ const BracketView = ({ eventId, eventName, eventFormat, registrationCount, isOrg
               </div>
             </div>
             <div className="flex gap-3">
+              {!bracket?.event?.bracketPublished && (
+                <button
+                  onClick={() => {
+                    console.log('Publish button clicked!')
+                    console.log('Setting showPublishConfirm to true')
+                    setShowPublishConfirm(true)
+                  }}
+                  className="px-6 py-2 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-lg transition-all shadow-md hover:shadow-lg"
+                >
+                  📢 Publish Bracket
+                </button>
+              )}
+              {bracket?.event?.bracketPublished && (
+                <div className="px-4 py-2 bg-green-100 text-green-800 font-medium rounded-lg border-2 border-green-300">
+                  ✅ Published
+                </div>
+              )}
               <button
                 onClick={() => window.open(`/events/${eventId}/scorecards`, '_blank')}
                 className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-all"
@@ -494,6 +541,59 @@ const BracketView = ({ eventId, eventName, eventFormat, registrationCount, isOrg
 
       {showToast && (
         <Toast message={toastMessage} type={toastType} onClose={() => setShowToast(false)} />
+      )}
+
+      {/* Publish Confirmation Modal */}
+      {showPublishConfirm && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6" style={{backdropFilter: 'blur(8px)', background: 'rgba(255, 255, 255, 0.1)'}}>
+          <div className="glass-card rounded-3xl p-12 max-w-2xl w-full text-center shadow-2xl">
+            <div className="text-8xl mb-6">📢</div>
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">Ready to Publish?</h2>
+            <p className="text-xl text-gray-700 mb-3">All registered players will be notified that the bracket is ready.</p>
+            <div className="inline-flex items-center gap-2 px-6 py-3 bg-primary-100 rounded-full mb-8">
+              <span className="text-lg font-bold text-primary-700">
+                {registrationCount || 0} players will be notified
+              </span>
+            </div>
+            <div className="bg-yellow-50 border-2 border-yellow-300 rounded-2xl p-5 mb-8">
+              <div className="flex items-start gap-4">
+                <span className="text-3xl">⚠️</span>
+                <div className="text-left">
+                  <p className="text-base font-bold text-yellow-900 mb-2">Important</p>
+                  <p className="text-base text-yellow-800">
+                    Make sure you've reviewed the bracket. Once published, all players will be able to view it.
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-4">
+              <button
+                onClick={() => setShowPublishConfirm(false)}
+                disabled={publishing}
+                className="flex-1 px-8 py-5 bg-white hover:bg-gray-50 text-gray-900 text-lg font-bold rounded-2xl border-2 border-gray-300 transition-all disabled:opacity-50 shadow-lg"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handlePublishBracket}
+                disabled={publishing}
+                className="flex-1 px-8 py-5 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white text-lg font-bold rounded-2xl transition-all disabled:opacity-50 shadow-xl hover:shadow-2xl"
+              >
+                {publishing ? (
+                  <span className="flex items-center justify-center gap-3">
+                    <svg className="animate-spin h-6 w-6" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    Publishing...
+                  </span>
+                ) : (
+                  '✓ Yes, Publish Bracket'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
@@ -1200,6 +1300,86 @@ const MatchResultModal = ({ match, event, isRoundRobin, onClose, onSubmit }) => 
         </div>
       </div>
     )}
+
+    {/* Publish Confirmation Modal */}
+    {showPublishConfirm ? (
+      <div style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 999999, background: 'red', color: 'white', fontSize: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+        MODAL IS HERE - CLICK TO CLOSE
+        <button onClick={() => setShowPublishConfirm(false)} style={{position: 'absolute', top: '20px', right: '20px', padding: '20px', background: 'white', color: 'black'}}>X</button>
+      </div>
+    ) : null}
+    {false && showPublishConfirm && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/90 backdrop-blur-lg" onClick={() => !publishing && setShowPublishConfirm(false)} />
+          <div className="relative bg-gradient-to-br from-white to-primary-50 rounded-3xl shadow-2xl w-full max-w-lg p-12 border-2 border-primary-200">
+            {/* Decorative elements */}
+            <div className="absolute -top-4 -right-4 w-20 h-20 bg-primary-400 rounded-full opacity-20 blur-2xl"></div>
+            <div className="absolute -bottom-4 -left-4 w-20 h-20 bg-primary-600 rounded-full opacity-20 blur-2xl"></div>
+
+            <div className="text-center mb-8">
+              <div className="relative inline-block mb-6">
+                <div className="w-24 h-24 bg-gradient-to-br from-primary-500 to-primary-700 rounded-full flex items-center justify-center mx-auto shadow-lg">
+                  <span className="text-5xl">📢</span>
+                </div>
+                <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-green-500 rounded-full border-4 border-white flex items-center justify-center">
+                  <span className="text-sm">✓</span>
+                </div>
+              </div>
+
+              <h3 className="text-3xl font-bold text-gray-900 mb-4">
+                Ready to Publish?
+              </h3>
+              <p className="text-lg text-gray-700 mb-2">
+                All registered players will receive a notification
+              </p>
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary-100 rounded-full">
+                <span className="text-sm font-semibold text-primary-700">
+                  {registrationCount || 0} players will be notified
+                </span>
+              </div>
+            </div>
+
+            <div className="bg-yellow-50 border-2 border-yellow-200 rounded-xl p-4 mb-6">
+              <div className="flex items-start gap-3">
+                <span className="text-2xl">⚠️</span>
+                <div>
+                  <p className="text-sm font-semibold text-yellow-900 mb-1">Important</p>
+                  <p className="text-sm text-yellow-800">
+                    Make sure you've reviewed the bracket. Once published, all players will be able to view it.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-4">
+              <button
+                onClick={() => setShowPublishConfirm(false)}
+                disabled={publishing}
+                className="flex-1 px-6 py-4 bg-white hover:bg-gray-50 text-gray-900 font-semibold rounded-xl border-2 border-gray-300 transition-all disabled:opacity-50 shadow-sm"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handlePublishBracket}
+                disabled={publishing}
+                className="flex-1 px-6 py-4 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white font-bold rounded-xl transition-all disabled:opacity-50 shadow-lg hover:shadow-xl"
+              >
+                {publishing ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    Publishing...
+                  </span>
+                ) : (
+                  '✓ Yes, Publish Bracket'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }

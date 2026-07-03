@@ -18,6 +18,11 @@ const PlayersIcon = (p) => (
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
   </svg>
 )
+const BellIcon = (p) => (
+  <svg {...p} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+  </svg>
+)
 
 const Navbar = () => {
   const { user, context, logout } = useAuth()
@@ -26,6 +31,7 @@ const Navbar = () => {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
   const [isExploreOpen, setIsExploreOpen] = useState(false)
   const [pendingCount, setPendingCount] = useState(0)
+  const [unreadNotifications, setUnreadNotifications] = useState(0)
   const exploreRef = useRef(null)
   const userMenuRef = useRef(null)
 
@@ -68,6 +74,16 @@ const Navbar = () => {
         }
 
         setPendingCount(requestsCount + invitationsCount)
+
+        // Get unread notifications count
+        try {
+          const notifRes = await api.get('/notifications/unread-count')
+          if (notifRes.data.success) {
+            setUnreadNotifications(notifRes.data.count)
+          }
+        } catch (err) {
+          // Ignore errors
+        }
       } catch (err) {
         console.error('Error loading pending count:', err)
       }
@@ -108,12 +124,13 @@ const Navbar = () => {
     location.pathname.startsWith('/orgs/')
 
   const navItems = user ? [
-    { name: 'Dashboard', path: '/dashboard' },
-    { name: 'Browse', path: '/browse' },
+    { name: 'Home', path: '/dashboard' },
+    { name: 'Tournaments', path: '/browse' },
+    { name: 'Live', path: '/live', isLive: true },
     { name: 'My Matches', path: '/matches' },
-    { name: 'My Organizations', path: '/manage' },
+    { name: 'My Orgs', path: '/manage', badge: pendingCount > 0 ? pendingCount : null },
   ] : [
-    { name: 'Browse', path: '/browse' },
+    { name: 'Tournaments', path: '/browse' },
   ]
 
   const exploreItems = [
@@ -136,12 +153,12 @@ const Navbar = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
 
-          {/* Logo */}
-          <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/')}>
-            <div className="w-9 h-9 bg-gradient-to-br from-primary-600 to-primary-700 rounded-lg flex items-center justify-center shadow-sm">
-              <span className="text-white font-black text-xl">S</span>
+          {/* Logo - Smaller & Cleaner */}
+          <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
+            <div className="w-8 h-8 bg-gradient-to-br from-primary-600 to-primary-700 rounded-lg flex items-center justify-center shadow-sm">
+              <span className="text-white font-black text-base">S</span>
             </div>
-            <span className="text-lg font-bold text-gray-900">StepOut2Play</span>
+            <span className="text-base font-bold text-gray-900">StepOut2Play</span>
           </div>
 
           {/* Navigation */}
@@ -151,17 +168,29 @@ const Navbar = () => {
                 key={item.path}
                 onClick={() => navigate(item.path)}
                 className={`px-4 py-2 rounded-lg text-[15px] font-medium transition-all whitespace-nowrap relative ${
-                  isActive(item.path)
+                  item.isLive
+                    ? isActive(item.path)
+                      ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
+                      : 'bg-gradient-to-r from-blue-400 to-blue-500 text-white hover:from-blue-500 hover:to-blue-600 shadow-md'
+                    : isActive(item.path)
                     ? 'bg-primary-50 text-primary-700'
                     : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                 }`}
               >
-                {item.name}
-                {item.path === '/manage' && pendingCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
-                    {pendingCount > 9 ? '9+' : pendingCount}
-                  </span>
-                )}
+                <span className="flex items-center gap-2">
+                  {item.isLive && (
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                    </span>
+                  )}
+                  {item.name}
+                  {item.badge && (
+                    <span className="w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
+                      {item.badge > 9 ? '9+' : item.badge}
+                    </span>
+                  )}
+                </span>
               </button>
             ))}
 
@@ -214,7 +243,21 @@ const Navbar = () => {
           {/* User Menu */}
           <div className="flex items-center gap-3">
             {user ? (
-              <div className="relative" ref={userMenuRef}>
+              <>
+                {/* Notifications Bell */}
+                <button
+                  onClick={() => navigate('/notifications')}
+                  className="relative p-2 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  <BellIcon className="w-6 h-6 text-gray-600" />
+                  {unreadNotifications > 0 && (
+                    <span className="absolute top-0 right-0 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
+                      {unreadNotifications > 9 ? '9+' : unreadNotifications}
+                    </span>
+                  )}
+                </button>
+
+                <div className="relative" ref={userMenuRef}>
                 <button
                   onClick={() => setIsUserMenuOpen((o) => !o)}
                   className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors"
@@ -252,15 +295,18 @@ const Navbar = () => {
                     >
                       Settings
                     </button>
-                    <button
-                      onClick={handleLogout}
-                      className="w-full text-left px-4 py-2 text-sm text-danger-600 hover:bg-danger-50 transition-colors"
-                    >
-                      Sign out
-                    </button>
+                    <div className="border-t border-gray-100 mt-2 pt-2">
+                      <button
+                        onClick={handleLogout}
+                        className="w-full text-left px-4 py-2 text-sm text-danger-600 hover:bg-danger-50 transition-colors"
+                      >
+                        Sign out
+                      </button>
+                    </div>
                   </div>
                 )}
-              </div>
+                </div>
+              </>
             ) : (
               <div className="flex items-center gap-3">
                 <button

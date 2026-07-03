@@ -104,6 +104,17 @@ class NotificationService {
       }
     });
   }
+
+  /**
+   * Clear all notifications for a user
+   */
+  async clearAllNotifications(userId) {
+    return await prisma.notification.deleteMany({
+      where: {
+        userId
+      }
+    });
+  }
 }
 
 module.exports = new NotificationService();

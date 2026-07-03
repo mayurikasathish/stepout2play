@@ -178,6 +178,7 @@ model Event {
   gender           String?
   bracketFormat    BracketFormat?
   bracketGenerated Boolean        @default(false)
+  bracketPublished Boolean        @default(false)
   seedingMethod    SeedingMethod?
   registrationFee  Decimal?       @db.Decimal(10, 2)
   rules            String?

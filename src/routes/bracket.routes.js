@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const bracketController = require('../controllers/bracket.controller');
+const seedController = require('../controllers/seed.controller');
 const authenticate = require('../middleware/authenticate');
 const requireEventOrgRole = require('../middleware/requireEventOrgRole');
 
@@ -14,6 +15,14 @@ router.post(
   authenticate,
   requireEventOrgRole(['OWNER', 'ADMIN']),
   bracketController.generateBracket.bind(bracketController)
+);
+
+// POST /events/:eventId/publish-bracket - Publish bracket and notify players
+router.post(
+  '/events/:eventId/publish-bracket',
+  authenticate,
+  requireEventOrgRole(['OWNER', 'ADMIN']),
+  bracketController.publishBracket.bind(bracketController)
 );
 
 // GET /events/:eventId/bracket - Get bracket (public)
@@ -36,6 +45,34 @@ router.patch(
   authenticate,
   requireEventOrgRole(['OWNER', 'ADMIN']),
   bracketController.updateSeedNumbers.bind(bracketController)
+);
+
+/**
+ * Automatic seeding routes (organizer only)
+ */
+
+// GET /events/:eventId/generate-seeds - Generate seeds based on ratings
+router.get(
+  '/events/:eventId/generate-seeds',
+  authenticate,
+  requireEventOrgRole(['OWNER', 'ADMIN']),
+  seedController.generateSeeds.bind(seedController)
+);
+
+// POST /events/:eventId/apply-seeds - Apply generated seeds
+router.post(
+  '/events/:eventId/apply-seeds',
+  authenticate,
+  requireEventOrgRole(['OWNER', 'ADMIN']),
+  seedController.applySeeds.bind(seedController)
+);
+
+// DELETE /events/:eventId/seeds - Clear all seeds
+router.delete(
+  '/events/:eventId/seeds',
+  authenticate,
+  requireEventOrgRole(['OWNER', 'ADMIN']),
+  seedController.clearSeeds.bind(seedController)
 );
 
 /**

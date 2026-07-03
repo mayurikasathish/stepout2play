@@ -21,6 +21,8 @@ import PlayersPage from './pages/PlayersPage'
 import OCRTestPage from './pages/OCRTestPage'
 import ScorecardPrintPage from './pages/ScorecardPrintPage'
 import AcceptSpotPage from './pages/AcceptSpotPage'
+import LiveMatchesPage from './pages/LiveMatchesPage'
+import NotificationsPage from './pages/NotificationsPage'
 // import PlayerProfilePage from './pages/PlayerProfilePage' // wire up when ready
 
 function App() {
@@ -73,6 +75,22 @@ function App() {
             element={
               <ProtectedRoute>
                 <MatchesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/live"
+            element={
+              <ProtectedRoute>
+                <LiveMatchesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/notifications"
+            element={
+              <ProtectedRoute>
+                <NotificationsPage />
               </ProtectedRoute>
             }
           />

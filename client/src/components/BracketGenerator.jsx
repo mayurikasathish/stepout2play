@@ -30,6 +30,13 @@ const FORMATS = [
 
 const SEEDING_METHODS = [
   {
+    value: 'AUTOMATIC',
+    label: 'Automatic (By Rating) 🎯',
+    description: 'Players seeded by their Glicko-2 rating. Highest rating = Seed #1. Most fair!',
+    warning: null,
+    requiresRating: true
+  },
+  {
     value: 'REGISTRATION_ORDER',
     label: 'Registration Order',
     description: 'First registered = top seed. Simple, fair, encourages early sign-up.',
@@ -67,6 +74,9 @@ const BracketGenerator = ({ eventId, eventName, eventFormat, registrationCount, 
   const [groupCount, setGroupCount] = useState(4)
   const [advanceCount, setAdvanceCount] = useState(2)
   const [hasBronzeMatch, setHasBronzeMatch] = useState(true)
+  const [showSeedPreview, setShowSeedPreview] = useState(false)
+  const [generatedSeeds, setGeneratedSeeds] = useState(null)
+  const [loadingSeeds, setLoadingSeeds] = useState(false)
 
   const isTeamEvent = eventFormat === 'DOUBLES' || eventFormat === 'MIXED_DOUBLES'
   const entityLabelPlural = isTeamEvent ? 'teams' : 'participants'
@@ -96,9 +106,80 @@ const BracketGenerator = ({ eventId, eventName, eventFormat, registrationCount, 
     }
   }
 
+  const handleGenerateSeeds = async () => {
+    setLoadingSeeds(true)
+    setError('')
+    try {
+      const response = await api.get(`/events/${eventId}/generate-seeds`)
+      if (response.data.success) {
+        setGeneratedSeeds(response.data)
+        setShowSeedPreview(true)
+      }
+    } catch (err) {
+      console.error('Error generating seeds:', err)
+      const errorMsg = err.response?.data?.error || 'Failed to generate seeds'
+      setError(errorMsg)
+    } finally {
+      setLoadingSeeds(false)
+    }
+  }
+
+  const handleApplySeeds = async () => {
+    if (!generatedSeeds) return
+
+    setGenerating(true)
+    try {
+      // Apply seeds
+      const seeds = generatedSeeds.seeds.map(s => ({
+        registrationId: s.registrationId,
+        seedNumber: s.suggestedSeedNumber
+      }))
+
+      await api.post(`/events/${eventId}/apply-seeds`, { seeds })
+
+      // Close modal and generate bracket
+      setShowSeedPreview(false)
+      handleGenerateWithAppliedSeeds()
+    } catch (err) {
+      console.error('Error applying seeds:', err)
+      setError(err.response?.data?.error || 'Failed to apply seeds')
+      setGenerating(false)
+    }
+  }
+
+  const handleGenerateWithAppliedSeeds = async () => {
+    try {
+      const payload = { bracketFormat, seedingMethod: 'MANUAL' } // Use manual since we just set seed numbers
+      if (isRoundRobin) {
+        payload.groupSize = groupSize
+      }
+      if (isHybrid) {
+        payload.groupCount = groupCount
+        payload.advanceCount = advanceCount
+        payload.hasBronzeMatch = hasBronzeMatch
+      }
+
+      const response = await api.post(`/events/${eventId}/generate-bracket`, payload)
+      if (response.data.success) {
+        onGenerated && onGenerated(response.data)
+      }
+    } catch (err) {
+      console.error('Error generating bracket:', err)
+      setError(err.response?.data?.error || 'Failed to generate bracket')
+    } finally {
+      setGenerating(false)
+    }
+  }
+
   const handleGenerate = async () => {
     if (registrationCount < 2) {
       setError(`At least 2 ${entityLabelPlural} required to generate bracket`)
+      return
+    }
+
+    // If automatic seeding, generate and show preview first
+    if (seedingMethod === 'AUTOMATIC') {
+      handleGenerateSeeds()
       return
     }
 
@@ -405,6 +486,68 @@ const BracketGenerator = ({ eventId, eventName, eventFormat, registrationCount, 
         <p className="text-center text-sm text-gray-500 mt-4">
           Need at least 2 {entityLabelPlural} to generate bracket
         </p>
+      )}
+
+      {/* Seed Preview Modal */}
+      {showSeedPreview && generatedSeeds && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="glass-card rounded-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col">
+            {/* Header */}
+            <div className="p-6 border-b border-gray-200">
+              <h2 className="text-2xl font-bold text-gray-900">
+                🎯 Automatic Seeding Preview
+              </h2>
+              <p className="text-sm text-gray-600 mt-2">
+                Players sorted by rating (highest → lowest). Review and apply seeds.
+              </p>
+            </div>
+
+            {/* Seed List */}
+            <div className="flex-1 overflow-y-auto p-6">
+              <div className="space-y-2">
+                {generatedSeeds.seeds.map((seed, index) => (
+                  <div
+                    key={seed.registrationId}
+                    className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl hover:border-primary-300 transition-all"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center text-white font-bold text-lg">
+                        #{seed.suggestedSeedNumber}
+                      </div>
+                      <div>
+                        <div className="font-semibold text-gray-900">{seed.playerName}</div>
+                        <div className="text-sm text-gray-600">Rating: {seed.rating}</div>
+                      </div>
+                    </div>
+                    {seed.currentSeedNumber && (
+                      <div className="text-xs text-gray-500">
+                        Current: #{seed.currentSeedNumber}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-6 border-t border-gray-200 flex gap-3">
+              <button
+                onClick={() => setShowSeedPreview(false)}
+                className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition-all"
+                disabled={generating}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleApplySeeds}
+                disabled={generating}
+                className="flex-1 px-6 py-3 bg-gradient-to-r from-primary-500 to-primary-600 text-white font-semibold rounded-xl hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {generating ? 'Applying & Generating...' : 'Apply Seeds & Generate Bracket'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
