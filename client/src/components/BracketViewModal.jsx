@@ -269,25 +269,30 @@ const BracketViewModal = ({ eventId, onClose }) => {
           className={`${showSchedule ? 'w-[70%]' : 'w-full'} overflow-auto p-6 transition-all duration-300 bg-gray-50`}
         >
           <div style={{ transform: `scale(${zoomLevel / 100})`, transformOrigin: 'top left' }}>
-            {event.bracketType === 'SINGLE_ELIMINATION' && (
+            {event.bracketFormat === 'SINGLE_ELIMINATION' && (
               <SingleEliminationBracket
                 matches={matches}
-                eventFormat={event.format}
-                readOnly={true}
+                onMatchClick={null}
+                onCaptureScorecard={null}
+                eventName={event.name}
+                tournamentName={event.tournament?.name}
               />
             )}
-            {event.bracketType === 'ROUND_ROBIN' && (
+            {event.bracketFormat === 'ROUND_ROBIN' && (
               <RoundRobinBracket
                 matches={matches}
-                eventFormat={event.format}
-                readOnly={true}
+                onMatchClick={null}
+                onCaptureScorecard={null}
+                eventName={event.name}
+                tournamentName={event.tournament?.name}
               />
             )}
-            {event.bracketType === 'HYBRID' && (
+            {event.bracketFormat === 'HYBRID' && (
               <HybridBracket
-                matches={matches}
-                eventFormat={event.format}
-                readOnly={true}
+                bracket={{ event, matches }}
+                onMatchClick={null}
+                onCaptureScorecard={null}
+                isOrganizer={false}
               />
             )}
           </div>
