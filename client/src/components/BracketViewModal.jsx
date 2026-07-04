@@ -11,6 +11,7 @@ const BracketViewModal = ({ eventId, onClose }) => {
   const [matches, setMatches] = useState([])
   const [loading, setLoading] = useState(true)
   const [showSchedule, setShowSchedule] = useState(true)
+  const [showMyMatches, setShowMyMatches] = useState(true)
   const [zoomLevel, setZoomLevel] = useState(100)
   const [refreshing, setRefreshing] = useState(false)
 
@@ -49,27 +50,14 @@ const BracketViewModal = ({ eventId, onClose }) => {
       if (response.data.success) {
         setEvent(response.data.event)
         const newMatches = response.data.matches || []
-        // Check if anything changed
-        if (JSON.stringify(newMatches) !== JSON.stringify(matches)) {
-          setMatches(newMatches)
-          showUpdateToast()
-        }
+        // Silently update matches without showing toast
+        setMatches(newMatches)
       }
     } catch (err) {
       console.error('Error refreshing bracket:', err)
     } finally {
       setRefreshing(false)
     }
-  }
-
-  const showUpdateToast = () => {
-    const toast = document.createElement('div')
-    toast.className = 'fixed top-20 right-4 bg-primary-600 text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-bounce'
-    toast.textContent = '🔄 Bracket updated!'
-    document.body.appendChild(toast)
-    setTimeout(() => {
-      toast.remove()
-    }, 3000)
   }
 
   const handleZoomIn = () => {
@@ -231,6 +219,16 @@ const BracketViewModal = ({ eventId, onClose }) => {
               </button>
             </div>
 
+            {/* My Matches Toggle */}
+            {userMatches.length > 0 && (
+              <button
+                onClick={() => setShowMyMatches(!showMyMatches)}
+                className="px-4 py-2 bg-primary-100 hover:bg-primary-200 text-primary-700 font-medium rounded-lg transition-colors text-sm"
+              >
+                {showMyMatches ? 'Hide My Matches' : 'Show My Matches'}
+              </button>
+            )}
+
             {/* Schedule Toggle */}
             <button
               onClick={() => setShowSchedule(!showSchedule)}
@@ -263,7 +261,87 @@ const BracketViewModal = ({ eventId, onClose }) => {
       </div>
 
       {/* Content */}
-      <div className="h-[calc(100vh-5rem)] flex">
+      <div className="h-[calc(100vh-5rem)] flex flex-col">
+        {/* Your Upcoming Matches */}
+        {showMyMatches && userMatches.length > 0 && (
+          <div className="bg-gradient-to-r from-primary-600 to-primary-700 px-6 py-4 border-b border-primary-800">
+            <div className="max-w-7xl mx-auto">
+              <h3 className="text-white font-bold text-lg mb-3 flex items-center gap-2">
+                🎾 Your Confirmed Matches
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {userMatches.map((match) => {
+                  const isScheduled = match.status === 'SCHEDULED'
+                  const isCompleted = match.status === 'COMPLETED'
+                  const isLive = match.status === 'IN_PROGRESS'
+                  const opponent = match.participant1?.userId === user.id ? match.participant2 : match.participant1
+                  const isBye = !opponent || (!match.participant1 || !match.participant2)
+
+                  return (
+                    <div key={match.id} className="bg-white/95 rounded-lg p-3 backdrop-blur-sm">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-bold text-gray-600">
+                          {match.roundNumber ? `Round ${match.roundNumber}` : 'Match'}
+                          {match.matchNumber ? ` #${match.matchNumber}` : ''}
+                        </span>
+                        {isBye ? (
+                          <span className="px-2 py-1 bg-amber-100 text-amber-700 text-xs font-bold rounded">BYE</span>
+                        ) : (
+                          <>
+                            {isLive && (
+                              <span className="flex items-center gap-1 text-xs font-bold text-red-600">
+                                <span className="relative flex h-2 w-2">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                  <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                                </span>
+                                LIVE
+                              </span>
+                            )}
+                            {isScheduled && match.scheduledTime && (
+                              <span className="text-xs font-semibold text-primary-600">
+                                {formatMatchTime(match.scheduledTime)}
+                              </span>
+                            )}
+                            {isCompleted && (
+                              <span className="text-xs font-bold text-green-600">✓ Done</span>
+                            )}
+                          </>
+                        )}
+                      </div>
+                      <div className="text-sm">
+                        {isBye ? (
+                          <div className="text-center py-2">
+                            <span className="font-semibold text-amber-700">You get a bye this round</span>
+                            <div className="text-xs text-amber-600 mt-1">Automatic advance to next round</div>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="flex justify-between items-center">
+                              <span className="font-semibold text-gray-900">You</span>
+                              {match.participant1Score !== null && (
+                                <span className="font-bold">{match.participant1?.userId === user.id ? match.participant1Score : match.participant2Score}</span>
+                              )}
+                            </div>
+                            <div className="text-xs text-gray-500 my-1">vs</div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-gray-700">{getPlayerName(opponent)}</span>
+                              {match.participant2Score !== null && (
+                                <span className="font-bold">{match.participant1?.userId === user.id ? match.participant2Score : match.participant1Score}</span>
+                              )}
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Bracket and Schedule Container */}
+        <div className="flex-1 flex overflow-hidden">
         {/* Bracket View */}
         <div
           className={`${showSchedule ? 'w-[70%]' : 'w-full'} overflow-auto p-6 transition-all duration-300 bg-gray-50`}
@@ -370,6 +448,7 @@ const BracketViewModal = ({ eventId, onClose }) => {
             </div>
           </div>
         )}
+        </div>
       </div>
     </div>
   )
