@@ -163,6 +163,12 @@ const CreateOrganizationModal = ({ isOpen, onClose, onSuccess, editOrg = null })
       return
     }
 
+    // If editing and name hasn't changed, don't check
+    if (editOrg && trimmedName === editOrg.name) {
+      setNameCheckMessage('✓ Current organization name')
+      return
+    }
+
     setNameCheckLoading(true)
     setNameCheckMessage('')
 
