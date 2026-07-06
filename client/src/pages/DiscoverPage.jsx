@@ -49,71 +49,171 @@ const getGradient = (name = '') => {
 }
 
 /* ─── Org Discover Card ───────────────────────────────────── */
-const DiscoverOrgCard = ({ org, onClick }) => {
-  const getRoleBadge = (role) => {
-    if (!role) return null
-
-    const badges = {
-      OWNER: { bg: 'bg-primary-50', text: 'text-primary-700', border: 'border-primary-200', label: 'Owner' },
-      ADMIN: { bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200', label: 'Admin' },
-      MEMBER: { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200', label: 'Member' }
-    }
-
-    const badge = badges[role]
-    if (!badge) return null
-
-    return (
-      <span className={`inline-flex items-center px-2 py-0.5 ${badge.bg} ${badge.text} text-xs font-medium rounded-full border ${badge.border} shrink-0`}>
-        {badge.label}
-      </span>
-    )
-  }
-
+const DiscoverOrgCard = ({ org, onClick, setReadMoreModal, setJoinModal }) => {
   return (
-    <button
-      onClick={onClick}
-      className="glass-card rounded-xl text-left hover:shadow-glass-lg transition-all duration-300 w-full group hover:-translate-y-1 overflow-hidden"
-    >
-      <div className="p-6">
-        {/* Header row */}
-        <div className="flex items-start gap-4 mb-4">
-          <div className={`w-14 h-14 shrink-0 bg-gradient-to-br ${getGradient(org.name)} rounded-xl flex items-center justify-center shadow-md group-hover:scale-110 transition-transform`}>
-            <span className="text-white font-bold text-xl">
-              {org.name.charAt(0).toUpperCase()}
+    <div className="org-card">
+      <div className="org-card-body">
+        <div className="org-card-content">
+          <div className="org-header">
+            <div className="org-title-section">
+              {org.logoUrl ? (
+                <img src={org.logoUrl} alt={org.name} className="org-logo" />
+              ) : (
+                <div style={{
+                  width: '60px',
+                  height: '60px',
+                  borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #1B4332, #2d6a4f)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#4fffb0',
+                  fontFamily: "'Barlow Condensed', sans-serif",
+                  fontWeight: 900,
+                  fontSize: '1.5rem',
+                  border: '2px solid rgba(79, 255, 176, 0.3)'
+                }}>
+                  {org.name.charAt(0).toUpperCase()}
+                </div>
+              )}
+              <div>
+                <div className="org-name">{org.name}</div>
+                {org.owners && org.owners.length > 0 && (
+                  <div className="org-owners">
+                    {org.owners.map((owner, idx) => (
+                      <span key={owner.id}>
+                        <a
+                          href={`/players/${owner.id}`}
+                          className="owner-link"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                          }}
+                        >
+                          {owner.fullName}
+                        </a>
+                        {idx < org.owners.length - 1 && ', '}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {org.sports && org.sports.length > 0 && (
+            <div className="org-sports">
+              {org.sports.map((sport, idx) => (
+                <span key={idx} className="sport-tag">{sport}</span>
+              ))}
+            </div>
+          )}
+
+          {org.description && (
+            <div style={{ marginBottom: '0.5rem' }}>
+              <span className="org-description">{org.description}</span>
+              {org.description.length > 150 && (
+                <>
+                  {' '}
+                  <button
+                    className="btn-tertiary"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setReadMoreModal(org)
+                    }}
+                  >
+                    Read more
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+
+          <div className="org-stats">
+            <span>
+              <span className="org-stat-value">{org.memberCount || 0}</span> {org.memberCount === 1 ? 'Member' : 'Members'}
+            </span>
+            <span>•</span>
+            <span>
+              <span className="org-stat-value">{org.tournamentCount || 0}</span> {org.tournamentCount === 1 ? 'Tournament' : 'Tournaments'}
             </span>
           </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap min-h-[24px]">
-              <h3 className="text-base font-semibold text-gray-900 group-hover:text-primary-600 transition-colors truncate">
-                {org.name}
-              </h3>
-              {getRoleBadge(org.userRole)}
-            </div>
-            <p className="text-xs text-gray-500 mt-0.5 truncate">
-              Racket Sports Organization
-            </p>
-          </div>
-        </div>
 
-        <p className="text-sm text-gray-600 mb-5 line-clamp-2 leading-relaxed">
-          {org.description || 'No description provided'}
-        </p>
-
-        {/* Stats */}
-        <div className="flex items-center gap-4 pt-4 border-t border-gray-100">
-          <div className="flex items-center gap-1.5 text-sm text-gray-600">
-            <TrophyIcon className="w-4 h-4 text-primary-500" />
-            <span className="font-medium">{org.tournamentCount || 0}</span>
-            <span className="text-gray-400">Tournaments</span>
+          <div className="org-contact">
+            {org.contactPerson && <div className="contact-item">👤 {org.contactPerson}</div>}
+            {org.contactPhone && <div className="contact-item">📞 {org.contactPhone}</div>}
+            {org.contactEmail && (
+              <div className="contact-item">
+                ✉ <a href={`mailto:${org.contactEmail}`} className="email-link">{org.contactEmail}</a>
+              </div>
+            )}
+            {org.location && <div className="contact-item">📍 {org.location}</div>}
+            {org.socialLinks && Array.isArray(org.socialLinks) && org.socialLinks.length > 0 && (
+              <div className="contact-item social-links">
+                {org.socialLinks.map((link, idx) => {
+                  const platform = link.platform.toLowerCase()
+                  let iconText = ''
+                  let iconClass = ''
+                  if (platform.includes('instagram') || platform.includes('insta')) {
+                    iconText = 'IG'
+                    iconClass = 'social-instagram'
+                  } else if (platform.includes('facebook') || platform.includes('fb')) {
+                    iconText = 'FB'
+                    iconClass = 'social-facebook'
+                  } else if (platform.includes('twitter') || platform.includes('x')) {
+                    iconText = 'X'
+                    iconClass = 'social-twitter'
+                  }
+                  return iconText ? (
+                    <a
+                      key={idx}
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title={link.platform}
+                      className={`social-icon ${iconClass}`}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {iconText}
+                    </a>
+                  ) : null
+                })}
+              </div>
+            )}
           </div>
-          <div className="flex items-center gap-1.5 text-sm text-gray-600">
-            <UsersIcon className="w-4 h-4 text-primary-500" />
-            <span className="font-medium">{org.memberCount || 0}</span>
-            <span className="text-gray-400">Members</span>
+
+          <div className="org-actions">
+            <button
+              className="btn-follow"
+              onClick={(e) => {
+                e.stopPropagation()
+                // TODO: Handle follow
+                alert('Follow functionality coming soon!')
+              }}
+            >
+              Follow
+            </button>
+            <button
+              className="btn-primary"
+              onClick={(e) => {
+                e.stopPropagation()
+                setJoinModal(org)
+              }}
+            >
+              Join Us
+            </button>
+            <button
+              className="btn-secondary"
+              onClick={(e) => {
+                e.stopPropagation()
+                onClick()
+              }}
+            >
+              View Website
+            </button>
           </div>
         </div>
       </div>
-    </button>
+    </div>
   )
 }
 
@@ -147,6 +247,10 @@ const DiscoverPage = () => {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState('all') // all | public | private
+  const [readMoreModal, setReadMoreModal] = useState(null)
+  const [joinModal, setJoinModal] = useState(null)
+  const [successToast, setSuccessToast] = useState(null)
+  const [joinForm, setJoinForm] = useState({ role: 'MEMBER', email: '', reason: '', experience: '' })
 
   useEffect(() => {
     loadOrgs()
@@ -171,6 +275,21 @@ const DiscoverPage = () => {
     }
   }
 
+  const handleJoinRequest = async (orgId, orgName) => {
+    try {
+      const res = await api.post(`/orgs/${orgId}/join-request`, joinForm)
+      if (res.data.success) {
+        setJoinModal(null)
+        setJoinForm({ role: 'MEMBER', email: '', reason: '', experience: '' })
+        setSuccessToast(`Join request sent to ${orgName}! 🚀`)
+        setTimeout(() => setSuccessToast(null), 3000)
+      }
+    } catch (err) {
+      console.error('Error sending join request:', err)
+      alert(err.response?.data?.error || err.response?.data?.message || 'Failed to send join request')
+    }
+  }
+
   const filtered = orgs.filter((o) => {
     const matchesSearch =
       o.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -183,96 +302,1022 @@ const DiscoverPage = () => {
   })
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-primary-50/20">
-      <Navbar />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;900&family=Barlow:wght@400;500;600&display=swap');
 
-        {/* ── Page Header ── */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Discover Organizations</h1>
-          <p className="text-gray-600">
-            Find new sports organizations to join, play with, and compete in tournaments
-          </p>
-        </div>
+        body {
+          background: #060d1f;
+          margin: 0;
+          font-family: 'Barlow', sans-serif;
+          overflow-x: hidden;
+        }
 
-        {/* ── Search + Filter bar ── */}
-        <div className="flex flex-col sm:flex-row gap-3 mb-8">
-          <div className="relative flex-1">
-            <SearchIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search organizations…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-400 transition-all"
-            />
+        .discover-container {
+          min-height: 100vh;
+          background: linear-gradient(180deg, #060d1f 0%, #0a1628 50%, #071a2e 100%);
+          padding-top: 80px;
+          position: relative;
+          overflow: hidden;
+        }
+
+        /* Ambient orbs */
+        .orb {
+          position: absolute;
+          border-radius: 50%;
+          filter: blur(90px);
+          pointer-events: none;
+          opacity: 0.3;
+          z-index: 0;
+        }
+        .orb-1 {
+          width: 600px;
+          height: 600px;
+          background: radial-gradient(circle, #1B4332 0%, transparent 70%);
+          top: -150px;
+          left: -150px;
+          animation: drift1 18s ease-in-out infinite;
+        }
+        .orb-2 {
+          width: 450px;
+          height: 450px;
+          background: radial-gradient(circle, #0a3d62 0%, transparent 70%);
+          bottom: -100px;
+          right: -100px;
+          animation: drift2 22s ease-in-out infinite;
+        }
+        @keyframes drift1 {
+          0%,100% { transform: translate(0,0); }
+          50% { transform: translate(40px,-30px); }
+        }
+        @keyframes drift2 {
+          0%,100% { transform: translate(0,0); }
+          50% { transform: translate(-50px,40px); }
+        }
+
+        /* Grid overlay */
+        .grid-overlay {
+          position: absolute;
+          inset: 0;
+          background-image:
+            linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px);
+          background-size: 55px 55px;
+          pointer-events: none;
+          z-index: 0;
+        }
+
+        .discover-content {
+          max-width: 1400px;
+          margin: 0 auto;
+          padding: 3rem 2rem;
+          position: relative;
+          z-index: 1;
+        }
+
+        .page-header {
+          margin-bottom: 2rem;
+        }
+
+        .page-title {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 900;
+          font-size: clamp(3rem, 6vw, 4rem);
+          letter-spacing: -0.03em;
+          text-transform: uppercase;
+          color: #4fffb0;
+          line-height: 0.9;
+          margin-bottom: 0.5rem;
+        }
+
+        .page-subtitle {
+          font-family: 'Barlow', sans-serif;
+          font-size: 1rem;
+          color: rgba(255, 255, 255, 0.65);
+        }
+
+        .search-bar {
+          display: flex;
+          gap: 1rem;
+          margin-bottom: 2rem;
+          flex-wrap: wrap;
+        }
+
+        .search-input-wrapper {
+          flex: 1;
+          min-width: 250px;
+          position: relative;
+        }
+
+        .search-input {
+          width: 100%;
+          background: rgba(6, 13, 31, 0.6);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 8px;
+          padding: 0.75rem 1rem 0.75rem 2.75rem;
+          font-family: 'Barlow', sans-serif;
+          font-size: 0.95rem;
+          color: #fff;
+          outline: none;
+          transition: all 0.2s ease;
+        }
+
+        .search-input:focus {
+          border-color: #4fffb0;
+          box-shadow: 0 0 0 3px rgba(79, 255, 176, 0.1);
+        }
+
+        .search-input::placeholder {
+          color: rgba(255, 255, 255, 0.3);
+        }
+
+        .search-icon {
+          position: absolute;
+          left: 1rem;
+          top: 50%;
+          transform: translateY(-50%);
+          width: 16px;
+          height: 16px;
+          color: rgba(255, 255, 255, 0.4);
+        }
+
+        .filter-buttons {
+          display: flex;
+          gap: 0.5rem;
+        }
+
+        .filter-btn {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 600;
+          font-size: 0.9rem;
+          text-transform: uppercase;
+          padding: 0.75rem 1.5rem;
+          background: transparent;
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          border-radius: 8px;
+          color: rgba(255, 255, 255, 0.6);
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .filter-btn:hover {
+          border-color: rgba(79, 255, 176, 0.4);
+          color: rgba(255, 255, 255, 0.9);
+        }
+
+        .filter-btn.active {
+          background: rgba(79, 255, 176, 0.15);
+          border-color: #4fffb0;
+          color: #4fffb0;
+        }
+
+        .results-count {
+          font-family: 'Barlow', sans-serif;
+          font-size: 0.9rem;
+          color: rgba(255, 255, 255, 0.5);
+          margin-bottom: 1.5rem;
+        }
+
+        .orgs-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(450px, 1fr));
+          gap: 1.5rem;
+          align-items: stretch;
+        }
+
+        .org-card {
+          border: 2px dashed rgba(79, 255, 176, 0.3);
+          border-radius: 12px;
+          padding: 0;
+          overflow: hidden;
+          position: relative;
+          transition: all 0.3s ease;
+          display: flex;
+          flex-direction: column;
+          min-height: 480px;
+        }
+
+        .org-card:hover {
+          border-color: #ec4899;
+          transform: translateY(-3px) scale(1.01);
+          box-shadow: 0 8px 30px rgba(236, 72, 153, 0.25);
+        }
+
+        .org-card-body {
+          background: linear-gradient(135deg, rgba(10, 22, 40, 0.9), rgba(6, 13, 31, 0.95));
+          position: relative;
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+        }
+
+        .org-card-body::before {
+          content: '';
+          position: absolute;
+          left: 0;
+          top: 0;
+          bottom: 0;
+          width: 8px;
+          background: linear-gradient(180deg, #ec4899, rgba(236, 72, 153, 0.5));
+        }
+
+        .org-card-body::after {
+          content: '';
+          position: absolute;
+          right: 20px;
+          top: 50%;
+          transform: translateY(-50%);
+          width: 30px;
+          height: 30px;
+          border-radius: 50%;
+          background: rgba(79, 255, 176, 0.05);
+          border: 2px solid rgba(79, 255, 176, 0.2);
+        }
+
+        .org-card-content {
+          padding: 1.5rem;
+          padding-left: 2rem;
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+        }
+
+        .org-header {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          margin-bottom: 1rem;
+        }
+
+        .org-title-section {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+        }
+
+        .org-logo {
+          width: 60px;
+          height: 60px;
+          border-radius: 50%;
+          object-fit: cover;
+          border: 2px solid rgba(79, 255, 176, 0.3);
+          background: rgba(6, 13, 31, 0.8);
+        }
+
+        .org-name {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 900;
+          font-size: 1.75rem;
+          letter-spacing: -0.02em;
+          text-transform: uppercase;
+          color: #fff;
+          margin-bottom: 0.5rem;
+        }
+
+        .org-owners {
+          font-family: 'Barlow', sans-serif;
+          font-size: 0.9rem;
+          color: rgba(255, 255, 255, 0.5);
+          margin-bottom: 0.75rem;
+        }
+
+        .owner-link {
+          color: rgba(255, 255, 255, 0.7);
+          text-decoration: none;
+          transition: all 0.2s ease;
+          border-bottom: 1px solid transparent;
+        }
+
+        .owner-link:hover {
+          color: #4fffb0;
+          border-bottom-color: #4fffb0;
+        }
+
+        .org-sports {
+          display: flex;
+          gap: 0.6rem;
+          flex-wrap: wrap;
+          margin-bottom: 0.25rem;
+        }
+
+        .sport-tag {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 700;
+          font-size: 0.9rem;
+          text-transform: uppercase;
+          padding: 0.4rem 1rem;
+          background: linear-gradient(135deg, rgba(79, 255, 176, 0.15), rgba(79, 255, 176, 0.08));
+          border: 1.5px solid rgba(79, 255, 176, 0.4);
+          border-radius: 16px;
+          color: #4fffb0;
+          letter-spacing: 0.02em;
+          box-shadow: 0 2px 8px rgba(79, 255, 176, 0.1);
+        }
+
+        .org-description {
+          font-family: 'Barlow', sans-serif;
+          font-size: 0.95rem;
+          color: rgba(255, 255, 255, 0.65);
+          line-height: 1.6;
+        }
+
+        .org-description {
+          font-family: 'Barlow', sans-serif;
+          font-size: 0.9rem;
+          color: rgba(255, 255, 255, 0.65);
+          line-height: 1.5;
+          margin-bottom: 1rem;
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+
+        .org-stats {
+          display: flex;
+          gap: 1.5rem;
+          font-family: 'Barlow', sans-serif;
+          font-size: 1rem;
+          color: rgba(255, 255, 255, 0.7);
+        }
+
+        .org-stat-value {
+          color: #4fffb0;
+          font-weight: 700;
+          font-family: 'Barlow Condensed', sans-serif;
+          font-size: 1.1rem;
+        }
+
+        .org-contact {
+          display: flex;
+          flex-direction: column;
+          gap: 0.6rem;
+          font-family: 'Barlow', sans-serif;
+          font-size: 0.9rem;
+          color: rgba(255, 255, 255, 0.55);
+        }
+
+        .contact-item {
+          display: flex;
+          align-items: center;
+          gap: 0.6rem;
+        }
+
+        .email-link {
+          color: rgba(255, 255, 255, 0.55);
+          text-decoration: none;
+          transition: color 0.2s ease;
+        }
+
+        .email-link:hover {
+          color: #4fffb0;
+          text-decoration: underline;
+        }
+
+        .social-links {
+          display: flex;
+          gap: 0.5rem;
+        }
+
+        .social-icon {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 32px;
+          height: 32px;
+          border-radius: 6px;
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 700;
+          font-size: 0.75rem;
+          text-decoration: none;
+          color: #fff;
+          transition: all 0.2s ease;
+        }
+
+        .social-instagram {
+          background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+        }
+
+        .social-instagram:hover {
+          transform: scale(1.1);
+          box-shadow: 0 4px 12px rgba(188, 24, 136, 0.4);
+        }
+
+        .social-facebook {
+          background: #1877f2;
+        }
+
+        .social-facebook:hover {
+          transform: scale(1.1);
+          box-shadow: 0 4px 12px rgba(24, 119, 242, 0.4);
+        }
+
+        .social-twitter {
+          background: #000;
+        }
+
+        .social-twitter:hover {
+          transform: scale(1.1);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+        }
+
+        .org-actions {
+          margin-top: auto;
+          display: flex;
+          gap: 0.75rem;
+          align-items: center;
+          flex-wrap: wrap;
+        }
+
+        .btn-follow {
+          background: #ec4899;
+          color: #fff;
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 700;
+          font-size: 1rem;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          padding: 0.75rem 1.5rem;
+          border: none;
+          border-radius: 50px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+        }
+
+        .btn-follow:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 25px rgba(236, 72, 153, 0.5);
+          background: #f472b6;
+        }
+
+        .btn-primary {
+          background: #4fffb0;
+          color: #060d1f;
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 700;
+          font-size: 1rem;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          padding: 0.75rem 1.5rem;
+          border: none;
+          border-radius: 50px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 25px rgba(79, 255, 176, 0.4);
+        }
+
+        .btn-secondary {
+          background: transparent;
+          color: rgba(255, 255, 255, 0.8);
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 600;
+          font-size: 0.95rem;
+          text-transform: uppercase;
+          padding: 0.65rem 1.25rem;
+          border: 1px solid rgba(255, 255, 255, 0.3);
+          border-radius: 8px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .btn-secondary:hover {
+          border-color: #4fffb0;
+          color: #4fffb0;
+        }
+
+        .btn-tertiary {
+          background: transparent;
+          color: rgba(255, 255, 255, 0.6);
+          font-family: 'Barlow', sans-serif;
+          font-size: 0.9rem;
+          padding: 0.4rem 0.75rem;
+          border: none;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          display: inline-flex;
+          align-items: center;
+          gap: 0.35rem;
+        }
+
+        .btn-tertiary:hover {
+          color: #00d4ff;
+        }
+
+        .empty-state {
+          text-align: center;
+          padding: 4rem 2rem;
+        }
+
+        .empty-icon {
+          font-size: 4rem;
+          margin-bottom: 1rem;
+          opacity: 0.5;
+        }
+
+        .empty-title {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 700;
+          font-size: 1.5rem;
+          text-transform: uppercase;
+          color: rgba(255, 255, 255, 0.8);
+          margin-bottom: 0.5rem;
+        }
+
+        .empty-text {
+          font-family: 'Barlow', sans-serif;
+          font-size: 1rem;
+          color: rgba(255, 255, 255, 0.5);
+        }
+
+        @media (max-width: 768px) {
+          .orgs-grid {
+            grid-template-columns: 1fr;
+          }
+          .search-bar {
+            flex-direction: column;
+          }
+        }
+
+        .delete-modal-overlay {
+          position: fixed;
+          inset: 0;
+          z-index: 999;
+          background: rgba(6, 13, 31, 0.85);
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 2rem;
+        }
+
+        .delete-modal-content {
+          background: linear-gradient(135deg, rgba(10, 22, 40, 0.95), rgba(6, 13, 31, 0.98));
+          backdrop-filter: blur(20px);
+          -webkit-backdrop-filter: blur(20px);
+          border: 2px solid rgba(236, 72, 153, 0.3);
+          border-radius: 16px;
+          padding: 2.5rem;
+          max-width: 500px;
+          width: 100%;
+          box-shadow: 0 0 40px rgba(236, 72, 153, 0.2);
+          text-align: center;
+        }
+
+        .delete-modal-icon {
+          font-size: 4rem;
+          margin-bottom: 1rem;
+        }
+
+        .delete-modal-title {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 900;
+          font-size: 2rem;
+          letter-spacing: -0.02em;
+          text-transform: uppercase;
+          color: #ec4899;
+          margin-bottom: 1rem;
+        }
+
+        .delete-modal-text {
+          font-family: 'Barlow', sans-serif;
+          font-size: 1rem;
+          color: rgba(255, 255, 255, 0.7);
+          margin-bottom: 0.5rem;
+          line-height: 1.6;
+        }
+
+        .delete-modal-actions {
+          display: flex;
+          gap: 1rem;
+          justify-content: center;
+        }
+
+        .join-modal-overlay {
+          position: fixed;
+          inset: 0;
+          z-index: 999;
+          background: rgba(6, 13, 31, 0.85);
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 2rem;
+        }
+
+        .join-modal-content {
+          background: linear-gradient(135deg, rgba(10, 22, 40, 0.95), rgba(6, 13, 31, 0.98));
+          backdrop-filter: blur(20px);
+          -webkit-backdrop-filter: blur(20px);
+          border: 2px solid rgba(79, 255, 176, 0.3);
+          border-radius: 16px;
+          padding: 2rem;
+          max-width: 500px;
+          width: 100%;
+          max-height: 85vh;
+          overflow-y: auto;
+          box-shadow: 0 0 40px rgba(79, 255, 176, 0.2);
+          text-align: center;
+        }
+
+        .join-modal-content::-webkit-scrollbar {
+          width: 8px;
+        }
+
+        .join-modal-content::-webkit-scrollbar-track {
+          background: rgba(255, 255, 255, 0.05);
+          border-radius: 4px;
+        }
+
+        .join-modal-content::-webkit-scrollbar-thumb {
+          background: rgba(79, 255, 176, 0.3);
+          border-radius: 4px;
+        }
+
+        .join-modal-content::-webkit-scrollbar-thumb:hover {
+          background: rgba(79, 255, 176, 0.5);
+        }
+
+        .join-modal-icon {
+          font-size: 3rem;
+          margin-bottom: 0.75rem;
+        }
+
+        .join-modal-title {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 900;
+          font-size: 1.5rem;
+          letter-spacing: -0.02em;
+          text-transform: uppercase;
+          color: #4fffb0;
+          margin-bottom: 0.75rem;
+        }
+
+        .join-modal-text {
+          font-family: 'Barlow', sans-serif;
+          font-size: 0.9rem;
+          color: rgba(255, 255, 255, 0.7);
+          margin-bottom: 1.25rem;
+          line-height: 1.5;
+        }
+
+        .join-form {
+          display: flex;
+          flex-direction: column;
+          gap: 0.75rem;
+          margin-bottom: 1.25rem;
+          text-align: left;
+        }
+
+        .form-group {
+          display: flex;
+          flex-direction: column;
+          gap: 0.4rem;
+        }
+
+        .form-label {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 600;
+          font-size: 0.85rem;
+          text-transform: uppercase;
+          color: rgba(255, 255, 255, 0.8);
+          letter-spacing: 0.05em;
+        }
+
+        .form-input {
+          font-family: 'Barlow', sans-serif;
+          font-size: 0.9rem;
+          padding: 0.65rem;
+          background: rgba(255, 255, 255, 0.05);
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          border-radius: 8px;
+          color: #fff;
+          transition: all 0.2s ease;
+        }
+
+        .form-input:focus {
+          outline: none;
+          border-color: #4fffb0;
+          background: rgba(255, 255, 255, 0.08);
+        }
+
+        .form-input::placeholder {
+          color: rgba(255, 255, 255, 0.4);
+        }
+
+        textarea.form-input {
+          resize: vertical;
+          min-height: 60px;
+        }
+
+        select.form-input {
+          cursor: pointer;
+          appearance: none;
+          background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L6 6L11 1' stroke='%234fffb0' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
+          background-repeat: no-repeat;
+          background-position: right 0.75rem center;
+          padding-right: 2.5rem;
+        }
+
+        select.form-input option {
+          background: #0a1628;
+          color: #fff;
+          padding: 0.5rem;
+        }
+
+        .join-modal-actions {
+          display: flex;
+          gap: 1rem;
+          justify-content: center;
+        }
+
+        .btn-cancel {
+          background: transparent;
+          color: rgba(255, 255, 255, 0.8);
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 600;
+          font-size: 0.95rem;
+          text-transform: uppercase;
+          padding: 0.75rem 1.5rem;
+          border: 1px solid rgba(255, 255, 255, 0.3);
+          border-radius: 8px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .btn-cancel:hover {
+          border-color: #ec4899;
+          color: #ec4899;
+        }
+
+        .btn-join {
+          background: #4fffb0;
+          color: #060d1f;
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 700;
+          font-size: 1rem;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          padding: 0.75rem 1.5rem;
+          border: none;
+          border-radius: 50px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+        }
+
+        .btn-join:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 25px rgba(79, 255, 176, 0.4);
+        }
+
+        .btn-join:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+          transform: none;
+        }
+
+        .btn-join:disabled:hover {
+          transform: none;
+          box-shadow: none;
+        }
+
+        .success-toast {
+          position: fixed;
+          top: 5rem;
+          right: 2rem;
+          z-index: 9999;
+          animation: slideInRight 0.3s ease-out;
+        }
+
+        @keyframes slideInRight {
+          from {
+            transform: translateX(100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+
+        .success-toast-content {
+          background: linear-gradient(135deg, rgba(79, 255, 176, 0.95), rgba(79, 255, 176, 0.85));
+          backdrop-filter: blur(10px);
+          -webkit-backdrop-filter: blur(10px);
+          color: #060d1f;
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 700;
+          font-size: 1rem;
+          padding: 1rem 1.5rem;
+          border-radius: 12px;
+          box-shadow: 0 4px 20px rgba(79, 255, 176, 0.3);
+          border: 2px solid rgba(79, 255, 176, 1);
+        }
+      `}</style>
+
+      <div className="discover-container">
+        <div className="orb orb-1"></div>
+        <div className="orb orb-2"></div>
+        <div className="grid-overlay"></div>
+
+        <Navbar />
+
+        <main className="discover-content">
+          {/* Page Header */}
+          <div className="page-header">
+            <h1 className="page-title">Discover Organizations</h1>
+            <p className="page-subtitle">
+              Find new sports organizations to join and run tournaments with!
+            </p>
           </div>
 
-          <div className="flex items-center gap-2">
-            <FilterIcon className="w-4 h-4 text-gray-400 shrink-0" />
-            {['all', 'public', 'private'].map((f) => (
-              <button
-                key={f}
-                onClick={() => setFilter(f)}
-                className={`px-4 py-2.5 rounded-xl text-sm font-medium capitalize transition-all ${
-                  filter === f
-                    ? 'bg-primary-600 text-white shadow-sm'
-                    : 'bg-white border border-gray-200 text-gray-600 hover:border-primary-300 hover:text-primary-600'
-                }`}
-              >
-                {f}
-              </button>
-            ))}
-          </div>
-        </div>
+          {/* Search + Filter bar */}
+          <div className="search-bar">
+            <div className="search-input-wrapper">
+              <SearchIcon className="search-icon" />
+              <input
+                type="text"
+                placeholder="Search organizations..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="search-input"
+              />
+            </div>
 
-        {/* ── Results count ── */}
-        {!loading && (
-          <p className="text-sm text-gray-500 mb-5">
-            {filtered.length} organization{filtered.length !== 1 ? 's' : ''} found
-          </p>
-        )}
-
-        {/* ── Grid ── */}
-        {loading ? (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {Array.from({ length: 6 }).map((_, i) => <OrgCardSkeleton key={i} />)}
+            <div className="filter-buttons">
+              {['all', 'public', 'private'].map((f) => (
+                <button
+                  key={f}
+                  onClick={() => setFilter(f)}
+                  className={`filter-btn ${filter === f ? 'active' : ''}`}
+                >
+                  {f}
+                </button>
+              ))}
+            </div>
           </div>
-        ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24">
-            <div className="glass-card rounded-2xl p-12 max-w-md text-center">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <SearchIcon className="w-8 h-8 text-gray-400" />
-              </div>
-              <h2 className="text-xl font-bold text-gray-900 mb-2">No organizations found</h2>
-              <p className="text-gray-600 text-sm">
+
+          {/* Results count */}
+          {!loading && (
+            <p className="results-count">
+              {filtered.length} organization{filtered.length !== 1 ? 's' : ''} found
+            </p>
+          )}
+
+          {/* Grid */}
+          {loading ? (
+            <div className="empty-state">
+              <div className="empty-title">Loading...</div>
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-icon">🏢</div>
+              <div className="empty-title">No organizations found</div>
+              <div className="empty-text">
                 {search
                   ? `No results for "${search}". Try a different search term.`
                   : 'No organizations are available yet. Check back soon!'}
-              </p>
-              {search && (
-                <button
-                  onClick={() => { setSearch(''); setFilter('all') }}
-                  className="mt-6 px-6 py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-xl transition-all text-sm"
-                >
-                  Clear search
-                </button>
-              )}
+              </div>
+            </div>
+          ) : (
+            <div className="orgs-grid">
+              {filtered.map((org) => (
+                <DiscoverOrgCard
+                  key={org.id}
+                  org={org}
+                  onClick={() => navigate(`/orgs/${org.id}`)}
+                  setReadMoreModal={setReadMoreModal}
+                  setJoinModal={setJoinModal}
+                />
+              ))}
+            </div>
+          )}
+        </main>
+      </div>
+
+      {/* Read More Modal */}
+      {readMoreModal && (
+        <div className="delete-modal-overlay" onClick={() => setReadMoreModal(null)}>
+          <div className="delete-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="delete-modal-icon">📖</div>
+            <div className="delete-modal-title">{readMoreModal.name}</div>
+            <div className="delete-modal-text" style={{
+              maxHeight: '400px',
+              overflowY: 'auto',
+              textAlign: 'left',
+              lineHeight: '1.6',
+              whiteSpace: 'pre-wrap'
+            }}>
+              {readMoreModal.description}
+            </div>
+            <div className="delete-modal-actions" style={{ justifyContent: 'center' }}>
+              <button
+                className="btn-primary"
+                onClick={() => setReadMoreModal(null)}
+              >
+                Close
+              </button>
             </div>
           </div>
-        ) : (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filtered.map((org) => (
-              <DiscoverOrgCard
-                key={org.id}
-                org={org}
-                onClick={() => navigate(`/orgs/${org.id}`)}
-              />
-            ))}
+        </div>
+      )}
+
+      {/* Join Us Modal */}
+      {joinModal && (
+        <div className="join-modal-overlay" onClick={() => setJoinModal(null)}>
+          <div className="join-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="join-modal-icon">🚀</div>
+            <div className="join-modal-title">Join {joinModal.name}</div>
+            <div className="join-modal-text">
+              Fill out the form below to send a join request. Organization admins will review your application.
+            </div>
+
+            <div className="join-form">
+              <div className="form-group">
+                <label className="form-label">Role</label>
+                <select
+                  className="form-input"
+                  value={joinForm.role}
+                  onChange={(e) => setJoinForm({ ...joinForm, role: e.target.value })}
+                >
+                  <option value="MEMBER">Member</option>
+                  <option value="ADMIN">Admin</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Email *</label>
+                <input
+                  type="email"
+                  className="form-input"
+                  placeholder="your.email@example.com"
+                  value={joinForm.email}
+                  onChange={(e) => setJoinForm({ ...joinForm, email: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Reason *</label>
+                <textarea
+                  className="form-input"
+                  placeholder="Why do you want to join this organization?"
+                  rows={3}
+                  value={joinForm.reason}
+                  onChange={(e) => setJoinForm({ ...joinForm, reason: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Experience (Optional)</label>
+                <textarea
+                  className="form-input"
+                  placeholder="Share your relevant experience..."
+                  rows={2}
+                  value={joinForm.experience}
+                  onChange={(e) => setJoinForm({ ...joinForm, experience: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="join-modal-actions">
+              <button
+                className="btn-cancel"
+                onClick={() => {
+                  setJoinModal(null)
+                  setJoinForm({ role: 'MEMBER', email: '', reason: '', experience: '' })
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn-join"
+                onClick={() => handleJoinRequest(joinModal.id, joinModal.name)}
+                disabled={!joinForm.email || !joinForm.reason}
+              >
+                Send Request
+              </button>
+            </div>
           </div>
-        )}
-      </main>
-    </div>
+        </div>
+      )}
+
+      {/* Success Toast */}
+      {successToast && (
+        <div className="success-toast">
+          <div className="success-toast-content">
+            ✨ {successToast}
+          </div>
+        </div>
+      )}
+    </>
   )
 }
 

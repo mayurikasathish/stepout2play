@@ -379,7 +379,14 @@ const discoverOrgs = async (req, res, next) => {
         members: {
           select: {
             userId: true,
-            role: true
+            role: true,
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true
+              }
+            }
           }
         },
         tournaments: {
@@ -398,13 +405,32 @@ const discoverOrgs = async (req, res, next) => {
       // Find user's role in this organization
       const userMembership = userId ? org.members.find(m => m.userId === userId) : null;
 
+      // Get all owners
+      const owners = org.members
+        .filter(m => m.role === 'OWNER')
+        .map(m => ({
+          id: m.user.id,
+          firstName: m.user.firstName,
+          lastName: m.user.lastName,
+          fullName: `${m.user.firstName} ${m.user.lastName}`
+        }));
+
       return {
         id: org.id,
         name: org.name,
         slug: org.slug,
         logoUrl: org.logoUrl,
+        description: org.description,
+        sports: org.sports,
+        contactPerson: org.contactPerson,
+        contactPhone: org.contactPhone,
+        contactEmail: org.contactEmail,
+        location: org.location,
+        socialLinks: org.socialLinks,
+        website: org.website,
         memberCount: org.members.length,
         tournamentCount: org.tournaments.length,
+        owners: owners,
         userRole: userMembership ? userMembership.role : null, // OWNER, ADMIN, MEMBER, or null
         createdAt: org.createdAt
       };
@@ -600,7 +626,12 @@ const acceptJoinRequest = async (req, res, next) => {
       return res.status(400).json({ success: false, error: 'Request already processed' });
     }
 
-    // Create org member and update request status in a transaction
+    // Get org details for notification
+    const org = await prisma.organization.findUnique({
+      where: { id: request.orgId }
+    });
+
+    // Create org member, update request status, and create notification in a transaction
     await prisma.$transaction(async (tx) => {
       await tx.orgMember.create({
         data: {
@@ -613,6 +644,23 @@ const acceptJoinRequest = async (req, res, next) => {
       await tx.orgJoinRequest.update({
         where: { id: requestId },
         data: { status: 'APPROVED' }
+      });
+
+      // Create notification for the user
+      await tx.notification.create({
+        data: {
+          userId: request.userId,
+          type: 'ORG_JOIN_APPROVED',
+          title: 'Join Request Accepted! 🎉',
+          message: `Your request to join ${org?.name || 'the organization'} has been accepted. Welcome to the team!`,
+          icon: '🎉',
+          actionUrl: `/orgs/${request.orgId}`,
+          actionText: 'View Organization',
+          data: {
+            orgId: request.orgId,
+            orgName: org?.name
+          }
+        }
       });
     });
 
@@ -639,9 +687,32 @@ const rejectJoinRequest = async (req, res, next) => {
       return res.status(400).json({ success: false, error: 'Request already processed' });
     }
 
-    await prisma.orgJoinRequest.update({
-      where: { id: requestId },
-      data: { status: 'REJECTED' }
+    // Get org details for notification
+    const org = await prisma.organization.findUnique({
+      where: { id: request.orgId }
+    });
+
+    // Update request status and create notification
+    await prisma.$transaction(async (tx) => {
+      await tx.orgJoinRequest.update({
+        where: { id: requestId },
+        data: { status: 'REJECTED' }
+      });
+
+      // Create notification for the user
+      await tx.notification.create({
+        data: {
+          userId: request.userId,
+          type: 'ORG_JOIN_REJECTED',
+          title: 'Join Request Update',
+          message: `Your request to join ${org?.name || 'the organization'} was not approved at this time.`,
+          icon: '📋',
+          data: {
+            orgId: request.orgId,
+            orgName: org?.name
+          }
+        }
+      });
     });
 
     res.json({ success: true, message: 'Join request rejected' });

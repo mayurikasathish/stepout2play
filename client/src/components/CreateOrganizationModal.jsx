@@ -24,7 +24,7 @@ const CreateOrganizationModal = ({ isOpen, onClose, onSuccess, editOrg = null })
   const [cropModal, setCropModal] = useState(null) // { type: 'logo' | 'banner', image: dataUrl }
 
   // Available sports
-  const availableSports = ['Tennis', 'Badminton', 'Table Tennis', 'Football', 'Basketball', 'Cricket']
+  const availableSports = ['Badminton', 'Tennis', 'Table Tennis', 'Pickleball', 'Padel', 'Squash']
   const [crop, setCrop] = useState({ x: 0, y: 0 })
   const [zoom, setZoom] = useState(1)
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null)
@@ -34,6 +34,14 @@ const CreateOrganizationModal = ({ isOpen, onClose, onSuccess, editOrg = null })
       setFormData({ ...formData, sports: formData.sports.filter(s => s !== sport) })
     } else {
       setFormData({ ...formData, sports: [...formData.sports, sport] })
+    }
+  }
+
+  const toggleSelectAllSports = () => {
+    if (formData.sports.length === availableSports.length) {
+      setFormData({ ...formData, sports: [] })
+    } else {
+      setFormData({ ...formData, sports: [...availableSports] })
     }
   }
 
@@ -332,7 +340,7 @@ const CreateOrganizationModal = ({ isOpen, onClose, onSuccess, editOrg = null })
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: 2rem;
+          padding: 6rem 2rem 2rem 2rem;
           overflow-y: auto;
         }
 
@@ -345,9 +353,10 @@ const CreateOrganizationModal = ({ isOpen, onClose, onSuccess, editOrg = null })
           padding: 2rem;
           max-width: 600px;
           width: 100%;
-          max-height: 90vh;
+          max-height: 85vh;
           overflow-y: auto;
           box-shadow: 0 0 40px rgba(79, 255, 176, 0.15);
+          margin: auto;
         }
 
         .modal-header {
@@ -400,6 +409,27 @@ const CreateOrganizationModal = ({ isOpen, onClose, onSuccess, editOrg = null })
         .sport-checkbox.selected {
           background: rgba(79, 255, 176, 0.15);
           border-color: #4fffb0;
+          color: #4fffb0;
+        }
+
+        .select-all-checkbox {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          font-family: 'Barlow', sans-serif;
+          font-size: 0.9rem;
+          color: rgba(255, 255, 255, 0.7);
+          cursor: pointer;
+        }
+
+        .select-all-checkbox input[type="checkbox"] {
+          width: 18px;
+          height: 18px;
+          cursor: pointer;
+          accent-color: #4fffb0;
+        }
+
+        .select-all-checkbox:hover {
           color: #4fffb0;
         }
 
@@ -830,6 +860,17 @@ const CreateOrganizationModal = ({ isOpen, onClose, onSuccess, editOrg = null })
             {/* Sports */}
             <div className="form-group">
               <label className="form-label">Sport(s)</label>
+              <div style={{ marginBottom: '0.5rem' }}>
+                <label className="select-all-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={formData.sports.length === availableSports.length}
+                    onChange={toggleSelectAllSports}
+                    disabled={loading}
+                  />
+                  <span>Select All</span>
+                </label>
+              </div>
               <div className="sports-grid">
                 {availableSports.map(sport => (
                   <div

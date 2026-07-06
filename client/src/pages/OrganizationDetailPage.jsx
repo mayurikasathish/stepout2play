@@ -378,7 +378,6 @@ const OrganizationDetailPage = () => {
           border-radius: 50%;
           object-fit: cover;
           border: 3px solid rgba(79, 255, 176, 0.3);
-          box-shadow: 0 0 30px rgba(79, 255, 176, 0.2);
         }
 
         .org-logo-placeholder {
@@ -394,7 +393,6 @@ const OrganizationDetailPage = () => {
           font-weight: 900;
           font-size: 3rem;
           border: 3px solid rgba(79, 255, 176, 0.3);
-          box-shadow: 0 0 30px rgba(79, 255, 176, 0.2);
         }
 
         .org-info {
@@ -866,10 +864,6 @@ const OrganizationDetailPage = () => {
                             <div className="detail-row">
                               <span className="detail-label">Sport:</span>
                               <span className="detail-value">{tournament.sport}</span>
-                            </div>
-                            <div className="detail-row">
-                              <span className="detail-label">Format:</span>
-                              <span className="detail-value">{tournament.format?.replace('_', ' ')}</span>
                             </div>
                             <div className="detail-row">
                               <span className="detail-label">Date:</span>

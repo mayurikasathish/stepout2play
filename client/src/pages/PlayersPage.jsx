@@ -4,6 +4,16 @@ import { useAuth } from '../context/AuthContext'
 import Navbar from '../components/Navbar'
 import api from '../services/api'
 
+// Helper to get role color
+const getRoleColor = (role) => {
+  switch (role) {
+    case 'OWNER': return '#ec4899'
+    case 'ADMIN': return '#00d4ff'
+    case 'MEMBER': return '#4fffb0'
+    default: return '#4fffb0'
+  }
+}
+
 /* ─── Icons ─────────────────────────────────────────────── */
 const SearchIcon = (p) => (
   <svg {...p} fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -41,62 +51,157 @@ const getGradient = (name = '') => {
 }
 
 /* ─── Player Card ───────────────────────────────────── */
-const PlayerCard = ({ player, onClick, onInvite }) => {
+const PlayerCard = ({ player, onClick, onInvite, playerOrgInfo }) => {
   const fullName = `${player.firstName || ''} ${player.lastName || ''}`.trim() || 'Unknown Player'
   const initials = `${player.firstName?.charAt(0) || ''}${player.lastName?.charAt(0) || ''}`.toUpperCase()
 
   return (
-    <div className="glass-card rounded-xl hover:shadow-glass-lg transition-all duration-300 w-full group hover:-translate-y-1 overflow-hidden">
-      <div className="p-6">
+    <div className="player-card">
+      <div className="player-card-body">
         {/* Header row */}
-        <div className="flex items-start gap-4 mb-4">
-          {/* Avatar - placeholder for now */}
-          <div className={`w-16 h-16 shrink-0 bg-gradient-to-br ${getGradient(fullName)} rounded-full flex items-center justify-center shadow-md group-hover:scale-110 transition-transform`}>
-            <span className="text-white font-bold text-xl">
-              {initials || <UserIcon className="w-8 h-8" />}
-            </span>
+        <div style={{display: 'flex', gap: '1rem', marginBottom: '1rem', alignItems: 'flex-start'}}>
+          {/* Avatar */}
+          <div style={{
+            width: '60px',
+            height: '60px',
+            borderRadius: '50%',
+            background: 'linear-gradient(135deg, #1B4332, #2d6a4f)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#4fffb0',
+            fontFamily: "'Barlow Condensed', sans-serif",
+            fontWeight: 900,
+            fontSize: '1.5rem',
+            flexShrink: 0
+          }}>
+            {initials}
           </div>
-          <div className="flex-1 min-w-0">
-            <h3 className="text-base font-semibold text-gray-900 group-hover:text-primary-600 transition-colors truncate">
+          <div style={{flex: 1, minWidth: 0}}>
+            <h3 style={{
+              fontFamily: "'Barlow Condensed', sans-serif",
+              fontWeight: 900,
+              fontSize: '1.25rem',
+              letterSpacing: '-0.02em',
+              textTransform: 'uppercase',
+              color: '#fff',
+              marginBottom: '0.25rem'
+            }}>
               {fullName}
             </h3>
-            <p className="text-xs text-gray-500 mt-0.5 truncate">
+            <p style={{
+              fontFamily: "'Barlow', sans-serif",
+              fontSize: '0.85rem',
+              color: 'rgba(255, 255, 255, 0.5)',
+              marginBottom: '0.25rem'
+            }}>
               {player.email}
             </p>
             {player.city && (
-              <div className="flex items-center gap-1 mt-1">
-                <LocationIcon className="w-3 h-3 text-gray-400" />
-                <span className="text-xs text-gray-500">{player.city}</span>
+              <p style={{
+                fontFamily: "'Barlow', sans-serif",
+                fontSize: '0.85rem',
+                color: 'rgba(255, 255, 255, 0.5)'
+              }}>
+                📍 {player.city}
+              </p>
+            )}
+            {/* Show org badge if player is in one of user's orgs */}
+            {playerOrgInfo && (
+              <div
+                style={{
+                  display: 'inline-block',
+                  background: getRoleColor(playerOrgInfo.role),
+                  color: '#060d1f',
+                  fontFamily: "'Barlow Condensed', sans-serif",
+                  fontWeight: 700,
+                  fontSize: '0.7rem',
+                  letterSpacing: '0.05em',
+                  textTransform: 'uppercase',
+                  padding: '0.25rem 0.6rem',
+                  borderRadius: '12px',
+                  marginTop: '0.5rem'
+                }}
+              >
+                {playerOrgInfo.role} in {playerOrgInfo.orgName}
               </div>
             )}
           </div>
         </div>
 
         {/* Bio or placeholder */}
-        <p className="text-sm text-gray-600 mb-5 line-clamp-2 leading-relaxed">
+        <p style={{
+          fontFamily: "'Barlow', sans-serif",
+          fontSize: '0.9rem',
+          color: 'rgba(255, 255, 255, 0.65)',
+          lineHeight: 1.5,
+          marginBottom: '1rem'
+        }}>
           {player.bio || 'No bio provided yet.'}
         </p>
 
         {/* Stats */}
-        <div className="flex items-center gap-4 pt-4 border-t border-gray-100">
-          <div className="flex items-center gap-1.5 text-sm text-gray-600">
-            <TrophyIcon className="w-4 h-4 text-primary-500" />
-            <span className="font-medium">{player.matchesPlayed || 0}</span>
-            <span className="text-gray-400">Matches</span>
+        <div style={{
+          display: 'flex',
+          gap: '1.5rem',
+          paddingTop: '1rem',
+          borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+          fontFamily: "'Barlow', sans-serif",
+          fontSize: '0.85rem',
+          color: 'rgba(255, 255, 255, 0.6)',
+          marginBottom: '1rem'
+        }}>
+          <div>
+            <span style={{
+              color: '#4fffb0',
+              fontWeight: 700,
+              fontFamily: "'Barlow Condensed', sans-serif"
+            }}>
+              {player.matchesPlayed || 0}
+            </span> Matches
           </div>
           {player.skillLevel && (
-            <div className="flex items-center gap-1.5 text-sm text-gray-600">
-              <span className="font-medium">{player.skillLevel}</span>
-              <span className="text-gray-400">Level</span>
-            </div>
+            <>
+              <div>•</div>
+              <div>
+                <span style={{
+                  color: '#4fffb0',
+                  fontWeight: 700,
+                  fontFamily: "'Barlow Condensed', sans-serif"
+                }}>
+                  {player.skillLevel}
+                </span> Level
+              </div>
+            </>
           )}
         </div>
 
         {/* Action Buttons */}
-        <div className="flex gap-2 pt-4 border-t border-gray-100 mt-4">
+        <div style={{display: 'flex', gap: '0.75rem'}}>
           <button
             onClick={onClick}
-            className="flex-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-all text-sm"
+            style={{
+              flex: 1,
+              background: 'transparent',
+              color: 'rgba(255, 255, 255, 0.8)',
+              fontFamily: "'Barlow Condensed', sans-serif",
+              fontWeight: 600,
+              fontSize: '0.95rem',
+              textTransform: 'uppercase',
+              padding: '0.65rem 1.25rem',
+              border: '1px solid rgba(255, 255, 255, 0.3)',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseOver={(e) => {
+              e.target.style.borderColor = '#4fffb0'
+              e.target.style.color = '#4fffb0'
+            }}
+            onMouseOut={(e) => {
+              e.target.style.borderColor = 'rgba(255, 255, 255, 0.3)'
+              e.target.style.color = 'rgba(255, 255, 255, 0.8)'
+            }}
           >
             View Profile
           </button>
@@ -105,7 +210,28 @@ const PlayerCard = ({ player, onClick, onInvite }) => {
               e.stopPropagation()
               onInvite(player)
             }}
-            className="flex-1 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-all text-sm"
+            style={{
+              flex: 1,
+              background: '#4fffb0',
+              color: '#060d1f',
+              fontFamily: "'Barlow Condensed', sans-serif",
+              fontWeight: 700,
+              fontSize: '0.95rem',
+              textTransform: 'uppercase',
+              padding: '0.65rem 1.25rem',
+              border: 'none',
+              borderRadius: '50px',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease'
+            }}
+            onMouseOver={(e) => {
+              e.target.style.transform = 'translateY(-2px)'
+              e.target.style.boxShadow = '0 8px 25px rgba(79, 255, 176, 0.4)'
+            }}
+            onMouseOut={(e) => {
+              e.target.style.transform = 'translateY(0)'
+              e.target.style.boxShadow = 'none'
+            }}
           >
             Invite to Org
           </button>
@@ -144,8 +270,10 @@ const PlayersPage = () => {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [showInviteModal, setShowInviteModal] = useState(false)
+  const [inviteConfirmModal, setInviteConfirmModal] = useState(null)
   const [selectedPlayer, setSelectedPlayer] = useState(null)
   const [myOrgs, setMyOrgs] = useState([])
+  const [allMyOrgs, setAllMyOrgs] = useState([]) // All orgs (including as MEMBER)
   const [inviteData, setInviteData] = useState({
     orgId: '',
     role: 'MEMBER',
@@ -154,9 +282,15 @@ const PlayersPage = () => {
   const [sendingInvite, setSendingInvite] = useState(false)
 
   useEffect(() => {
-    loadPlayers()
     loadMyOrgs()
   }, [])
+
+  useEffect(() => {
+    // Load players only after orgs are loaded
+    if (allMyOrgs.length >= 0) {
+      loadPlayers()
+    }
+  }, [allMyOrgs])
 
   const loadPlayers = async () => {
     try {
@@ -166,7 +300,7 @@ const PlayersPage = () => {
       console.log('Players response:', res.data)
       if (res.data.success) {
         console.log('Setting players:', res.data.players.length)
-        // Filter out current user
+        // Filter out current user only
         const filteredPlayers = res.data.players.filter(p => p.id !== user?.id)
         setPlayers(filteredPlayers)
       }
@@ -183,7 +317,9 @@ const PlayersPage = () => {
     try {
       const res = await api.get('/orgs')
       if (res.data.success) {
-        // Filter to only orgs where user is OWNER or ADMIN
+        // Store ALL orgs (to check membership badges)
+        setAllMyOrgs(res.data.orgs)
+        // Filter to only orgs where user is OWNER or ADMIN (for invite dropdown)
         const adminOrgs = res.data.orgs.filter(
           org => org.myRole === 'OWNER' || org.myRole === 'ADMIN'
         )
@@ -192,7 +328,26 @@ const PlayersPage = () => {
     } catch (err) {
       console.error('Error loading orgs:', err)
       setMyOrgs([])
+      setAllMyOrgs([])
     }
+  }
+
+  // Helper to get player's org info
+  const getPlayerOrgInfo = (player) => {
+    // Check if player is a member of any of current user's orgs
+    for (const org of allMyOrgs) {
+      // Get org members
+      if (org.members && Array.isArray(org.members)) {
+        const member = org.members.find(m => m.userId === player.id)
+        if (member) {
+          return {
+            orgName: org.name,
+            role: member.role
+          }
+        }
+      }
+    }
+    return null
   }
 
   const handleInviteClick = (player) => {
@@ -201,12 +356,21 @@ const PlayersPage = () => {
     setShowInviteModal(true)
   }
 
-  const handleSendInvite = async () => {
+  const handleSendInvite = () => {
     if (!inviteData.orgId) {
       alert('Please select an organization')
       return
     }
 
+    const selectedOrg = myOrgs.find(o => o.id === inviteData.orgId)
+    setInviteConfirmModal({
+      player: selectedPlayer,
+      org: selectedOrg,
+      role: inviteData.role
+    })
+  }
+
+  const executeSendInvite = async () => {
     setSendingInvite(true)
     try {
       await api.post(`/orgs/${inviteData.orgId}/invite`, {
@@ -214,8 +378,9 @@ const PlayersPage = () => {
         role: inviteData.role,
         message: inviteData.message
       })
-      alert('Invitation sent successfully!')
+      setInviteConfirmModal(null)
       setShowInviteModal(false)
+      alert('Invitation sent successfully! 🎉')
     } catch (err) {
       console.error('Error sending invite:', err)
       alert(err.response?.data?.error || 'Failed to send invitation')
@@ -234,84 +399,304 @@ const PlayersPage = () => {
   })
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-primary-50/20">
-      <Navbar />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;900&family=Barlow:wght@400;500;600&display=swap');
 
-        {/* ── Page Header ── */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Explore Players</h1>
-          <p className="text-gray-600">
-            Browse player profiles, connect with others, and invite them to your tournaments
-          </p>
-        </div>
+        body {
+          background: #060d1f;
+          margin: 0;
+          font-family: 'Barlow', sans-serif;
+          overflow-x: hidden;
+        }
 
-        {/* ── Search bar ── */}
-        <div className="mb-8">
-          <div className="relative">
-            <SearchIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        .players-container {
+          min-height: 100vh;
+          background: linear-gradient(180deg, #060d1f 0%, #0a1628 50%, #071a2e 100%);
+          padding-top: 80px;
+          position: relative;
+          overflow: hidden;
+        }
+
+        /* Ambient orbs */
+        .orb {
+          position: absolute;
+          border-radius: 50%;
+          filter: blur(90px);
+          pointer-events: none;
+          opacity: 0.3;
+          z-index: 0;
+        }
+        .orb-1 {
+          width: 600px;
+          height: 600px;
+          background: radial-gradient(circle, #1B4332 0%, transparent 70%);
+          top: -150px;
+          right: -150px;
+          animation: drift1 18s ease-in-out infinite;
+        }
+        .orb-2 {
+          width: 450px;
+          height: 450px;
+          background: radial-gradient(circle, #0a3d62 0%, transparent 70%);
+          bottom: -100px;
+          left: -100px;
+          animation: drift2 22s ease-in-out infinite;
+        }
+        @keyframes drift1 {
+          0%,100% { transform: translate(0,0); }
+          50% { transform: translate(40px,-30px); }
+        }
+        @keyframes drift2 {
+          0%,100% { transform: translate(0,0); }
+          50% { transform: translate(-50px,40px); }
+        }
+
+        /* Grid overlay */
+        .grid-overlay {
+          position: absolute;
+          inset: 0;
+          background-image:
+            linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px);
+          background-size: 55px 55px;
+          pointer-events: none;
+          z-index: 0;
+        }
+
+        .players-content {
+          max-width: 1400px;
+          margin: 0 auto;
+          padding: 3rem 2rem;
+          position: relative;
+          z-index: 1;
+        }
+
+        .page-header {
+          margin-bottom: 2rem;
+        }
+
+        .page-title {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 900;
+          font-size: clamp(3rem, 6vw, 4rem);
+          letter-spacing: -0.03em;
+          text-transform: uppercase;
+          color: #4fffb0;
+          line-height: 0.9;
+          margin-bottom: 0.5rem;
+        }
+
+        .page-subtitle {
+          font-family: 'Barlow', sans-serif;
+          font-size: 1rem;
+          color: rgba(255, 255, 255, 0.65);
+        }
+
+        .search-input-wrapper {
+          position: relative;
+          margin-bottom: 2rem;
+        }
+
+        .search-input {
+          width: 100%;
+          background: rgba(6, 13, 31, 0.6);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 8px;
+          padding: 0.75rem 1rem 0.75rem 2.75rem;
+          font-family: 'Barlow', sans-serif;
+          font-size: 0.95rem;
+          color: #fff;
+          outline: none;
+          transition: all 0.2s ease;
+        }
+
+        .search-input:focus {
+          border-color: #4fffb0;
+          box-shadow: 0 0 0 3px rgba(79, 255, 176, 0.1);
+        }
+
+        .search-input::placeholder {
+          color: rgba(255, 255, 255, 0.3);
+        }
+
+        .search-icon {
+          position: absolute;
+          left: 1rem;
+          top: 50%;
+          transform: translateY(-50%);
+          width: 16px;
+          height: 16px;
+          color: rgba(255, 255, 255, 0.4);
+        }
+
+        .results-count {
+          font-family: 'Barlow', sans-serif;
+          font-size: 0.9rem;
+          color: rgba(255, 255, 255, 0.5);
+          margin-bottom: 1.5rem;
+        }
+
+        .players-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+          gap: 1.5rem;
+        }
+
+        .player-card {
+          border: 2px dashed rgba(79, 255, 176, 0.3);
+          border-radius: 12px;
+          padding: 0;
+          overflow: hidden;
+          position: relative;
+          transition: all 0.3s ease;
+        }
+
+        .player-card:hover {
+          border-color: #4fffb0;
+          transform: translateY(-3px) scale(1.01);
+          box-shadow: 0 8px 30px rgba(79, 255, 176, 0.25);
+        }
+
+        .player-card-body {
+          background: linear-gradient(135deg, rgba(10, 22, 40, 0.9), rgba(6, 13, 31, 0.95));
+          position: relative;
+          padding: 1.5rem;
+          padding-left: 2rem;
+        }
+
+        .player-card-body::before {
+          content: '';
+          position: absolute;
+          left: 0;
+          top: 0;
+          bottom: 0;
+          width: 8px;
+          background: linear-gradient(180deg, #4fffb0, rgba(79, 255, 176, 0.5));
+        }
+
+        @media (max-width: 768px) {
+          .players-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+      `}</style>
+
+      <div className="players-container">
+        <div className="orb orb-1"></div>
+        <div className="orb orb-2"></div>
+        <div className="grid-overlay"></div>
+
+        <Navbar />
+
+        <main className="players-content">
+          {/* Page Header */}
+          <div className="page-header">
+            <h1 className="page-title">Explore Players</h1>
+            <p className="page-subtitle">
+              Browse player profiles and invite them to your organizations.
+            </p>
+          </div>
+
+          {/* Search bar */}
+          <div className="search-input-wrapper">
+            <SearchIcon className="search-icon" />
             <input
               type="text"
-              placeholder="Search players by name, email, or location…"
+              placeholder="Search players by name, email, or location..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-400 transition-all"
+              className="search-input"
             />
           </div>
-        </div>
 
-        {/* ── Results count ── */}
-        {!loading && (
-          <p className="text-sm text-gray-500 mb-5">
-            {filtered.length} player{filtered.length !== 1 ? 's' : ''} found
-          </p>
-        )}
+          {/* Results count */}
+          {!loading && (
+            <p className="results-count">
+              {filtered.length} player{filtered.length !== 1 ? 's' : ''} found
+            </p>
+          )}
 
-        {/* ── Grid ── */}
-        {loading ? (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {Array.from({ length: 6 }).map((_, i) => <PlayerCardSkeleton key={i} />)}
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24">
-            <div className="glass-card rounded-2xl p-12 max-w-md text-center">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <SearchIcon className="w-8 h-8 text-gray-400" />
+          {/* Grid */}
+          {loading ? (
+            <div style={{
+              textAlign: 'center',
+              padding: '4rem 2rem',
+              fontFamily: "'Barlow Condensed', sans-serif",
+              fontWeight: 700,
+              fontSize: '1.5rem',
+              textTransform: 'uppercase',
+              color: 'rgba(255, 255, 255, 0.8)'
+            }}>
+              Loading...
+            </div>
+          ) : filtered.length === 0 ? (
+            <div style={{
+              textAlign: 'center',
+              padding: '4rem 2rem'
+            }}>
+              <div style={{fontSize: '4rem', marginBottom: '1rem', opacity: 0.5}}>👤</div>
+              <div style={{
+                fontFamily: "'Barlow Condensed', sans-serif",
+                fontWeight: 700,
+                fontSize: '1.5rem',
+                textTransform: 'uppercase',
+                color: 'rgba(255, 255, 255, 0.8)',
+                marginBottom: '0.5rem'
+              }}>
+                No players found
               </div>
-              <h2 className="text-xl font-bold text-gray-900 mb-2">No players found</h2>
-              <p className="text-gray-600 text-sm">
+              <div style={{
+                fontFamily: "'Barlow', sans-serif",
+                fontSize: '1rem',
+                color: 'rgba(255, 255, 255, 0.5)'
+              }}>
                 {search
                   ? `No results for "${search}". Try a different search term.`
                   : 'No players are available yet. Check back soon!'}
-              </p>
-              {search && (
-                <button
-                  onClick={() => setSearch('')}
-                  className="mt-6 px-6 py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-xl transition-all text-sm"
-                >
-                  Clear search
-                </button>
-              )}
+              </div>
             </div>
-          </div>
-        ) : (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filtered.map((player) => (
-              <PlayerCard
-                key={player.id}
-                player={player}
-                onClick={() => navigate(`/players/${player.id}`)}
-                onInvite={handleInviteClick}
-              />
-            ))}
-          </div>
-        )}
-      </main>
+          ) : (
+            <div className="players-grid">
+              {filtered.map((player) => (
+                <PlayerCard
+                  key={player.id}
+                  player={player}
+                  onClick={() => navigate(`/players/${player.id}`)}
+                  onInvite={handleInviteClick}
+                  playerOrgInfo={getPlayerOrgInfo(player)}
+                />
+              ))}
+            </div>
+          )}
+        </main>
+      </div>
 
       {/* Invite Modal */}
       {showInviteModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="glass-card rounded-2xl p-8 max-w-lg w-full">
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 999,
+          background: 'rgba(6, 13, 31, 0.85)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '2rem'
+        }} onClick={() => setShowInviteModal(false)}>
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(10, 22, 40, 0.95), rgba(6, 13, 31, 0.98))',
+            backdropFilter: 'blur(20px)',
+            border: '2px solid rgba(79, 255, 176, 0.3)',
+            borderRadius: '16px',
+            padding: '2rem',
+            maxWidth: '500px',
+            width: '100%',
+            maxHeight: '85vh',
+            overflowY: 'auto',
+            boxShadow: '0 0 40px rgba(79, 255, 176, 0.2)'
+          }} onClick={(e) => e.stopPropagation()}>
             <h2 className="text-2xl font-bold text-gray-900 mb-6">
               Invite {selectedPlayer?.firstName} to Organization
             </h2>
@@ -419,7 +804,107 @@ const PlayersPage = () => {
           </div>
         </div>
       )}
-    </div>
+
+      {/* Invite Confirmation Modal */}
+      {inviteConfirmModal && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 1000,
+          background: 'rgba(6, 13, 31, 0.85)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '2rem'
+        }} onClick={() => setInviteConfirmModal(null)}>
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(10, 22, 40, 0.95), rgba(6, 13, 31, 0.98))',
+            backdropFilter: 'blur(20px)',
+            border: '2px solid rgba(79, 255, 176, 0.3)',
+            borderRadius: '16px',
+            padding: '2.5rem',
+            maxWidth: '500px',
+            width: '100%',
+            boxShadow: '0 0 40px rgba(79, 255, 176, 0.2)',
+            textAlign: 'center'
+          }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🎯</div>
+            <div style={{
+              fontFamily: "'Barlow Condensed', sans-serif",
+              fontWeight: 900,
+              fontSize: '2rem',
+              letterSpacing: '-0.02em',
+              textTransform: 'uppercase',
+              color: '#4fffb0',
+              marginBottom: '1rem'
+            }}>
+              RECRUIT THIS PLAYER?
+            </div>
+            <div style={{
+              fontFamily: "'Barlow', sans-serif",
+              fontSize: '1rem',
+              color: 'rgba(255, 255, 255, 0.7)',
+              marginBottom: '2rem',
+              lineHeight: '1.6'
+            }}>
+              You're about to invite <strong style={{ color: '#fff' }}>
+                {inviteConfirmModal.player.firstName} {inviteConfirmModal.player.lastName}
+              </strong> to join <strong style={{ color: '#4fffb0' }}>
+                {inviteConfirmModal.org?.name}
+              </strong> as a <strong style={{ color: '#00d4ff' }}>
+                {inviteConfirmModal.role}
+              </strong>!
+            </div>
+            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+              <button
+                onClick={() => setInviteConfirmModal(null)}
+                disabled={sendingInvite}
+                style={{
+                  flex: 1,
+                  background: 'transparent',
+                  color: 'rgba(255, 255, 255, 0.8)',
+                  fontFamily: "'Barlow Condensed', sans-serif",
+                  fontWeight: 600,
+                  fontSize: '0.95rem',
+                  textTransform: 'uppercase',
+                  padding: '0.75rem 1.5rem',
+                  border: '1px solid rgba(255, 255, 255, 0.3)',
+                  borderRadius: '8px',
+                  cursor: sendingInvite ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.2s ease',
+                  opacity: sendingInvite ? 0.5 : 1
+                }}
+              >
+                Hold On
+              </button>
+              <button
+                onClick={executeSendInvite}
+                disabled={sendingInvite}
+                style={{
+                  flex: 1,
+                  background: '#4fffb0',
+                  color: '#060d1f',
+                  fontFamily: "'Barlow Condensed', sans-serif",
+                  fontWeight: 700,
+                  fontSize: '1rem',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  padding: '0.75rem 1.5rem',
+                  border: 'none',
+                  borderRadius: '50px',
+                  cursor: sendingInvite ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.3s ease',
+                  opacity: sendingInvite ? 0.5 : 1
+                }}
+              >
+                {sendingInvite ? 'Sending...' : 'Yes, Send Invite!'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   )
 }
 

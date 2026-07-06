@@ -62,18 +62,8 @@ const Navbar = () => {
           }
         }
 
-        // Get invitations count
-        let invitationsCount = 0
-        try {
-          const res = await api.get('/orgs/invitations/received')
-          if (res.data.success) {
-            invitationsCount = res.data.invitations.length
-          }
-        } catch (err) {
-          // Ignore errors
-        }
-
-        setPendingCount(requestsCount + invitationsCount)
+        // Only show dot for join requests (not invitations)
+        setPendingCount(requestsCount)
 
         // Get unread notifications count
         try {
@@ -126,23 +116,24 @@ const Navbar = () => {
   const navItems = user ? [
     { name: 'Home', path: '/dashboard' },
     { name: 'Tournaments', path: '/browse' },
+    { name: 'Explore', isDropdown: true },
     { name: 'Live', path: '/live', isLive: true },
     { name: 'My Matches', path: '/matches' },
-    { name: 'My Orgs', path: '/manage', badge: pendingCount > 0 ? pendingCount : null },
+    { name: 'My Orgs', path: '/manage', showDot: pendingCount > 0 },
   ] : [
     { name: 'Tournaments', path: '/browse' },
   ]
 
   const exploreItems = [
     {
-      label: 'Discover Organizations',
+      label: 'Organizations',
       description: 'Find and join sports organizations',
       path: '/discover',
       Icon: DiscoverIcon,
     },
     {
       label: 'Players',
-      description: 'Browse player profiles and invite them',
+      description: 'Browse and invite to your org',
       path: '/players',
       Icon: PlayersIcon,
     },
@@ -215,6 +206,9 @@ const Navbar = () => {
           cursor: pointer;
           transition: all 0.2s ease;
           position: relative;
+          display: inline-flex;
+          align-items: center;
+          gap: 0.25rem;
         }
 
         .nav-link:hover {
@@ -272,6 +266,29 @@ const Navbar = () => {
           border-radius: 10px;
           min-width: 18px;
           text-align: center;
+        }
+
+        .notification-dot {
+          position: absolute;
+          top: 8px;
+          right: 8px;
+          width: 8px;
+          height: 8px;
+          background: #ec4899;
+          border-radius: 50%;
+          box-shadow: 0 0 10px rgba(236, 72, 153, 0.6);
+          animation: pulse-dot 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-dot {
+          0%, 100% {
+            opacity: 1;
+            transform: scale(1);
+          }
+          50% {
+            opacity: 0.6;
+            transform: scale(1.15);
+          }
         }
 
         .nav-right {
@@ -400,6 +417,79 @@ const Navbar = () => {
           margin: 0.5rem 0;
         }
 
+        /* Explore Dropdown */
+        .explore-dropdown {
+          position: absolute;
+          top: calc(100% + 0.5rem);
+          left: 0;
+          background: linear-gradient(160deg, #0a1628 0%, #060d1f 100%);
+          border: 1px solid rgba(79, 255, 176, 0.2);
+          border-radius: 12px;
+          padding: 0.75rem;
+          min-width: 280px;
+          box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 40px rgba(79, 255, 176, 0.1);
+          backdrop-filter: blur(20px);
+        }
+
+        .explore-item {
+          display: flex;
+          align-items: flex-start;
+          gap: 1rem;
+          padding: 1rem;
+          border-radius: 8px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          background: transparent;
+          border: 1px solid transparent;
+        }
+
+        .explore-item:hover {
+          background: rgba(79, 255, 176, 0.08);
+          border-color: rgba(79, 255, 176, 0.3);
+        }
+
+        .explore-item:not(:last-child) {
+          margin-bottom: 0.5rem;
+        }
+
+        .explore-icon {
+          width: 40px;
+          height: 40px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: rgba(79, 255, 176, 0.1);
+          border-radius: 8px;
+          flex-shrink: 0;
+        }
+
+        .explore-icon svg {
+          width: 20px;
+          height: 20px;
+          color: #4fffb0;
+        }
+
+        .explore-content {
+          flex: 1;
+        }
+
+        .explore-label {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 700;
+          font-size: 1rem;
+          text-transform: uppercase;
+          color: #fff;
+          margin-bottom: 0.25rem;
+          letter-spacing: 0.02em;
+        }
+
+        .explore-description {
+          font-family: 'Barlow', sans-serif;
+          font-size: 0.85rem;
+          color: rgba(255,255,255,0.6);
+          line-height: 1.4;
+        }
+
         @media (max-width: 768px) {
           .nav-container {
             padding: 0 1rem;
@@ -421,15 +511,47 @@ const Navbar = () => {
 
           <div className="nav-center">
             {navItems.map((item) => (
-              <button
-                key={item.path}
-                onClick={() => navigate(item.path)}
-                className={item.isLive ? 'nav-link live-btn' : `nav-link ${isActive(item.path) ? 'active' : ''}`}
-              >
-                {item.isLive && <span className="live-dot"></span>}
-                {item.name}
-                {item.badge && <span className="nav-badge">{item.badge > 9 ? '9+' : item.badge}</span>}
-              </button>
+              item.isDropdown ? (
+                <div key={item.name} style={{ position: 'relative' }} ref={exploreRef}>
+                  <button
+                    onClick={() => setIsExploreOpen((o) => !o)}
+                    className={`nav-link ${isExploreActive ? 'active' : ''}`}
+                  >
+                    {item.name}
+                    <ChevronDownIcon style={{ width: '16px', height: '16px', marginLeft: '4px' }} />
+                  </button>
+
+                  {isExploreOpen && (
+                    <div className="explore-dropdown">
+                      {exploreItems.map((exploreItem) => (
+                        <div
+                          key={exploreItem.path}
+                          className="explore-item"
+                          onClick={() => navigate(exploreItem.path)}
+                        >
+                          <div className="explore-icon">
+                            <exploreItem.Icon />
+                          </div>
+                          <div className="explore-content">
+                            <div className="explore-label">{exploreItem.label}</div>
+                            <div className="explore-description">{exploreItem.description}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <button
+                  key={item.path}
+                  onClick={() => navigate(item.path)}
+                  className={item.isLive ? 'nav-link live-btn' : `nav-link ${isActive(item.path) ? 'active' : ''}`}
+                >
+                  {item.isLive && <span className="live-dot"></span>}
+                  {item.name}
+                  {item.showDot && <span className="notification-dot"></span>}
+                </button>
+              )
             ))}
 
           </div>

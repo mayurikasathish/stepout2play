@@ -17,6 +17,7 @@ const ManagePage = () => {
   const [editingOrg, setEditingOrg] = useState(null)
   const [deleteConfirmModal, setDeleteConfirmModal] = useState(null)
   const [readMoreModal, setReadMoreModal] = useState(null)
+  const [confirmActionModal, setConfirmActionModal] = useState(null)
 
   useEffect(() => {
     loadOrganizations()
@@ -28,6 +29,12 @@ const ManagePage = () => {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    if (organizations.length > 0) {
+      loadJoinRequests()
+    }
+  }, [organizations])
 
   useEffect(() => {
     if (activeTab === 'requests') {
@@ -63,6 +70,27 @@ const ManagePage = () => {
       }
     } catch (err) {
       console.error('Error loading invitations:', err)
+    }
+  }
+
+  const handleAcceptInvitation = async (inv) => {
+    try {
+      await api.post(`/orgs/invitations/${inv.id}/accept`)
+      loadInvitations()
+      refreshContext()
+    } catch (err) {
+      console.error('Error accepting invitation:', err)
+      alert(err.response?.data?.error || 'Failed to accept invitation')
+    }
+  }
+
+  const handleDeclineInvitation = async (inv) => {
+    try {
+      await api.post(`/orgs/invitations/${inv.id}/decline`)
+      loadInvitations()
+    } catch (err) {
+      console.error('Error declining invitation:', err)
+      alert(err.response?.data?.error || 'Failed to decline invitation')
     }
   }
 
@@ -109,6 +137,52 @@ const ManagePage = () => {
     refreshContext()
     setShowCreateModal(false)
     setEditingOrg(null)
+  }
+
+  const handleAcceptRequest = (req) => {
+    setConfirmActionModal({
+      type: 'accept',
+      request: req,
+      title: 'WELCOME TO THE TEAM!',
+      icon: '🎉',
+      message: `Ready to draft ${req.user ? `${req.user.firstName} ${req.user.lastName}` : 'this player'} to ${req.orgName}?`,
+      confirmText: 'Yes, Draft Them!',
+      cancelText: 'Hold On'
+    })
+  }
+
+  const handleRejectRequest = (req) => {
+    setConfirmActionModal({
+      type: 'reject',
+      request: req,
+      title: 'BENCH THIS ONE?',
+      icon: '🚫',
+      message: `You're about to reject ${req.user ? `${req.user.firstName} ${req.user.lastName}` : 'this player'}'s request to join ${req.orgName}.`,
+      confirmText: 'Yes, Reject',
+      cancelText: 'Wait, No'
+    })
+  }
+
+  const executeRequestAction = async () => {
+    if (!confirmActionModal) return
+
+    try {
+      const { type, request } = confirmActionModal
+      const orgId = organizations.find(o => o.name === request.orgName)?.id
+      if (!orgId) return
+
+      if (type === 'accept') {
+        await api.post(`/orgs/${orgId}/join-requests/${request.id}/accept`)
+      } else {
+        await api.post(`/orgs/${orgId}/join-requests/${request.id}/reject`)
+      }
+
+      setConfirmActionModal(null)
+      loadJoinRequests()
+    } catch (err) {
+      console.error(`Error ${confirmActionModal.type}ing request:`, err)
+      alert(err.response?.data?.error || `Failed to ${confirmActionModal.type} request`)
+    }
   }
 
   const handleDeleteOrg = async (orgId) => {
@@ -245,10 +319,225 @@ const ManagePage = () => {
           box-shadow: 0 0 10px rgba(79, 255, 176, 0.5);
         }
 
+        .tab-badge {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-width: 20px;
+          height: 20px;
+          padding: 0 6px;
+          margin-left: 0.5rem;
+          background: #ec4899;
+          color: #fff;
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 700;
+          font-size: 0.75rem;
+          border-radius: 10px;
+          box-shadow: 0 2px 8px rgba(236, 72, 153, 0.4);
+        }
+
+        .tab-dot {
+          position: absolute;
+          top: 0.5rem;
+          right: 0.5rem;
+          width: 8px;
+          height: 8px;
+          background: #ec4899;
+          border-radius: 50%;
+          box-shadow: 0 0 10px rgba(236, 72, 153, 0.6);
+          animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+          0%, 100% {
+            opacity: 1;
+            transform: scale(1);
+          }
+          50% {
+            opacity: 0.6;
+            transform: scale(1.1);
+          }
+        }
+
         .orgs-grid {
           display: grid;
           grid-template-columns: repeat(auto-fill, minmax(450px, 1fr));
           gap: 1.5rem;
+        }
+
+        .requests-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+          gap: 1.5rem;
+        }
+
+        .request-card {
+          border: 2px dashed rgba(79, 255, 176, 0.3);
+          border-radius: 12px;
+          padding: 0;
+          overflow: hidden;
+          position: relative;
+          transition: all 0.3s ease;
+          background: linear-gradient(135deg, rgba(10, 22, 40, 0.9), rgba(6, 13, 31, 0.95));
+        }
+
+        .request-card:hover {
+          border-color: #4fffb0;
+          transform: translateY(-3px);
+          box-shadow: 0 8px 30px rgba(79, 255, 176, 0.25);
+        }
+
+        .request-card-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 1rem 1.5rem;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .request-org-badge {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 700;
+          font-size: 1rem;
+          text-transform: uppercase;
+          color: #4fffb0;
+          letter-spacing: 0.05em;
+        }
+
+        .request-status {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 600;
+          font-size: 0.85rem;
+          text-transform: uppercase;
+          padding: 0.3rem 0.75rem;
+          border-radius: 20px;
+          letter-spacing: 0.05em;
+        }
+
+        .request-status.pending {
+          background: rgba(255, 200, 0, 0.2);
+          color: #ffc800;
+          border: 1px solid rgba(255, 200, 0, 0.4);
+        }
+
+        .request-status.accepted {
+          background: rgba(79, 255, 176, 0.2);
+          color: #4fffb0;
+          border: 1px solid rgba(79, 255, 176, 0.4);
+        }
+
+        .request-status.rejected {
+          background: rgba(236, 72, 153, 0.2);
+          color: #ec4899;
+          border: 1px solid rgba(236, 72, 153, 0.4);
+        }
+
+        .request-user-info {
+          padding: 1.5rem;
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+        }
+
+        .request-user-name {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 700;
+          font-size: 1.5rem;
+          text-transform: uppercase;
+          color: #fff;
+          letter-spacing: -0.02em;
+        }
+
+        .request-user-email {
+          font-family: 'Barlow', sans-serif;
+          font-size: 0.9rem;
+          color: rgba(255, 255, 255, 0.6);
+        }
+
+        .request-role-badge {
+          margin: 0 1.5rem;
+          padding: 0.5rem 1rem;
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 700;
+          font-size: 0.9rem;
+          text-transform: uppercase;
+          color: #060d1f;
+          border-radius: 8px;
+          letter-spacing: 0.05em;
+          display: inline-block;
+          width: fit-content;
+        }
+
+        .request-field {
+          padding: 1rem 1.5rem;
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+        }
+
+        .request-field-label {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 600;
+          font-size: 0.85rem;
+          text-transform: uppercase;
+          color: rgba(255, 255, 255, 0.5);
+          letter-spacing: 0.05em;
+        }
+
+        .request-field-value {
+          font-family: 'Barlow', sans-serif;
+          font-size: 0.95rem;
+          color: rgba(255, 255, 255, 0.8);
+          line-height: 1.6;
+        }
+
+        .request-actions {
+          display: flex;
+          gap: 1rem;
+          padding: 1.5rem;
+          border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-accept {
+          flex: 1;
+          background: #4fffb0;
+          color: #060d1f;
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 700;
+          font-size: 1rem;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          padding: 0.75rem 1.5rem;
+          border: none;
+          border-radius: 8px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+        }
+
+        .btn-accept:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 25px rgba(79, 255, 176, 0.4);
+        }
+
+        .btn-reject {
+          flex: 1;
+          background: transparent;
+          color: #ec4899;
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 600;
+          font-size: 0.95rem;
+          text-transform: uppercase;
+          padding: 0.75rem 1.5rem;
+          border: 1px solid #ec4899;
+          border-radius: 8px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .btn-reject:hover {
+          background: rgba(236, 72, 153, 0.1);
+          border-color: #f472b6;
+          color: #f472b6;
         }
 
         .org-card {
@@ -771,6 +1060,9 @@ const ManagePage = () => {
               onClick={() => setActiveTab('requests')}
             >
               Join Requests
+              {joinRequests.length > 0 && (
+                <span className="tab-badge">{joinRequests.length}</span>
+              )}
             </button>
             <button
               className={`tab ${activeTab === 'invitations' ? 'active' : ''}`}
@@ -946,15 +1238,124 @@ const ManagePage = () => {
           )}
 
           {activeTab === 'requests' && (
-            <div className="empty-state">
-              <div className="empty-text">✓ All caught up! No pending requests.</div>
-            </div>
+            <>
+              {joinRequests.length === 0 ? (
+                <div className="empty-state">
+                  <div className="empty-text">✓ All caught up! No pending requests.</div>
+                </div>
+              ) : (
+                <div className="requests-grid">
+                  {joinRequests.map(req => (
+                    <div key={req.id} className="request-card">
+                      <div className="request-card-header">
+                        <div className="request-org-badge">{req.orgName}</div>
+                        <div className={`request-status ${req.status.toLowerCase()}`}>
+                          {req.status}
+                        </div>
+                      </div>
+
+                      <div className="request-user-info">
+                        <div className="request-user-name">
+                          {req.user ? `${req.user.firstName} ${req.user.lastName}` : 'Unknown User'}
+                        </div>
+                        <div className="request-user-email">✉ {req.email}</div>
+                      </div>
+
+                      <div className="request-role-badge" style={{ background: getRoleColor(req.role) }}>
+                        Requesting: {req.role}
+                      </div>
+
+                      <div className="request-field">
+                        <div className="request-field-label">Reason</div>
+                        <div className="request-field-value">{req.reason}</div>
+                      </div>
+
+                      {req.experience && (
+                        <div className="request-field">
+                          <div className="request-field-label">Experience</div>
+                          <div className="request-field-value">{req.experience}</div>
+                        </div>
+                      )}
+
+                      {req.status === 'PENDING' && (
+                        <div className="request-actions">
+                          <button
+                            className="btn-accept"
+                            onClick={() => handleAcceptRequest(req)}
+                          >
+                            Accept
+                          </button>
+                          <button
+                            className="btn-reject"
+                            onClick={() => handleRejectRequest(req)}
+                          >
+                            Reject
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
           )}
 
           {activeTab === 'invitations' && (
-            <div className="empty-state">
-              <div className="empty-text">📬 No invitations yet.</div>
-            </div>
+            <>
+              {invitations.length === 0 ? (
+                <div className="empty-state">
+                  <div className="empty-text">📬 No invitations yet.</div>
+                </div>
+              ) : (
+                <div className="requests-grid">
+                  {invitations.map(inv => (
+                    <div key={inv.id} className="request-card">
+                      <div className="request-card-header">
+                        <div className="request-org-badge">{inv.organization?.name || 'Organization'}</div>
+                        <div className={`request-status ${inv.status.toLowerCase()}`}>
+                          {inv.status}
+                        </div>
+                      </div>
+
+                      <div className="request-user-info">
+                        <div className="request-user-name">You've been invited!</div>
+                        <div className="request-user-email">
+                          From: {inv.inviter ? `${inv.inviter.firstName} ${inv.inviter.lastName}` : 'Unknown'}
+                        </div>
+                      </div>
+
+                      <div className="request-role-badge" style={{ background: getRoleColor(inv.role) }}>
+                        Role: {inv.role}
+                      </div>
+
+                      {inv.message && (
+                        <div className="request-field">
+                          <div className="request-field-label">Message</div>
+                          <div className="request-field-value">{inv.message}</div>
+                        </div>
+                      )}
+
+                      {inv.status === 'PENDING' && (
+                        <div className="request-actions">
+                          <button
+                            className="btn-accept"
+                            onClick={() => handleAcceptInvitation(inv)}
+                          >
+                            Accept
+                          </button>
+                          <button
+                            className="btn-reject"
+                            onClick={() => handleDeclineInvitation(inv)}
+                          >
+                            Decline
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
           )}
 
           {deleteConfirmModal && (
@@ -1007,6 +1408,32 @@ const ManagePage = () => {
                     onClick={() => setReadMoreModal(null)}
                   >
                     Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {confirmActionModal && (
+            <div className="delete-modal-overlay" onClick={() => setConfirmActionModal(null)}>
+              <div className="delete-modal-content" onClick={(e) => e.stopPropagation()}>
+                <div className="delete-modal-icon">{confirmActionModal.icon}</div>
+                <div className="delete-modal-title">{confirmActionModal.title}</div>
+                <div className="delete-modal-text">
+                  {confirmActionModal.message}
+                </div>
+                <div className="delete-modal-actions">
+                  <button
+                    className="btn-cancel"
+                    onClick={() => setConfirmActionModal(null)}
+                  >
+                    {confirmActionModal.cancelText}
+                  </button>
+                  <button
+                    className={confirmActionModal.type === 'accept' ? 'btn-primary' : 'btn-confirm-delete'}
+                    onClick={executeRequestAction}
+                  >
+                    {confirmActionModal.confirmText}
                   </button>
                 </div>
               </div>
