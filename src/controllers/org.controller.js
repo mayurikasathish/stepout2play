@@ -15,7 +15,7 @@ function generateSlug(name) {
 // POST /orgs — create a new organization
 // The creating user automatically becomes OWNER
 const createOrg = async (req, res) => {
-  const { name, logoUrl, contactEmail, contactPhone } = req.body;
+  const { name, logoUrl, contactPerson, contactEmail, contactPhone, location, description, sports, socialLinks } = req.body;
 
   if (!name || name.trim().length < 2) {
     return res.status(400).json({ success: false, error: 'Organization name is required' });
@@ -39,8 +39,13 @@ const createOrg = async (req, res) => {
         name: name.trim(),
         slug,
         logoUrl,
+        contactPerson: contactPerson?.trim() || null,
         contactEmail: contactEmail?.trim() || null,
-        contactPhone: contactPhone?.trim() || null
+        contactPhone: contactPhone?.trim() || null,
+        location: location?.trim() || null,
+        description: description?.trim() || null,
+        sports: sports || [],
+        socialLinks: socialLinks || null
       }
     });
 
@@ -235,8 +240,12 @@ const updateOrg = async (req, res) => {
     motto,
     aboutUs,
     joinUsInfo,
+    contactPerson,
     contactEmail,
     contactPhone,
+    location,
+    description,
+    sports,
     socialLinks,
     colorScheme
   } = req.body;
@@ -261,8 +270,12 @@ const updateOrg = async (req, res) => {
   if (motto !== undefined) updateData.motto = motto || null;
   if (aboutUs !== undefined) updateData.aboutUs = aboutUs || null;
   if (joinUsInfo !== undefined) updateData.joinUsInfo = joinUsInfo || null;
+  if (contactPerson !== undefined) updateData.contactPerson = contactPerson || null;
   if (contactEmail !== undefined) updateData.contactEmail = contactEmail || null;
   if (contactPhone !== undefined) updateData.contactPhone = contactPhone || null;
+  if (location !== undefined) updateData.location = location || null;
+  if (description !== undefined) updateData.description = description || null;
+  if (sports !== undefined) updateData.sports = sports || [];
   if (socialLinks !== undefined) updateData.socialLinks = socialLinks;
   if (colorScheme !== undefined) updateData.colorScheme = colorScheme;
 
@@ -832,4 +845,32 @@ const declineInvitation = async (req, res, next) => {
   }
 };
 
-module.exports = { createOrg, getMyOrgs, getOrg, getOrgPublic, updateOrg, deleteOrg, inviteMember, getOrgTournaments, discoverOrgs, followOrg, unfollowOrg, requestJoin, getJoinRequests, acceptJoinRequest, rejectJoinRequest, sendInvitation, getReceivedInvitations, acceptInvitation, declineInvitation };
+// GET /orgs/check-name — check if organization name already exists
+const checkOrgName = async (req, res) => {
+  const { name } = req.query;
+
+  if (!name || name.trim().length === 0) {
+    return res.status(400).json({ success: false, error: 'Name is required' });
+  }
+
+  try {
+    const existing = await prisma.organization.findFirst({
+      where: {
+        name: {
+          equals: name.trim(),
+          mode: 'insensitive'
+        }
+      }
+    });
+
+    return res.json({
+      success: true,
+      exists: !!existing
+    });
+  } catch (error) {
+    console.error('Error checking org name:', error);
+    return res.status(500).json({ success: false, error: 'Failed to check organization name' });
+  }
+};
+
+module.exports = { createOrg, getMyOrgs, getOrg, getOrgPublic, updateOrg, deleteOrg, inviteMember, getOrgTournaments, discoverOrgs, followOrg, unfollowOrg, requestJoin, getJoinRequests, acceptJoinRequest, rejectJoinRequest, sendInvitation, getReceivedInvitations, acceptInvitation, declineInvitation, checkOrgName };

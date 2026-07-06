@@ -1,21 +1,207 @@
-import { useState } from 'react'
+import { useState, useCallback, useEffect } from 'react'
+import Cropper from 'react-easy-crop'
 import api from '../services/api'
 
-const CreateOrganizationModal = ({ isOpen, onClose, onSuccess }) => {
+const CreateOrganizationModal = ({ isOpen, onClose, onSuccess, editOrg = null }) => {
   const [formData, setFormData] = useState({
     name: '',
-    logoUrl: '',
+    contactPerson: '',
     contactEmail: '',
-    contactPhone: ''
+    contactPhone: '',
+    location: '',
+    description: '',
+    sports: [],
+    socialLinks: []
   })
+  const [logo, setLogo] = useState(null)
+  const [logoPreview, setLogoPreview] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [nameCheckMessage, setNameCheckMessage] = useState('')
+  const [nameCheckLoading, setNameCheckLoading] = useState(false)
+  const [cropModal, setCropModal] = useState(null) // { type: 'logo' | 'banner', image: dataUrl }
+  const [socialLinkInput, setSocialLinkInput] = useState({ platform: '', url: '' })
+
+  // Available sports
+  const availableSports = ['Tennis', 'Badminton', 'Table Tennis', 'Football', 'Basketball', 'Cricket']
+  const [crop, setCrop] = useState({ x: 0, y: 0 })
+  const [zoom, setZoom] = useState(1)
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState(null)
+
+  const toggleSport = (sport) => {
+    if (formData.sports.includes(sport)) {
+      setFormData({ ...formData, sports: formData.sports.filter(s => s !== sport) })
+    } else {
+      setFormData({ ...formData, sports: [...formData.sports, sport] })
+    }
+  }
+
+  const addSocialLink = () => {
+    if (socialLinkInput.platform.trim() && socialLinkInput.url.trim()) {
+      setFormData({
+        ...formData,
+        socialLinks: [...formData.socialLinks, socialLinkInput]
+      })
+      setSocialLinkInput({ platform: '', url: '' })
+    }
+  }
+
+  const removeSocialLink = (index) => {
+    setFormData({
+      ...formData,
+      socialLinks: formData.socialLinks.filter((_, i) => i !== index)
+    })
+  }
+
+  // Populate form when editing
+  useEffect(() => {
+    if (editOrg) {
+      setFormData({
+        name: editOrg.name || '',
+        contactPerson: editOrg.contactPerson || '',
+        contactEmail: editOrg.contactEmail || '',
+        contactPhone: editOrg.contactPhone || '',
+        location: editOrg.location || '',
+        description: editOrg.description || '',
+        sports: Array.isArray(editOrg.sports) ? editOrg.sports : [],
+        socialLinks: Array.isArray(editOrg.socialLinks) ? editOrg.socialLinks : []
+      })
+      setLogoPreview(editOrg.logoUrl || null)
+      setNameCheckMessage('')
+    } else {
+      // Reset form when creating new
+      setFormData({
+        name: '',
+        contactPerson: '',
+        contactEmail: '',
+        contactPhone: '',
+        location: '',
+        description: '',
+        sports: [],
+        socialLinks: []
+      })
+      setLogo(null)
+      setLogoPreview(null)
+      setNameCheckMessage('')
+    }
+  }, [editOrg, isOpen])
+
+  const handleFileChange = (e, type) => {
+    const file = e.target.files[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      const base64String = reader.result
+      if (type === 'logo') {
+        setLogo(file)
+        setLogoPreview(base64String)
+      }
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const onCropComplete = useCallback((croppedArea, croppedAreaPixels) => {
+    setCroppedAreaPixels(croppedAreaPixels)
+  }, [])
+
+  const createCroppedImage = async (imageSrc, pixelCrop) => {
+    const image = new Image()
+    image.src = imageSrc
+    await new Promise((resolve) => {
+      image.onload = resolve
+    })
+
+    const canvas = document.createElement('canvas')
+    const ctx = canvas.getContext('2d')
+
+    canvas.width = pixelCrop.width
+    canvas.height = pixelCrop.height
+
+    ctx.drawImage(
+      image,
+      pixelCrop.x,
+      pixelCrop.y,
+      pixelCrop.width,
+      pixelCrop.height,
+      0,
+      0,
+      pixelCrop.width,
+      pixelCrop.height
+    )
+
+    return new Promise((resolve) => {
+      canvas.toBlob((blob) => {
+        resolve(blob)
+      }, 'image/jpeg', 0.95)
+    })
+  }
+
+  const handleCropSave = async () => {
+    if (!croppedAreaPixels) return
+
+    const croppedBlob = await createCroppedImage(cropModal.image, croppedAreaPixels)
+    const croppedFile = new File([croppedBlob], `cropped-${Date.now()}.jpg`, { type: 'image/jpeg' })
+
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      const base64String = reader.result
+      if (cropModal.type === 'logo') {
+        setLogo(croppedFile)
+        setLogoPreview(base64String)
+      }
+      setCropModal(null)
+      setCrop({ x: 0, y: 0 })
+      setZoom(1)
+      setCroppedAreaPixels(null)
+    }
+    reader.readAsDataURL(croppedFile)
+  }
+
+
+  const checkNameAvailability = async () => {
+    const trimmedName = formData.name.trim()
+
+    if (!trimmedName) {
+      setNameCheckMessage('Please enter an organization name')
+      return
+    }
+
+    setNameCheckLoading(true)
+    setNameCheckMessage('')
+
+    try {
+      const response = await api.get('/orgs/check-name', {
+        params: { name: trimmedName }
+      })
+
+      if (response.data.exists) {
+        setNameCheckMessage('Name clash! Another organization got there first.')
+      } else {
+        setNameCheckMessage('✓ Name available!')
+      }
+    } catch (err) {
+      console.error('Name check error:', err)
+      setNameCheckMessage('Error checking name availability')
+    } finally {
+      setNameCheckLoading(false)
+    }
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
 
+    // Validation
     if (!formData.name.trim()) {
       setError('Organization name is required')
+      return
+    }
+    if (!formData.contactPerson.trim()) {
+      setError('Contact person is required')
+      return
+    }
+    if (!formData.location.trim()) {
+      setError('Location is required')
       return
     }
 
@@ -23,16 +209,74 @@ const CreateOrganizationModal = ({ isOpen, onClose, onSuccess }) => {
     setError('')
 
     try {
-      const response = await api.post('/orgs', {
-        name: formData.name.trim(),
-        logoUrl: formData.logoUrl.trim() || null,
-        contactEmail: formData.contactEmail.trim() || null,
-        contactPhone: formData.contactPhone.trim() || null
-      })
+      let orgId
+      let response
+
+      if (editOrg) {
+        // Update existing organization
+        response = await api.patch(`/orgs/${editOrg.id}`, {
+          name: formData.name.trim(),
+          contactPerson: formData.contactPerson.trim(),
+          contactEmail: formData.contactEmail.trim() || null,
+          contactPhone: formData.contactPhone.trim() || null,
+          location: formData.location.trim(),
+          description: formData.description.trim() || null,
+          sports: formData.sports,
+          socialLinks: formData.socialLinks
+        })
+        orgId = editOrg.id
+      } else {
+        // Check if organization name already exists (only when creating)
+        const checkResponse = await api.get('/orgs/check-name', {
+          params: { name: formData.name.trim() }
+        })
+
+        if (checkResponse.data.exists) {
+          setError('Org name exists!')
+          setLoading(false)
+          return
+        }
+
+        // Create organization
+        response = await api.post('/orgs', {
+          name: formData.name.trim(),
+          contactPerson: formData.contactPerson.trim(),
+          contactEmail: formData.contactEmail.trim() || null,
+          contactPhone: formData.contactPhone.trim() || null,
+          location: formData.location.trim(),
+          description: formData.description.trim() || null,
+          sports: formData.sports,
+          socialLinks: formData.socialLinks
+        })
+        orgId = response.data.org.id
+      }
 
       if (response.data.success) {
+        // Upload logo if provided (only if new file selected)
+        if (logo) {
+          const logoFormData = new FormData()
+          logoFormData.append('logo', logo)
+          await api.post(`/organizations/${orgId}/logo`, logoFormData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+          })
+        }
+
         onSuccess(response.data.org)
-        setFormData({ name: '', logoUrl: '', contactEmail: '', contactPhone: '' })
+        // Reset form
+        setFormData({
+          name: '',
+          sports: [],
+          contactPerson: '',
+          contactEmail: '',
+          contactPhone: '',
+          city: '',
+          description: '',
+          socialLinks: []
+        })
+        setLogo(null)
+        setBanner(null)
+        setLogoPreview(null)
+        setBannerPreview(null)
         onClose()
       }
     } catch (err) {
@@ -44,8 +288,27 @@ const CreateOrganizationModal = ({ isOpen, onClose, onSuccess }) => {
 
   const handleClose = () => {
     if (!loading) {
-      setFormData({ name: '', logoUrl: '', contactEmail: '', contactPhone: '' })
+      // Clear all state
+      setFormData({
+        name: '',
+        sports: [],
+        contactPerson: '',
+        contactEmail: '',
+        contactPhone: '',
+        city: '',
+        description: '',
+        socialLinks: []
+      })
+      setLogo(null)
+      setLogoPreview(null)
       setError('')
+      setNameCheckMessage('')
+      setCropModal(null)
+
+      // Reset file inputs
+      const logoInput = document.getElementById('logo-upload')
+      if (logoInput) logoInput.value = ''
+
       onClose()
     }
   }
@@ -53,125 +316,739 @@ const CreateOrganizationModal = ({ isOpen, onClose, onSuccess }) => {
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm transition-opacity"
-        onClick={handleClose}
-      />
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;900&family=Barlow:wght@400;500;600&display=swap');
 
-      {/* Modal */}
-      <div className="flex min-h-full items-center justify-center p-4">
-        <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 animate-scale-in">
-          {/* Header */}
-          <div className="mb-6">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              Create Organization
-            </h2>
-            <p className="text-sm text-gray-600">
-              Set up your organization to start managing tournaments
-            </p>
+        .modal-overlay {
+          position: fixed;
+          inset: 0;
+          z-index: 999;
+          background: rgba(6, 13, 31, 0.8);
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 2rem;
+          overflow-y: auto;
+        }
+
+        .modal-content {
+          background: linear-gradient(135deg, rgba(10, 22, 40, 0.95), rgba(6, 13, 31, 0.98));
+          backdrop-filter: blur(20px);
+          -webkit-backdrop-filter: blur(20px);
+          border: 1px solid rgba(79, 255, 176, 0.2);
+          border-radius: 16px;
+          padding: 2rem;
+          max-width: 600px;
+          width: 100%;
+          max-height: 90vh;
+          overflow-y: auto;
+          box-shadow: 0 0 40px rgba(79, 255, 176, 0.15);
+        }
+
+        .modal-header {
+          margin-bottom: 1.5rem;
+        }
+
+        .modal-title {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 900;
+          font-size: 2rem;
+          letter-spacing: -0.02em;
+          text-transform: uppercase;
+          color: #4fffb0;
+          margin-bottom: 0.75rem;
+        }
+
+        .modal-subtitle {
+          font-family: 'Barlow', sans-serif;
+          font-size: 1rem;
+          color: rgba(255, 255, 255, 0.7);
+        }
+
+        .sports-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 0.75rem;
+        }
+
+        .sport-checkbox {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 0.75rem;
+          background: rgba(6, 13, 31, 0.6);
+          border: 2px solid rgba(255, 255, 255, 0.1);
+          border-radius: 8px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 600;
+          font-size: 0.9rem;
+          text-transform: uppercase;
+          color: rgba(255, 255, 255, 0.6);
+        }
+
+        .sport-checkbox:hover {
+          border-color: rgba(79, 255, 176, 0.4);
+        }
+
+        .sport-checkbox.selected {
+          background: rgba(79, 255, 176, 0.15);
+          border-color: #4fffb0;
+          color: #4fffb0;
+        }
+
+        .form-group {
+          margin-bottom: 1.25rem;
+        }
+
+        .form-label {
+          display: block;
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 700;
+          font-size: 0.85rem;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          color: rgba(255, 255, 255, 0.8);
+          margin-bottom: 0.5rem;
+        }
+
+        .form-label.required::after {
+          content: ' *';
+          color: #ec4899;
+        }
+
+        .form-input {
+          width: 100%;
+          background: rgba(6, 13, 31, 0.6);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 8px;
+          padding: 0.75rem 1rem;
+          font-family: 'Barlow', sans-serif;
+          font-size: 0.95rem;
+          color: #fff;
+          outline: none;
+          transition: all 0.2s ease;
+        }
+
+        .form-input:focus {
+          border-color: #4fffb0;
+          box-shadow: 0 0 0 3px rgba(79, 255, 176, 0.1);
+        }
+
+        .form-input::placeholder {
+          color: rgba(255, 255, 255, 0.3);
+        }
+
+        textarea.form-input {
+          resize: vertical;
+          min-height: 80px;
+        }
+
+        .file-upload-area {
+          border: 2px dashed rgba(79, 255, 176, 0.3);
+          border-radius: 8px;
+          padding: 1.5rem;
+          text-align: center;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .file-upload-area:hover {
+          border-color: #4fffb0;
+          background: rgba(79, 255, 176, 0.05);
+        }
+
+        .file-upload-text {
+          font-family: 'Barlow', sans-serif;
+          font-size: 0.9rem;
+          color: rgba(255, 255, 255, 0.6);
+        }
+
+        .file-preview {
+          margin-top: 0.75rem;
+          border-radius: 8px;
+          overflow: hidden;
+          position: relative;
+          background: rgba(0, 0, 0, 0.3);
+          padding: 1rem;
+          min-height: 100px;
+        }
+
+        .file-preview img {
+          width: 100%;
+          max-height: 200px;
+          height: auto;
+          display: block;
+          border: 2px solid rgba(79, 255, 176, 0.3);
+          border-radius: 8px;
+          object-fit: contain;
+          background: rgba(255, 255, 255, 0.05);
+        }
+
+        .preview-actions {
+          display: flex;
+          gap: 0.5rem;
+          margin-top: 0.5rem;
+        }
+
+        .btn-crop {
+          background: rgba(79, 255, 176, 0.1);
+          border: 1px solid rgba(79, 255, 176, 0.3);
+          color: #4fffb0;
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 600;
+          font-size: 0.85rem;
+          text-transform: uppercase;
+          padding: 0.4rem 0.75rem;
+          border-radius: 6px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .btn-crop:hover {
+          background: rgba(79, 255, 176, 0.15);
+          border-color: rgba(79, 255, 176, 0.5);
+        }
+
+        .btn-remove {
+          background: rgba(236, 72, 153, 0.1);
+          border: 1px solid rgba(236, 72, 153, 0.3);
+          color: #ec4899;
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 600;
+          font-size: 0.85rem;
+          text-transform: uppercase;
+          padding: 0.4rem 0.75rem;
+          border-radius: 6px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .btn-remove:hover {
+          background: rgba(236, 72, 153, 0.15);
+          border-color: rgba(236, 72, 153, 0.5);
+        }
+
+        .crop-modal-overlay {
+          position: fixed;
+          inset: 0;
+          z-index: 1000;
+          background: rgba(6, 13, 31, 0.95);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 2rem;
+        }
+
+        .crop-modal-content {
+          background: linear-gradient(135deg, rgba(10, 22, 40, 0.95), rgba(6, 13, 31, 0.98));
+          border: 1px solid rgba(79, 255, 176, 0.2);
+          border-radius: 16px;
+          padding: 2rem;
+          max-width: 600px;
+          width: 100%;
+          max-height: 90vh;
+          overflow-y: auto;
+        }
+
+        .crop-modal-title {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 700;
+          font-size: 1.5rem;
+          color: #4fffb0;
+          margin-bottom: 1.5rem;
+          text-transform: uppercase;
+        }
+
+        .crop-container {
+          position: relative;
+          width: 100%;
+          height: 400px;
+          background: rgba(0, 0, 0, 0.8);
+          border-radius: 8px;
+          overflow: hidden;
+          margin-bottom: 1rem;
+        }
+
+        .crop-image {
+          max-width: 100%;
+          max-height: 100%;
+          object-fit: contain;
+          display: block;
+          margin: 0 auto;
+        }
+
+        .crop-actions {
+          display: flex;
+          gap: 1rem;
+          justify-content: flex-end;
+        }
+
+        .tag-input-container {
+          display: flex;
+          gap: 0.5rem;
+          margin-bottom: 0.75rem;
+        }
+
+        .tags-list {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.5rem;
+        }
+
+        .tag {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          background: rgba(79, 255, 176, 0.15);
+          border: 1px solid rgba(79, 255, 176, 0.3);
+          border-radius: 20px;
+          padding: 0.35rem 0.75rem;
+          font-family: 'Barlow', sans-serif;
+          font-size: 0.85rem;
+          color: #4fffb0;
+        }
+
+        .tag-remove {
+          background: none;
+          border: none;
+          color: #4fffb0;
+          cursor: pointer;
+          font-size: 1.1rem;
+          line-height: 1;
+          padding: 0;
+        }
+
+        .btn {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          padding: 0.75rem 1.5rem;
+          border-radius: 50px;
+          border: none;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          font-size: 0.95rem;
+        }
+
+        .btn-primary {
+          background: #4fffb0;
+          color: #060d1f;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 15px rgba(79, 255, 176, 0.4);
+        }
+
+        .btn-secondary {
+          background: transparent;
+          color: rgba(255, 255, 255, 0.7);
+          border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+          border-color: #4fffb0;
+          color: #4fffb0;
+        }
+
+        .btn-small {
+          padding: 0.5rem 1rem;
+          font-size: 0.85rem;
+        }
+
+        .btn:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        .modal-actions {
+          display: flex;
+          gap: 1rem;
+          margin-top: 2rem;
+        }
+
+        .error-message {
+          background: rgba(236, 72, 153, 0.2);
+          border-left: 3px solid #ec4899;
+          padding: 0.75rem 1rem;
+          margin-bottom: 1.25rem;
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 600;
+          font-size: 0.95rem;
+          color: #fff;
+          animation: slideDown 0.3s ease;
+        }
+
+        .check-name-btn {
+          background: rgba(79, 255, 176, 0.1);
+          border: 1px solid rgba(79, 255, 176, 0.3);
+          border-radius: 6px;
+          padding: 0.5rem 1rem;
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 600;
+          font-size: 0.85rem;
+          text-transform: uppercase;
+          color: #4fffb0;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          margin-top: 0.5rem;
+        }
+
+        .check-name-btn:hover {
+          background: rgba(79, 255, 176, 0.15);
+          border-color: rgba(79, 255, 176, 0.5);
+        }
+
+        .check-name-btn:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        .name-check-message {
+          padding: 0.5rem 0.75rem;
+          margin-top: 0.5rem;
+          font-family: 'Barlow', sans-serif;
+          font-size: 0.85rem;
+          border-radius: 4px;
+          animation: slideDown 0.2s ease;
+        }
+
+        .name-check-message.available {
+          background: rgba(79, 255, 176, 0.15);
+          border-left: 3px solid #4fffb0;
+          color: #4fffb0;
+        }
+
+        .name-check-message.unavailable {
+          background: rgba(236, 72, 153, 0.15);
+          border-left: 3px solid #ec4899;
+          color: rgba(236, 72, 153, 0.9);
+        }
+
+        .name-check-message.info {
+          background: rgba(255, 255, 255, 0.05);
+          border-left: 3px solid rgba(255, 255, 255, 0.3);
+          color: rgba(255, 255, 255, 0.6);
+        }
+
+        @keyframes slideDown {
+          from {
+            transform: translateY(-10px);
+            opacity: 0;
+          }
+          to {
+            transform: translateY(0);
+            opacity: 1;
+          }
+        }
+
+        .social-link-item {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          background: rgba(79, 255, 176, 0.05);
+          border: 1px solid rgba(79, 255, 176, 0.2);
+          border-radius: 8px;
+          padding: 0.75rem;
+          margin-bottom: 0.5rem;
+        }
+
+        .social-link-text {
+          font-family: 'Barlow', sans-serif;
+          font-size: 0.85rem;
+          color: rgba(255, 255, 255, 0.8);
+        }
+      `}</style>
+
+      <div className="modal-overlay" onClick={handleClose}>
+        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-header">
+            <div className="modal-title">{editOrg ? 'EDIT ORGANIZATION' : 'READY TO LEAD?'}</div>
+            <div className="modal-subtitle">
+              {editOrg ? 'Update your organization details.' : 'Build your organization and bring players together.'}
+            </div>
           </div>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {error && (
-              <div className="p-4 bg-danger-50 border border-danger-200 rounded-xl">
-                <p className="text-sm text-danger-700 font-medium">{error}</p>
-              </div>
-            )}
+          <form onSubmit={handleSubmit}>
+            {error && <div className="error-message">{error}</div>}
 
-            <div>
-              <label className="block text-sm font-medium text-gray-900 mb-2">
-                Organization Name *
-              </label>
+            {/* Organization Name */}
+            <div className="form-group">
+              <label className="form-label required">Organization Name</label>
               <input
                 type="text"
+                className="form-input"
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onChange={(e) => {
+                  setFormData({ ...formData, name: e.target.value })
+                  setNameCheckMessage('')
+                }}
                 placeholder="e.g. NBC Sports Academy"
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all bg-white"
                 disabled={loading}
-                autoFocus
               />
+              <button
+                type="button"
+                className="check-name-btn"
+                onClick={checkNameAvailability}
+                disabled={loading || nameCheckLoading || !formData.name.trim()}
+              >
+                {nameCheckLoading ? 'Checking...' : 'Check Name Availability'}
+              </button>
+              {nameCheckMessage && (
+                <div className={`name-check-message ${
+                  nameCheckMessage.includes('✓') ? 'available' :
+                  nameCheckMessage.includes('clash') ? 'unavailable' : 'info'
+                }`}>
+                  {nameCheckMessage}
+                </div>
+              )}
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-900 mb-2">
-                Logo URL (Optional)
-              </label>
+            {/* Contact Person */}
+            <div className="form-group">
+              <label className="form-label required">Contact Person</label>
               <input
-                type="url"
-                value={formData.logoUrl}
-                onChange={(e) => setFormData({ ...formData, logoUrl: e.target.value })}
-                placeholder="https://example.com/logo.png"
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all bg-white"
+                type="text"
+                className="form-input"
+                value={formData.contactPerson}
+                onChange={(e) => setFormData({ ...formData, contactPerson: e.target.value })}
+                placeholder="Full name"
                 disabled={loading}
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-900 mb-2">
-                Contact Email (Optional)
-              </label>
+            {/* Sports */}
+            <div className="form-group">
+              <label className="form-label">Sport(s)</label>
+              <div className="sports-grid">
+                {availableSports.map(sport => (
+                  <div
+                    key={sport}
+                    className={`sport-checkbox ${formData.sports.includes(sport) ? 'selected' : ''}`}
+                    onClick={() => !loading && toggleSport(sport)}
+                  >
+                    {sport}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Email */}
+            <div className="form-group">
+              <label className="form-label">Email</label>
               <input
                 type="email"
+                className="form-input"
                 value={formData.contactEmail}
                 onChange={(e) => setFormData({ ...formData, contactEmail: e.target.value })}
                 placeholder="contact@organization.com"
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all bg-white"
                 disabled={loading}
               />
-              <p className="mt-1 text-xs text-gray-500">Players can use this to contact you about tournaments</p>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-900 mb-2">
-                Contact Phone (Optional)
-              </label>
+            {/* Phone */}
+            <div className="form-group">
+              <label className="form-label">Phone</label>
               <input
                 type="tel"
+                className="form-input"
                 value={formData.contactPhone}
                 onChange={(e) => setFormData({ ...formData, contactPhone: e.target.value })}
                 placeholder="+91 98765 43210"
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all bg-white"
                 disabled={loading}
               />
-              <p className="mt-1 text-xs text-gray-500">Shown on tournament pages for inquiries</p>
+            </div>
+
+            {/* Location */}
+            <div className="form-group">
+              <label className="form-label required">Location</label>
+              <input
+                type="text"
+                className="form-input"
+                value={formData.location}
+                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                placeholder="e.g. Mumbai, Maharashtra"
+                disabled={loading}
+              />
+            </div>
+
+            {/* Description */}
+            <div className="form-group">
+              <label className="form-label">Description</label>
+              <textarea
+                className="form-input"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder="Tell us about your organization..."
+                disabled={loading}
+              />
+            </div>
+
+            {/* Logo */}
+            <div className="form-group">
+              <label className="form-label">Logo</label>
+              {!logoPreview ? (
+                <>
+                  <input
+                    type="file"
+                    id="logo-upload"
+                    accept="image/*"
+                    onChange={(e) => handleFileChange(e, 'logo')}
+                    disabled={loading}
+                    style={{ display: 'none' }}
+                  />
+                  <label htmlFor="logo-upload" className="file-upload-area">
+                    <div className="file-upload-text">+ Upload Logo</div>
+                  </label>
+                </>
+              ) : (
+                <div className="file-preview">
+                  <img src={logoPreview} alt="Logo preview" />
+                  <div className="preview-actions">
+                    <button
+                      type="button"
+                      className="btn-crop"
+                      onClick={() => setCropModal({ type: 'logo', image: logoPreview })}
+                    >
+                      ✂ Crop
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-remove"
+                      onClick={() => {
+                        setLogo(null)
+                        setLogoPreview(null)
+                        document.getElementById('logo-upload').value = ''
+                      }}
+                    >
+                      × Remove
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-secondary btn-small"
+                      onClick={() => document.getElementById('logo-upload').click()}
+                    >
+                      ↻ Change
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Social Links */}
+            <div className="form-group">
+              <label className="form-label">Social Links (Optional)</label>
+              <div className="tag-input-container">
+                <input
+                  type="text"
+                  className="form-input"
+                  value={socialLinkInput.platform}
+                  onChange={(e) => setSocialLinkInput({ ...socialLinkInput, platform: e.target.value })}
+                  placeholder="Platform (e.g. Instagram)"
+                  disabled={loading}
+                  style={{ flex: 1 }}
+                />
+                <input
+                  type="url"
+                  className="form-input"
+                  value={socialLinkInput.url}
+                  onChange={(e) => setSocialLinkInput({ ...socialLinkInput, url: e.target.value })}
+                  placeholder="URL"
+                  disabled={loading}
+                  style={{ flex: 2 }}
+                />
+                <button type="button" className="btn btn-secondary btn-small" onClick={addSocialLink} disabled={loading}>
+                  + Add
+                </button>
+              </div>
+              {formData.socialLinks.length > 0 && (
+                <div style={{ marginTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  {formData.socialLinks.map((link, idx) => (
+                    <div key={idx} className="social-link-item">
+                      <span className="social-link-text">{link.platform}: {link.url}</span>
+                      <button type="button" className="tag-remove" onClick={() => removeSocialLink(idx)}>×</button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Actions */}
-            <div className="flex gap-3 pt-2">
-              <button
-                type="button"
-                onClick={handleClose}
-                disabled={loading}
-                className="flex-1 px-4 py-3 bg-white hover:bg-gray-50 text-gray-700 font-medium rounded-xl border border-gray-300 transition-all disabled:opacity-50"
-              >
+            <div className="modal-actions">
+              <button type="button" className="btn btn-secondary" onClick={handleClose} disabled={loading} style={{ flex: 1 }}>
                 Cancel
               </button>
-              <button
-                type="submit"
-                disabled={loading}
-                className="flex-1 px-4 py-3 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-xl transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
-              >
-                {loading ? (
-                  <>
-                    <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Creating...
-                  </>
-                ) : (
-                  'Create Organization'
-                )}
+              <button type="submit" className="btn btn-primary" disabled={loading} style={{ flex: 1 }}>
+                {loading ? (editOrg ? 'Updating...' : 'Creating...') : (editOrg ? 'Update Organization' : 'Create Organization')}
               </button>
             </div>
           </form>
         </div>
       </div>
-    </div>
+
+      {/* Crop Modal */}
+      {cropModal && (
+        <div className="crop-modal-overlay" onClick={() => setCropModal(null)}>
+          <div className="crop-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="crop-modal-title">✂ Crop {cropModal.type === 'logo' ? 'Logo' : 'Banner'}</div>
+
+            <div className="crop-container">
+              <Cropper
+                image={cropModal.image}
+                crop={crop}
+                zoom={zoom}
+                aspect={cropModal.type === 'logo' ? 1 : 16 / 9}
+                onCropChange={setCrop}
+                onZoomChange={setZoom}
+                onCropComplete={onCropComplete}
+              />
+            </div>
+
+            <div style={{ padding: '1rem 0', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <label style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '0.85rem', fontFamily: 'Barlow Condensed, sans-serif', textTransform: 'uppercase', fontWeight: 600 }}>
+                Zoom
+              </label>
+              <input
+                type="range"
+                min={1}
+                max={3}
+                step={0.1}
+                value={zoom}
+                onChange={(e) => setZoom(Number(e.target.value))}
+                style={{ width: '100%' }}
+              />
+            </div>
+
+            <div className="crop-actions">
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => {
+                  setCropModal(null)
+                  setCrop({ x: 0, y: 0 })
+                  setZoom(1)
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={handleCropSave}
+              >
+                Save Crop
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   )
 }
 

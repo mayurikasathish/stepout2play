@@ -2,10 +2,11 @@ const express = require('express');
 const router = express.Router();
 const authenticate = require('../middleware/authenticate');
 const requireOrgRole = require('../middleware/requireOrgRole');
-const { createOrg, getMyOrgs, getOrg, getOrgPublic, updateOrg, deleteOrg, inviteMember, getOrgTournaments, discoverOrgs, followOrg, unfollowOrg, requestJoin, getJoinRequests, acceptJoinRequest, rejectJoinRequest, sendInvitation, getReceivedInvitations, acceptInvitation, declineInvitation } = require('../controllers/org.controller');
+const { createOrg, getMyOrgs, getOrg, getOrgPublic, updateOrg, deleteOrg, inviteMember, getOrgTournaments, discoverOrgs, followOrg, unfollowOrg, requestJoin, getJoinRequests, acceptJoinRequest, rejectJoinRequest, sendInvitation, getReceivedInvitations, acceptInvitation, declineInvitation, checkOrgName } = require('../controllers/org.controller');
 const tournamentController = require('../controllers/tournament.controller');
 
 router.post('/', authenticate, createOrg);
+router.get('/check-name', checkOrgName);
 router.get('/discover', authenticate, discoverOrgs);
 router.get('/:idOrSlug/public', getOrgPublic);
 router.get('/', authenticate, getMyOrgs);

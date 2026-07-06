@@ -1,86 +1,28 @@
-import { useNavigate } from 'react-router-dom'
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { useAuth } from '../context/AuthContext'
+import { useNavigate, useLocation } from 'react-router-dom'
 
-/* ─── Live match data cycling in the hero ticker ─── */
-const LIVE = [
-  { p1: 'Ravi K.', p2: 'Arjun M.', s1: 21, s2: 17, sport: '🏸' },
-  { p1: 'Priya S.', p2: 'Neha R.', s1: 7, s2: 5, sport: '🎾' },
-  { p1: 'Sam T.', p2: 'Chris P.', s1: 11, s2: 9, sport: '🏓' },
-  { p1: 'Anjali V.', p2: 'Meera K.', s1: 15, s2: 21, sport: '🏸' },
-]
-
-/* ─── Ripple hook ─── */
-function useRipple() {
-  const [ripples, setRipples] = useState([])
-  const fire = useCallback((e) => {
-    const rect = e.currentTarget.getBoundingClientRect()
-    const x = e.clientX - rect.left
-    const y = e.clientY - rect.top
-    const id = Date.now()
-    setRipples(r => [...r, { id, x, y }])
-    setTimeout(() => setRipples(r => r.filter(rp => rp.id !== id)), 700)
+function useScrollReveal() {
+  const ref = useRef(null)
+  const [visible, setVisible] = useState(false)
+  useEffect(() => {
+    const obs = new IntersectionObserver(
+      ([e]) => setVisible(e.isIntersecting),
+      { threshold: 0.15 }
+    )
+    if (ref.current) obs.observe(ref.current)
+    return () => obs.disconnect()
   }, [])
-  return [ripples, fire]
+  return [ref, visible]
 }
 
-function RippleButton({ children, onClick, style, className }) {
-  const [ripples, fire] = useRipple()
+function BulgeSection({ children, style }) {
+  const [ref, visible] = useScrollReveal()
   return (
-    <button
-      onClick={(e) => { fire(e); onClick?.(e) }}
-      style={{ position: 'relative', overflow: 'hidden', ...style }}
-      className={className}
-    >
-      {ripples.map(r => (
-        <span key={r.id} style={{
-          position: 'absolute', left: r.x, top: r.y,
-          width: 4, height: 4, borderRadius: '50%',
-          background: 'rgba(255,255,255,0.5)',
-          transform: 'translate(-50%,-50%) scale(0)',
-          animation: 'ripple-expand 0.7s ease-out forwards',
-          pointerEvents: 'none'
-        }} />
-      ))}
-      {children}
-    </button>
-  )
-}
-
-/* ─── Animated aurora blob ─── */
-function AuroraBlob({ style }) {
-  return <div style={{ position: 'absolute', borderRadius: '50%', filter: 'blur(80px)', opacity: 0.55, pointerEvents: 'none', ...style }} />
-}
-
-/* ─── Clay sport chip ─── */
-function ClayChip({ emoji, label, color }) {
-  return (
-    <div style={{
-      display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
-      background: color,
-      borderRadius: '999px',
-      padding: '0.55rem 1.1rem',
-      boxShadow: `0 8px 20px ${color}88, inset 0 1px 1px rgba(255,255,255,0.4), inset 0 -2px 4px rgba(0,0,0,0.15)`,
-      fontSize: '0.85rem', fontWeight: 700, color: '#fff',
-      letterSpacing: '-0.01em',
-    }}>
-      <span style={{ fontSize: '1.1rem' }}>{emoji}</span>
-      {label}
-    </div>
-  )
-}
-
-/* ─── Glass card ─── */
-function GlassCard({ children, style, tilt = 0 }) {
-  return (
-    <div style={{
-      background: 'rgba(255,255,255,0.07)',
-      backdropFilter: 'blur(24px)',
-      WebkitBackdropFilter: 'blur(24px)',
-      border: '1px solid rgba(255,255,255,0.15)',
-      borderRadius: '24px',
-      boxShadow: '0 8px 40px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.12)',
-      transform: `rotate(${tilt}deg)`,
-      transition: 'transform 0.3s ease',
+    <div ref={ref} style={{
+      transform: visible ? 'scale(1) translateY(0)' : 'scale(0.92) translateY(40px)',
+      opacity: visible ? 1 : 0,
+      transition: 'transform 0.75s cubic-bezier(0.34,1.56,0.64,1), opacity 0.6s ease',
       ...style
     }}>
       {children}
@@ -88,816 +30,1420 @@ function GlassCard({ children, style, tilt = 0 }) {
   )
 }
 
-/* ─── Skeuomorphic ticket card (bracket showcase) ─── */
-function TicketCard() {
+function CyclingText() {
+  const phrases = ["Organizer?", "Player?", "Oh! both?", "We've got you covered :)"]
+  const [currentIndex, setCurrentIndex] = useState(0)
+  const [isVisible, setIsVisible] = useState(false)
+  const ref = useRef(null)
+
+  useEffect(() => {
+    const obs = new IntersectionObserver(
+      ([e]) => {
+        if (e.isIntersecting) {
+          setIsVisible(true)
+          setCurrentIndex(0) // Reset to start when entering viewport
+        } else {
+          setIsVisible(false)
+        }
+      },
+      { threshold: 0.3 }
+    )
+    if (ref.current) obs.observe(ref.current)
+    return () => obs.disconnect()
+  }, [])
+
+  useEffect(() => {
+    if (!isVisible || currentIndex >= phrases.length - 1) return
+
+    const timer = setTimeout(() => {
+      setCurrentIndex(prev => prev + 1)
+    }, 1000)
+
+    return () => clearTimeout(timer)
+  }, [currentIndex, isVisible, phrases.length])
+
   return (
-    <div style={{
-      background: 'linear-gradient(145deg, #fffef7, #f5f0e8)',
-      borderRadius: '20px',
-      boxShadow: '0 20px 60px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.9), inset 0 -1px 0 rgba(0,0,0,0.1)',
-      border: '1px solid rgba(0,0,0,0.08)',
-      overflow: 'hidden',
-      width: '340px',
-      fontFamily: 'inherit',
-      position: 'relative',
-    }}>
-      {/* Ticket header strip */}
-      <div style={{
-        background: 'linear-gradient(135deg, #1B4332, #0d2b20)',
-        padding: '1rem 1.25rem',
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-      }}>
-        <div>
-          <div style={{ fontSize: '0.6rem', color: '#52b788', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em' }}>StepOut2Play</div>
-          <div style={{ fontSize: '1rem', fontWeight: 900, color: '#fff', letterSpacing: '-0.02em' }}>Badminton Open 2026</div>
-        </div>
-        <div style={{
-          background: '#c8f135', color: '#0d1117',
-          fontWeight: 900, fontSize: '0.65rem', textTransform: 'uppercase',
-          letterSpacing: '0.08em', padding: '0.3rem 0.7rem', borderRadius: '6px'
-        }}>LIVE</div>
-      </div>
+    <div ref={ref} style={{ minHeight: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <h2 className="cycling-text" key={currentIndex}>
+        {phrases[currentIndex]}
+      </h2>
+    </div>
+  )
+}
 
-      {/* Perforated divider */}
-      <div style={{ position: 'relative', height: '0', overflow: 'visible', margin: '0 -1px' }}>
-        <svg width="100%" height="20" viewBox="0 0 340 20" preserveAspectRatio="none">
-          <rect width="340" height="20" fill="#fffef7"/>
-          {Array.from({length: 22}).map((_, i) => (
-            <circle key={i} cx={8 + i * 15} cy="10" r="6" fill="#1B4332"/>
-          ))}
-        </svg>
-      </div>
+function FeaturesBento() {
+  const [currentFaceIndex, setCurrentFaceIndex] = useState(0)
+  const [isLocked, setIsLocked] = useState(false)
+  const cubeRef = useRef(null)
 
-      {/* Match rows */}
-      <div style={{ padding: '1rem 1.25rem' }}>
-        <div style={{ fontSize: '0.6rem', color: '#92400e', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '0.75rem' }}>
-          Semifinal · Court 2 · Jun 24 9:00 AM
-        </div>
+  const faceRotations = [
+    { x: 0, y: 0 },      // front
+    { x: 0, y: -90 },    // right
+    { x: 0, y: 180 },    // back
+    { x: 0, y: 90 },     // left
+    { x: -90, y: 0 },    // top
+    { x: 90, y: 0 },     // bottom
+  ]
 
-        {/* Match 1 */}
-        <div style={{
-          background: '#fff', borderRadius: '12px', overflow: 'hidden',
-          border: '1.5px solid #f97316',
-          boxShadow: '0 2px 8px rgba(249,115,22,0.15)',
-          marginBottom: '0.75rem'
-        }}>
-          <div style={{ background: '#fff7ed', padding: '0.25rem 0.75rem', borderBottom: '1px solid #fed7aa' }}>
-            <span style={{ fontSize: '0.58rem', fontWeight: 700, color: '#c2410c', textTransform: 'uppercase', letterSpacing: '0.06em' }}>● READY · Match #2</span>
-          </div>
-          {[['Ravi K.', '21', true], ['Arjun M.', '17', false]].map(([name, score, win]) => (
-            <div key={name} style={{
-              padding: '0.5rem 0.75rem', display: 'flex', justifyContent: 'space-between',
-              borderBottom: '1px solid #f8fafc', alignItems: 'center',
-              background: win ? 'linear-gradient(90deg, #fefce8, #fff)' : '#fff'
-            }}>
-              <span style={{ fontSize: '0.82rem', fontWeight: win ? 800 : 600, color: win ? '#1B4332' : '#374151' }}>{name}</span>
-              <span style={{
-                fontSize: '0.88rem', fontWeight: 900,
-                color: win ? '#1B4332' : '#9ca3af',
-                background: win ? '#dcfce7' : '#f9fafb',
-                padding: '0.1rem 0.5rem', borderRadius: '6px'
-              }}>{score}</span>
-            </div>
-          ))}
-        </div>
+  const faces = [
+    {
+      name: 'front',
+      title: 'Glicko-2 Ratings',
+      desc: 'Math-backed skill tracking that evolves with every match. Auto-seeding? Check. Real-time rank updates? Double check.'
+    },
+    {
+      name: 'right',
+      title: 'Live Match Updates',
+      desc: 'Follow every point as it happens. Real-time notifications, live feeds, instant alerts. Popcorn not included.'
+    },
+    {
+      name: 'back',
+      title: 'OCR Score Extraction',
+      desc: 'Snap a scorecard, auto-extract the data. Magic? Nah, just computer vision. Because manually typing scores is so 2015.'
+    },
+    {
+      name: 'left',
+      title: '3 Formats',
+      desc: 'Knockout, Round Robin, League-cum-Knockout. Win or go home. Everyone plays everyone. Or both. Your call.'
+    },
+    {
+      name: 'top',
+      title: 'Auto Everything',
+      desc: 'Bracket generation, auto-scheduling, standby management. We do the math, you just show up. Like magic, but real.'
+    },
+    {
+      name: 'bottom',
+      title: 'Org Mini-Sites',
+      desc: 'Your org, your brand, your fully customizable space. Own your tournament presence. No compromises.'
+    },
+  ]
 
-        {/* Match 2 — Auto */}
-        <div style={{
-          background: '#fff', borderRadius: '12px', overflow: 'hidden',
-          border: '1.5px solid #22c55e',
-          boxShadow: '0 2px 8px rgba(34,197,94,0.15)',
-        }}>
-          <div style={{ background: '#f0fdf4', padding: '0.25rem 0.75rem', borderBottom: '1px solid #bbf7d0' }}>
-            <span style={{ fontSize: '0.58rem', fontWeight: 700, color: '#166534', textTransform: 'uppercase', letterSpacing: '0.06em' }}>● AUTO ADVANCED · Match #1</span>
-          </div>
-          <div style={{ padding: '0.6rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <div style={{ width: 8, height: 8, background: '#22c55e', borderRadius: '50%' }} />
-            <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#1B4332' }}>Priya S.</span>
-            <span style={{ marginLeft: 'auto', fontSize: '0.7rem', color: '#6b7280', fontStyle: 'italic' }}>Bye round</span>
-          </div>
-        </div>
-      </div>
+  const navigateFace = (direction) => {
+    let newIndex
+    if (direction === 'next') {
+      newIndex = (currentFaceIndex + 1) % 6
+    } else {
+      newIndex = (currentFaceIndex - 1 + 6) % 6
+    }
+    setCurrentFaceIndex(newIndex)
+    setIsLocked(true)
+    setTimeout(() => setIsLocked(false), 2000)
+  }
 
-      {/* Ticket footer */}
-      <div style={{
-        borderTop: '1px dashed #d1d5db', margin: '0 1.25rem',
-        padding: '0.75rem 0',
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-      }}>
-        {[['8', 'Players'], ['4', 'Courts'], ['3', 'Rounds']].map(([v, l]) => (
-          <div key={l} style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '1.1rem', fontWeight: 900, color: '#1B4332' }}>{v}</div>
-            <div style={{ fontSize: '0.6rem', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{l}</div>
+  const currentRotation = faceRotations[currentFaceIndex]
+
+  return (
+    <div className="cube-container" ref={cubeRef}>
+      {/* Navigation Arrows - Only Left & Right */}
+      <button className="cube-arrow cube-arrow-left" onClick={() => navigateFace('prev')}>←</button>
+      <button className="cube-arrow cube-arrow-right" onClick={() => navigateFace('next')}>→</button>
+
+      <div
+        className="cube-exploded"
+        style={{
+          transform: `rotateX(${currentRotation.x}deg) rotateY(${currentRotation.y}deg)`,
+          transition: 'transform 0.8s cubic-bezier(0.34,1.56,0.64,1)'
+        }}
+      >
+        {faces.map((face, i) => (
+          <div key={i} className={`cube-face cube-face-${face.name}`}>
+            <div className="cube-feature">{face.title}</div>
+            <div className="cube-desc">{face.desc}</div>
           </div>
         ))}
-        <div style={{
-          background: '#1B4332', color: '#c8f135',
-          fontWeight: 900, fontSize: '0.65rem', padding: '0.3rem 0.7rem',
-          borderRadius: '8px', letterSpacing: '0.04em'
-        }}>AUTO SEEDED</div>
       </div>
-      <div style={{ height: '0.75rem', background: 'linear-gradient(145deg, #fffef7, #f5f0e8)' }} />
-    </div>
-  )
-}
 
-/* ─── Live ticker pill ─── */
-function LivePill() {
-  const [idx, setIdx] = useState(0)
-  useEffect(() => {
-    const t = setInterval(() => setIdx(i => (i + 1) % LIVE.length), 2500)
-    return () => clearInterval(t)
-  }, [])
-  const m = LIVE[idx]
-  return (
-    <div style={{
-      display: 'inline-flex', alignItems: 'center', gap: '0.75rem',
-      background: 'rgba(255,255,255,0.08)',
-      backdropFilter: 'blur(12px)',
-      border: '1px solid rgba(255,255,255,0.18)',
-      borderRadius: '999px', padding: '0.5rem 1.25rem',
-    }}>
-      <span style={{ width: 8, height: 8, background: '#c8f135', borderRadius: '50%', display: 'block', animation: 'blink 1.3s ease-in-out infinite' }} />
-      <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Live now</span>
-      <span style={{ color: '#fff', fontSize: '0.85rem', fontWeight: 700 }}>{m.sport} {m.p1}</span>
-      <span style={{ background: '#c8f135', color: '#0d1117', fontWeight: 900, fontSize: '0.82rem', padding: '0.15rem 0.5rem', borderRadius: '5px', minWidth: '28px', textAlign: 'center' }}>{m.s1}</span>
-      <span style={{ color: '#475569', fontSize: '0.75rem' }}>vs</span>
-      <span style={{ color: '#cbd5e1', fontSize: '0.85rem', fontWeight: 600 }}>{m.p2}</span>
-      <span style={{ background: 'rgba(255,255,255,0.1)', color: '#cbd5e1', fontWeight: 700, fontSize: '0.82rem', padding: '0.15rem 0.5rem', borderRadius: '5px', minWidth: '28px', textAlign: 'center' }}>{m.s2}</span>
-    </div>
-  )
-}
-
-/* ─── Wave divider ─── */
-function Wave({ flip = false, topColor, bottomColor }) {
-  return (
-    <div style={{ lineHeight: 0, background: bottomColor, transform: flip ? 'scaleY(-1)' : 'none' }}>
-      <svg viewBox="0 0 1440 80" preserveAspectRatio="none" style={{ width: '100%', height: '80px', display: 'block' }}>
-        <path d="M0,40 C360,80 1080,0 1440,40 L1440,80 L0,80 Z" fill={topColor} />
-      </svg>
+      {/* Face indicator */}
+      <div className="cube-indicator">
+        {currentFaceIndex + 1} / 6
+      </div>
     </div>
   )
 }
 
 export default function LandingPage() {
+  const { login, register, isAuthenticated } = useAuth()
   const navigate = useNavigate()
-  const isLoggedIn = !!localStorage.getItem('token')
+  const location = useLocation()
+
+  // Redirect to dashboard if already logged in
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard')
+    }
+  }, [isAuthenticated, navigate])
+
+  const [phase, setPhase] = useState('intro')
+  const [showLogin, setShowLogin] = useState(false)
+  const [showSignup, setShowSignup] = useState(false)
+
+  // Form states
+  const [loginData, setLoginData] = useState({ email: '', password: '' })
+  const [signupData, setSignupData] = useState({ firstName: '', lastName: '', email: '', password: '' })
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [showLoginPassword, setShowLoginPassword] = useState(false)
+  const [showSignupPassword, setShowSignupPassword] = useState(false)
+
+  useEffect(() => {
+    // Set body to white on mount
+    document.body.style.background = '#ffffff'
+
+    const t1 = setTimeout(() => setPhase('exit'), 2000)
+    const t2 = setTimeout(() => {
+      setPhase('done')
+      document.body.style.background = '#060d1f'
+    }, 3200)
+
+    return () => {
+      clearTimeout(t1)
+      clearTimeout(t2)
+    }
+  }, [])
+
+  // Check if user came from /login or /signup and open respective modal
+  useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    if (params.get('action') === 'login') {
+      setShowLogin(true)
+    } else if (params.get('action') === 'signup') {
+      setShowSignup(true)
+    }
+  }, [location])
+
+  // Handle logo click
+  const handleLogoClick = () => {
+    if (location.pathname === '/') {
+      // Already on landing page, scroll to top
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    } else {
+      // Navigate to landing page
+      navigate('/')
+    }
+  }
+
+  const handleLogin = async (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setError('')
+    setLoading(true)
+
+    try {
+      const user = await login(loginData.email, loginData.password)
+      setShowLogin(false)
+
+      // Navigate based on onboarding status
+      if (!user.onboardingComplete) {
+        navigate('/onboarding')
+      } else {
+        navigate('/dashboard')
+      }
+    } catch (err) {
+      console.log('Login error:', err)
+      const errorMsg = err.response?.data?.error || err.response?.data?.errors?.[0] || 'Something went wrong'
+
+      // Cute error messages with proper capitalization
+      if (errorMsg.toLowerCase().includes('credentials') || errorMsg.toLowerCase().includes('invalid')) {
+        // Invalid credentials (email or password wrong - backend doesn't specify for security)
+        setError(`Swing and a miss! Recheck your creds ⚾`)
+      } else if (errorMsg.toLowerCase().includes('google')) {
+        // Account created with Google
+        setError(`Oops! This account uses Google sign-in 🔐`)
+      } else {
+        setError(`Oops! ${errorMsg} 😅`)
+      }
+
+      console.log('Error set to:', error)
+
+      // Auto-clear error after 4 seconds
+      setTimeout(() => setError(''), 4000)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSignup = async (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setError('')
+    setLoading(true)
+
+    try {
+      const user = await register(signupData)
+      setShowSignup(false)
+
+      // Navigate to onboarding for new users
+      navigate('/onboarding')
+    } catch (err) {
+      console.log('Signup error:', err)
+      const errors = err.response?.data?.errors
+      const errorMsg = err.response?.data?.error
+
+      // Cute error messages with proper capitalization
+      if (Array.isArray(errors)) {
+        setError(`Oops! ${errors[0]} 🙈`)
+      } else if (errorMsg?.toLowerCase().includes('already exists') || errorMsg?.toLowerCase().includes('duplicate')) {
+        setError(`Oops! Looks like you're already with us! Try logging in 😊`)
+      } else {
+        setError(`Oops! ${errorMsg || 'Something went wrong'} 😅`)
+      }
+
+      console.log('Error set to:', error)
+
+      // Auto-clear error after 4 seconds
+      setTimeout(() => setError(''), 4000)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400&display=swap');
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+        @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;900&family=Barlow:wght@400;500;600&display=swap');
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         html { scroll-behavior: smooth; }
 
-        @keyframes aurora-1 {
-          0%,100% { transform: translate(0,0) scale(1); }
-          33% { transform: translate(60px,-40px) scale(1.1); }
-          66% { transform: translate(-40px,30px) scale(0.95); }
+        body {
+          background: #ffffff;
+          font-family: 'Barlow', sans-serif;
+          overflow-x: hidden;
         }
-        @keyframes aurora-2 {
-          0%,100% { transform: translate(0,0) scale(1); }
-          33% { transform: translate(-80px,50px) scale(1.05); }
-          66% { transform: translate(50px,-60px) scale(1.12); }
-        }
-        @keyframes aurora-3 {
-          0%,100% { transform: translate(0,0) scale(1); }
-          50% { transform: translate(40px,40px) scale(1.08); }
-        }
-        @keyframes blink {
-          0%,100% { opacity: 1; box-shadow: 0 0 0 0 rgba(200,241,53,0.6); }
-          50% { opacity: 0.6; box-shadow: 0 0 0 6px rgba(200,241,53,0); }
-        }
-        @keyframes ripple-expand {
-          to { transform: translate(-50%,-50%) scale(80); opacity: 0; }
-        }
-        @keyframes ticker-scroll {
-          0% { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
-        }
-        @keyframes float-y {
-          0%,100% { transform: translateY(0px) rotate(-2deg); }
-          50% { transform: translateY(-14px) rotate(-2deg); }
-        }
-        @keyframes float-y2 {
-          0%,100% { transform: translateY(0px) rotate(2deg); }
-          50% { transform: translateY(-10px) rotate(2deg); }
-        }
-        @keyframes slide-in-left {
-          from { opacity: 0; transform: translateX(-30px); }
-          to { opacity: 1; transform: translateX(0); }
-        }
-        @keyframes pop-in {
-          0% { transform: scale(0.85); opacity: 0; }
-          70% { transform: scale(1.04); }
-          100% { transform: scale(1); opacity: 1; }
+        body.intro-done {
+          background: #060d1f;
         }
 
-        .land { font-family: 'Inter', system-ui, sans-serif; overflow-x: hidden; }
+        /* ── INTRO ── */
+        .intro {
+          position: fixed;
+          inset: 0;
+          background: #ffffff;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1000;
+          pointer-events: none;
+        }
+        .intro.done {
+          display: none;
+        }
 
-        /* NAV */
-        .lnav {
-          position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+        /* Growing blob that reveals content */
+        .intro-blob {
+          position: absolute;
+          width: 100px;
+          height: 100px;
+          background: #060d1f;
+          border-radius: 50%;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          filter: blur(0px);
+          opacity: 0;
+        }
+        .intro.exit .intro-blob {
+          animation: blob-grow 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
+        @keyframes blob-grow {
+          0% {
+            width: 100px;
+            height: 100px;
+            filter: blur(80px);
+            opacity: 0.3;
+          }
+          50% {
+            filter: blur(40px);
+            opacity: 0.8;
+          }
+          100% {
+            width: 300vmax;
+            height: 300vmax;
+            filter: blur(0px);
+            opacity: 1;
+          }
+        }
+
+        .intro-text {
+          position: relative;
+          z-index: 2;
+          font-family: 'Barlow Condensed', 'Arial Black', sans-serif;
+          font-weight: 900;
+          font-size: clamp(2.5rem, 8vw, 6rem);
+          letter-spacing: -0.02em;
+          color: #060d1f;
+          text-transform: uppercase;
+          animation: text-appear 0.6s cubic-bezier(0.22,1,0.36,1) forwards;
+        }
+        .intro.exit .intro-text {
+          animation: text-stretch 0.8s cubic-bezier(0.68, -0.55, 0.27, 1.55) forwards;
+        }
+        @keyframes text-appear {
+          from { opacity: 0; transform: scale(0.95); }
+          to   { opacity: 1; transform: scale(1); }
+        }
+        @keyframes text-stretch {
+          0% {
+            opacity: 1;
+            transform: scaleX(1) scaleY(1);
+            letter-spacing: -0.02em;
+          }
+          60% {
+            opacity: 0.7;
+            transform: scaleX(1.4) scaleY(0.6);
+            letter-spacing: 0.15em;
+          }
+          100% {
+            opacity: 0;
+            transform: scaleX(2) scaleY(0.3);
+            letter-spacing: 0.3em;
+          }
+        }
+
+        /* ── NAV ── */
+        .nav {
+          position: fixed; top: 0; left: 0; right: 0;
+          z-index: 200;
           display: flex; align-items: center; justify-content: space-between;
-          padding: 1rem 3.5rem;
-          background: rgba(8,18,14,0.7);
+          padding: 0 3rem;
+          height: 64px;
+          background: rgba(6, 13, 31, 0.45);
           backdrop-filter: blur(20px);
+          -webkit-backdrop-filter: blur(20px);
           border-bottom: 1px solid rgba(255,255,255,0.07);
         }
-        .lnav-logo { display: flex; align-items: center; gap: 0.65rem; text-decoration: none; }
-        .lnav-mark {
-          width: 36px; height: 36px; border-radius: '10px';
-          background: linear-gradient(135deg, #1B4332, #52b788);
-          border-radius: 10px;
-          display: flex; align-items: center; justify-content: center;
-          font-size: 1rem; font-weight: 900; color: #c8f135;
-          box-shadow: 0 4px 14px rgba(27,67,50,0.5), inset 0 1px 0 rgba(255,255,255,0.2);
+        .nav-logo {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 900;
+          font-size: 1.4rem;
+          letter-spacing: -0.02em;
+          color: #fff;
+          text-transform: uppercase;
+          cursor: pointer;
+          transition: opacity 0.2s ease;
         }
-        .lnav-name { font-size: 1.05rem; font-weight: 800; color: #fff; letter-spacing: '-0.02em'; }
-        .lnav-links { display: flex; align-items: center; gap: 2rem; }
-        .lnav-link {
-          background: none; border: none; cursor: pointer;
-          font-size: 0.875rem; font-weight: 500; color: rgba(255,255,255,0.55);
-          font-family: inherit; transition: color 0.2s;
-          padding: 0;
+        .nav-logo:hover {
+          opacity: 0.8;
         }
-        .lnav-link:hover { color: #fff; }
-        .lnav-cta {
-          background: linear-gradient(135deg, #1B4332, #2d6a4f);
-          color: #c8f135; font-weight: 700; font-size: 0.875rem;
-          padding: 0.6rem 1.4rem; border-radius: 10px; border: none;
-          cursor: pointer; font-family: inherit;
-          box-shadow: 0 4px 16px rgba(27,67,50,0.4);
-          transition: all 0.2s; position: relative; overflow: hidden;
-        }
-        .lnav-cta:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(27,67,50,0.5); }
+        .nav-logo span { color: #4fffb0; }
 
-        /* HERO */
+        .nav-btns {
+          display: flex;
+          gap: 0.75rem;
+          align-items: center;
+        }
+
+        .btn-nav {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 700;
+          font-size: 0.95rem;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+          padding: 0.65rem 1.8rem;
+          border-radius: 5px;
+          cursor: pointer;
+          border: none;
+          transition: all 0.2s ease;
+        }
+
+        .btn-nav.login {
+          background: transparent;
+          color: rgba(255,255,255,0.7);
+          border: 1px solid rgba(255,255,255,0.15);
+        }
+        .btn-nav.login:hover {
+          border-color: rgba(255,255,255,0.4);
+          color: #fff;
+          transform: translateY(-2px);
+        }
+
+        .btn-nav.signup {
+          background: linear-gradient(135deg, #1B4332, #2d6a4f);
+          color: #4fffb0;
+          box-shadow: 0 2px 12px rgba(27,67,50,0.4);
+        }
+        .btn-nav.signup:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 20px rgba(27,67,50,0.6);
+        }
+
+        /* ── HERO ── */
         .hero {
           min-height: 100vh;
-          background: #06100c;
-          position: relative; overflow: hidden;
-          display: flex; flex-direction: column;
-          align-items: center; justify-content: center;
-          padding: 8rem 2rem 5rem;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
+          padding: 8rem 2rem 10rem;
+          position: relative;
+          overflow: hidden;
+          background: linear-gradient(180deg, #060d1f 0%, #0a1628 70%, #071a2e 100%);
         }
-        .hero-content { position: relative; z-index: 5; text-align: center; max-width: 900px; }
+
+        /* Ambient orbs */
+        .orb {
+          position: absolute;
+          border-radius: 50%;
+          filter: blur(90px);
+          pointer-events: none;
+          opacity: 0.5;
+        }
+        .orb-1 {
+          width: 600px; height: 600px;
+          background: radial-gradient(circle, #1B4332 0%, transparent 70%);
+          top: -150px; left: -150px;
+          animation: drift1 18s ease-in-out infinite;
+        }
+        .orb-2 {
+          width: 450px; height: 450px;
+          background: radial-gradient(circle, #0a3d62 0%, transparent 70%);
+          bottom: -100px; right: -100px;
+          animation: drift2 22s ease-in-out infinite;
+        }
+        .orb-3 {
+          width: 300px; height: 300px;
+          background: radial-gradient(circle, #4fffb022 0%, transparent 70%);
+          top: 40%; right: 15%;
+          animation: drift1 15s ease-in-out infinite reverse;
+        }
+        @keyframes drift1 {
+          0%,100% { transform: translate(0,0); }
+          50% { transform: translate(40px,-30px); }
+        }
+        @keyframes drift2 {
+          0%,100% { transform: translate(0,0); }
+          50% { transform: translate(-50px,40px); }
+        }
+
+        /* Grid overlay */
+        .hero-grid {
+          position: absolute; inset: 0;
+          background-image:
+            linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px);
+          background-size: 55px 55px;
+          pointer-events: none;
+        }
+
+        .hero-content { position: relative; z-index: 2; max-width: 1000px; }
+
         .hero-h1 {
-          font-size: clamp(4rem, 10vw, 9rem);
-          font-weight: 900; line-height: 0.88;
-          letter-spacing: '-0.05em';
-          margin: 1.5rem 0;
+          font-family: 'Barlow Condensed', 'Arial Black', sans-serif;
+          font-weight: 900;
+          font-size: clamp(4rem, 10vw, 9.5rem);
+          line-height: 0.9;
+          letter-spacing: -0.04em;
+          text-transform: uppercase;
+          color: #fff;
+          margin-bottom: 2rem;
+          opacity: 0;
+          animation: fadeInLeft 1s cubic-bezier(0.34,1.56,0.64,1) 3.2s forwards;
         }
-        .hero-h1-line1 { display: block; color: #fff; }
-        .hero-h1-line2 {
+
+        @keyframes fadeInLeft {
+          from {
+            opacity: 0;
+            transform: translateX(-60px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+
+        .hero-h1 .accent {
           display: block;
-          background: linear-gradient(135deg, #00d4aa 0%, #52b788 40%, #c8f135 100%);
-          -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+          background: linear-gradient(135deg, #4fffb0 0%, #00c9a7 50%, #1B9e77 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
           background-clip: text;
-          filter: drop-shadow(0 0 40px rgba(0,212,170,0.3));
         }
+
         .hero-sub {
-          font-size: clamp(1rem, 2vw, 1.15rem);
-          color: rgba(255,255,255,0.5); max-width: 480px;
-          margin: 1.5rem auto 2.5rem; line-height: 1.75;
+          font-family: 'Barlow', sans-serif;
+          font-size: clamp(1rem, 2vw, 1.25rem);
+          font-weight: 400;
+          color: rgba(255,255,255,0.45);
+          max-width: 620px;
+          margin: 0 auto 3rem;
+          line-height: 1.7;
+          animation: fadeInUp 1s cubic-bezier(0.34,1.56,0.64,1) 3.5s forwards;
+          opacity: 0;
         }
-        .hero-ctas { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; margin-bottom: 4rem; }
-        .btn-aurora {
-          background: linear-gradient(135deg, #1B4332 0%, #00d4aa 100%);
-          color: #fff; font-weight: 800; font-size: 1rem;
-          padding: 1rem 2.5rem; border-radius: 14px; border: none;
-          cursor: pointer; font-family: inherit; letter-spacing: '-0.01em';
-          box-shadow: 0 8px 32px rgba(0,212,170,0.35), inset 0 1px 0 rgba(255,255,255,0.2);
-          transition: all 0.25s;
+
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(40px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
         }
-        .btn-aurora:hover { transform: translateY(-3px) scale(1.02); box-shadow: 0 16px 40px rgba(0,212,170,0.4); }
-        .btn-ghost {
-          background: rgba(255,255,255,0.06);
-          backdrop-filter: blur(10px);
-          color: rgba(255,255,255,0.85); font-weight: 600; font-size: 1rem;
-          padding: 1rem 2.5rem; border-radius: 14px;
+
+        .hero-ctas {
+          display: flex;
+          gap: 1rem;
+          justify-content: center;
+          flex-wrap: wrap;
+        }
+
+        .hero-ctas button {
+          animation: popIn 0.6s cubic-bezier(0.68, -0.55, 0.27, 1.55) forwards;
+          opacity: 0;
+        }
+
+        .hero-ctas button:nth-child(1) {
+          animation-delay: 3.8s;
+        }
+
+        .hero-ctas button:nth-child(2) {
+          animation-delay: 3.95s;
+        }
+
+        @keyframes popIn {
+          from {
+            opacity: 0;
+            transform: scale(0.5);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1);
+          }
+        }
+
+        .btn-main {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 700;
+          font-size: 1.1rem;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+          padding: 0.9rem 3rem;
+          border-radius: 6px;
+          border: none;
+          cursor: pointer;
+          background: linear-gradient(135deg, #1B4332, #2d6a4f);
+          color: #4fffb0;
+          box-shadow: 0 4px 24px rgba(27,67,50,0.5);
+          transition: all 0.2s ease;
+        }
+        .btn-main:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 10px 32px rgba(27,67,50,0.6);
+        }
+
+        .btn-sec {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 700;
+          font-size: 1.1rem;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+          padding: 0.9rem 3rem;
+          border-radius: 6px;
+          cursor: pointer;
+          background: transparent;
+          color: rgba(255,255,255,0.7);
           border: 1px solid rgba(255,255,255,0.15);
-          cursor: pointer; font-family: inherit;
-          transition: all 0.25s;
+          transition: all 0.2s ease;
         }
-        .btn-ghost:hover { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.3); }
+        .btn-sec:hover {
+          border-color: rgba(255,255,255,0.4);
+          color: #fff;
+          transform: translateY(-3px);
+        }
 
-        /* Floating glass stat chips */
-        .stat-chips { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
-        .stat-chip {
-          background: rgba(255,255,255,0.07);
-          backdrop-filter: blur(16px);
-          border: 1px solid rgba(255,255,255,0.13);
-          border-radius: 16px; padding: 1rem 1.75rem;
+        /* ── PLACEHOLDER SECTION ── */
+        .section {
+          padding: 8rem 4rem;
+          max-width: 1200px;
+          margin: 0 auto;
+        }
+
+        .section-wrapper {
+          background: linear-gradient(180deg, #060d1f 0%, #071a2e 100%);
+        }
+
+        .section-label {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 700;
+          font-size: 0.8rem;
+          letter-spacing: 0.15em;
+          text-transform: uppercase;
+          color: #4fffb0;
+          margin-bottom: 1.5rem;
+        }
+
+        .section-h2 {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 900;
+          font-size: clamp(3rem, 6vw, 6rem);
+          letter-spacing: -0.03em;
+          line-height: 0.92;
+          text-transform: uppercase;
+          color: #fff;
+        }
+
+        /* ── CYCLING TEXT SECTION ── */
+        .cycling-section {
+          min-height: 60vh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: linear-gradient(180deg, #071a2e 0%, #0a1628 50%, #060d1f 100%);
+          position: relative;
+          overflow: hidden;
+        }
+
+        .cycling-text {
+          font-family: 'Barlow Condensed', 'Arial Black', sans-serif;
+          font-weight: 900;
+          font-size: clamp(4rem, 10vw, 9.5rem);
+          line-height: 0.9;
+          letter-spacing: -0.04em;
+          background: linear-gradient(135deg, #fff 0%, #4fffb0 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+          animation: textFadeIn 0.6s cubic-bezier(0.34,1.56,0.64,1);
+        }
+
+        @keyframes textFadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(20px) scale(0.95);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+
+        /* ── FEATURES BENTO GRID ── */
+        .features-section {
+          padding: 10rem 2rem;
+          background: linear-gradient(160deg, #060d1f 0%, #0a1628 100%);
+          position: relative;
+          overflow: hidden;
+        }
+
+        .features-header {
           text-align: center;
-          box-shadow: 0 4px 24px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.1);
-        }
-        .stat-val { font-size: 2rem; font-weight: 900; color: #c8f135; letter-spacing: '-0.03em'; line-height: 1; }
-        .stat-label { font-size: 0.7rem; color: rgba(255,255,255,0.4); font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; margin-top: 0.3rem; }
-
-        /* SPORTS TICKER */
-        .sports-ticker { background: #0a1a12; padding: 1.5rem 0; overflow: hidden; border-top: 1px solid rgba(255,255,255,0.05); border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .ticker-inner { display: flex; animation: ticker-scroll 20s linear infinite; width: max-content; }
-        .ticker-item { display: flex; align-items: center; gap: 0.75rem; padding: 0 2.5rem; white-space: nowrap; font-size: 1rem; font-weight: 700; color: rgba(255,255,255,0.35); letter-spacing: '-0.01em'; }
-        .ticker-sep { width: 4px; height: 4px; background: #1B4332; border-radius: '50%'; border-radius: 50%; }
-
-        /* BRACKET SECTION */
-        .bracket-sec {
-          background: linear-gradient(180deg, #0a1a12 0%, #071410 100%);
-          padding: 7rem 4rem;
-          display: grid; grid-template-columns: 1fr 1fr;
-          gap: 5rem; align-items: center;
-        }
-        .eyebrow {
-          display: inline-flex; align-items: center; gap: 0.5rem;
-          background: rgba(200,241,53,0.1); border: 1px solid rgba(200,241,53,0.25);
-          border-radius: 999px; padding: 0.35rem 1rem;
-          font-size: 0.72rem; font-weight: 700; color: #c8f135;
-          text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 1.5rem;
-        }
-        .sec-h2-light {
-          font-size: clamp(2.5rem, 4vw, 3.8rem); font-weight: 900;
-          color: #fff; line-height: 0.95; letter-spacing: '-0.04em';
-          margin-bottom: 1.25rem;
-        }
-        .sec-body-muted { font-size: 1.05rem; color: rgba(255,255,255,0.45); line-height: 1.75; margin-bottom: 2rem; }
-        .feat-list { display: flex; flex-direction: column; gap: 0.85rem; }
-        .feat-item {
-          display: flex; align-items: center; gap: 0.85rem;
-          font-size: 0.95rem; color: rgba(255,255,255,0.75); font-weight: 500;
-        }
-        .feat-check {
-          width: 24px; height: 24px; border-radius: 50%;
-          background: linear-gradient(135deg, #1B4332, #00d4aa);
-          display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-          box-shadow: 0 4px 12px rgba(0,212,170,0.3);
+          margin-bottom: 5rem;
         }
 
-        /* EVERYONE SECTION */
-        .everyone-sec {
-          background: linear-gradient(160deg, #f0fdf8 0%, #ecfdf5 40%, #f0f9ff 100%);
-          padding: 7rem 4rem; position: relative;
+        .features-headline {
+          font-family: 'Barlow Condensed', 'Arial Black', sans-serif;
+          font-weight: 900;
+          font-size: clamp(3rem, 8vw, 7rem);
+          line-height: 0.9;
+          letter-spacing: -0.04em;
+          text-transform: uppercase;
+          color: #fff;
+          margin-bottom: 1.5rem;
         }
-        .everyone-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; max-width: 880px; margin: 3.5rem auto 0; }
 
-        /* Player card — glassmorphic on light */
-        .player-glass {
-          background: rgba(255,255,255,0.75);
-          backdrop-filter: blur(20px);
-          border: 1.5px solid rgba(27,67,50,0.15);
-          border-radius: 28px; padding: 2.5rem;
-          box-shadow: 0 8px 40px rgba(27,67,50,0.1), inset 0 1px 0 rgba(255,255,255,0.8);
+        .features-subhead {
+          font-family: 'Barlow', sans-serif;
+          font-size: clamp(1rem, 2vw, 1.2rem);
+          color: rgba(255,255,255,0.5);
+          max-width: 700px;
+          margin: 0 auto;
+        }
+
+        /* 3D EXPLODED CUBE */
+        .cube-container {
+          width: 100%;
+          height: 700px;
+          perspective: 1200px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: grab;
+        }
+
+        .cube-container:active {
+          cursor: grabbing;
+        }
+
+        /* Navigation Arrows */
+        .cube-arrow {
+          position: absolute;
+          width: 50px;
+          height: 50px;
+          background: linear-gradient(135deg, rgba(27,67,50,0.3) 0%, rgba(10,22,40,0.5) 100%);
+          border: 2px solid rgba(79,255,176,0.3);
+          border-radius: 12px;
+          color: #4fffb0;
+          font-size: 1.8rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
           transition: all 0.3s ease;
-          animation: pop-in 0.6s ease forwards;
-        }
-        .player-glass:hover { transform: translateY(-8px) rotate(-1deg); box-shadow: 0 24px 60px rgba(27,67,50,0.2); }
-
-        /* Organizer card — brutalist dark */
-        .org-brutalist {
-          background: #1B4332;
-          border: 3px solid #0d2b20;
-          border-radius: 28px; padding: 2.5rem;
-          box-shadow: 8px 8px 0px #0d2b20;
-          transition: all 0.25s ease;
-          animation: pop-in 0.6s 0.15s ease both;
-          position: relative; overflow: hidden;
-        }
-        .org-brutalist::before {
-          content: '';
-          position: absolute; top: -40px; right: -40px;
-          width: 140px; height: 140px; border-radius: '50%'; border-radius: 50%;
-          background: radial-gradient(circle, rgba(200,241,53,0.15), transparent 70%);
-        }
-        .org-brutalist:hover { transform: translateY(-8px) rotate(1deg); box-shadow: 12px 12px 0px #0d2b20; }
-
-        .card-emoji-clay {
-          width: 60px; height: 60px; border-radius: 16px;
-          display: flex; align-items: center; justify-content: center;
-          font-size: 1.8rem; margin-bottom: 1.5rem;
-        }
-        .card-h3-dark { font-size: 1.75rem; font-weight: 900; color: #0d1117; letter-spacing: '-0.03em'; margin-bottom: 1.25rem; }
-        .card-h3-light { font-size: 1.75rem; font-weight: 900; color: #fff; letter-spacing: '-0.03em'; margin-bottom: 1.25rem; }
-        .card-feats { list-style: none; display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 2rem; }
-        .card-feat-dark { display: flex; align-items: flex-start; gap: 0.6rem; font-size: 0.9rem; color: #374151; font-weight: 500; line-height: 1.4; }
-        .card-feat-light { display: flex; align-items: flex-start; gap: 0.6rem; font-size: 0.9rem; color: rgba(255,255,255,0.75); font-weight: 500; line-height: 1.4; }
-
-        .btn-dark-green {
-          width: 100%; padding: 1rem; border-radius: 14px;
-          background: linear-gradient(135deg, #1B4332, #0d2b20);
-          color: #c8f135; font-weight: 800; font-size: 0.95rem;
-          border: none; cursor: pointer; font-family: inherit;
-          letter-spacing: '-0.01em';
-          box-shadow: 0 4px 16px rgba(27,67,50,0.3), inset 0 1px 0 rgba(255,255,255,0.1);
-          position: relative; overflow: hidden;
-          transition: all 0.25s;
-        }
-        .btn-dark-green:hover { transform: scale(1.02); box-shadow: 0 8px 24px rgba(27,67,50,0.4); }
-        .btn-lime-filled {
-          width: 100%; padding: 1rem; border-radius: 14px;
-          background: #c8f135; color: #0d1117;
-          font-weight: 800; font-size: 0.95rem;
-          border: none; cursor: pointer; font-family: inherit;
-          letter-spacing: '-0.01em'; position: relative; overflow: hidden;
-          transition: all 0.25s;
-        }
-        .btn-lime-filled:hover { transform: scale(1.02); background: #d4f76b; }
-
-        /* FEATURES */
-        .features-sec {
-          background: #06100c; padding: 7rem 4rem; position: relative; overflow: hidden;
-        }
-        .features-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 1.25rem; max-width: 960px; margin: 3rem auto 0; }
-        .feat-glass-card {
-          background: rgba(255,255,255,0.04);
-          backdrop-filter: blur(12px);
-          border: 1px solid rgba(255,255,255,0.08);
-          border-radius: 20px; padding: 2rem;
-          transition: all 0.3s ease;
-          position: relative; overflow: hidden;
-        }
-        .feat-glass-card:hover {
-          background: rgba(255,255,255,0.08);
-          border-color: rgba(0,212,170,0.3);
-          transform: translateY(-5px);
-          box-shadow: 0 20px 40px rgba(0,0,0,0.3), 0 0 0 1px rgba(0,212,170,0.1);
-        }
-        .feat-glass-card::after {
-          content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
-          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
-        }
-        .feat-icon-clay {
-          width: 50px; height: 50px; border-radius: 14px;
-          display: flex; align-items: center; justify-content: center;
-          font-size: 1.4rem; margin-bottom: 1.25rem;
-          box-shadow: 0 6px 16px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.2);
-        }
-        .feat-card-title { font-size: 1rem; font-weight: 800; color: #fff; letter-spacing: '-0.02em'; margin-bottom: 0.5rem; }
-        .feat-card-desc { font-size: 0.83rem; color: rgba(255,255,255,0.4); line-height: 1.65; }
-
-        /* HOW IT WORKS */
-        .hiw-sec {
-          background: linear-gradient(135deg, #f0fdf8, #ecfdf5 50%, #f0f9ff);
-          padding: 7rem 4rem;
-        }
-        .hiw-steps { display: grid; grid-template-columns: repeat(3,1fr); gap: 2rem; max-width: 900px; margin: 3.5rem auto 0; }
-        .hiw-step-card {
-          background: rgba(255,255,255,0.9);
+          z-index: 100;
           backdrop-filter: blur(10px);
-          border: 1.5px solid rgba(27,67,50,0.1);
-          border-radius: 24px; padding: 2.5rem 2rem;
+        }
+
+        .cube-arrow:hover {
+          background: linear-gradient(135deg, rgba(27,67,50,0.5) 0%, rgba(10,22,40,0.7) 100%);
+          border-color: rgba(79,255,176,0.6);
+          transform: scale(1.1);
+          box-shadow: 0 0 30px rgba(79,255,176,0.4);
+        }
+
+        .cube-arrow:active {
+          transform: scale(0.95);
+        }
+
+        .cube-arrow-up {
+          top: 5%;
+          left: 50%;
+          transform: translateX(-50%);
+        }
+
+        .cube-arrow-down {
+          bottom: 5%;
+          left: 50%;
+          transform: translateX(-50%);
+        }
+
+        .cube-arrow-left {
+          top: 50%;
+          left: 2%;
+          transform: translateY(-50%);
+        }
+
+        .cube-arrow-right {
+          top: 50%;
+          right: 2%;
+          transform: translateY(-50%);
+        }
+
+        .cube-arrow:hover {
+          transform: scale(1.1) !important;
+        }
+
+        .cube-arrow-up:hover {
+          transform: translateX(-50%) scale(1.1);
+        }
+
+        .cube-arrow-down:hover {
+          transform: translateX(-50%) scale(1.1);
+        }
+
+        .cube-arrow-left:hover {
+          transform: translateY(-50%) scale(1.1);
+        }
+
+        .cube-arrow-right:hover {
+          transform: translateY(-50%) scale(1.1);
+        }
+
+        /* Face indicator */
+        .cube-indicator {
+          position: absolute;
+          bottom: 8%;
+          left: 50%;
+          transform: translateX(-50%);
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 700;
+          font-size: 1rem;
+          color: rgba(79,255,176,0.6);
+          background: rgba(10,22,40,0.5);
+          padding: 0.5rem 1.5rem;
+          border-radius: 20px;
+          border: 1px solid rgba(79,255,176,0.2);
+          backdrop-filter: blur(10px);
+        }
+
+        .cube-exploded {
+          position: relative;
+          width: 300px;
+          height: 300px;
+          transform-style: preserve-3d;
+          transition: transform 0.5s cubic-bezier(0.34,1.56,0.64,1);
+        }
+
+        .cube-face {
+          position: absolute;
+          width: 280px;
+          height: 280px;
+          background: linear-gradient(135deg, rgba(27,67,50,0.12) 0%, rgba(10,22,40,0.3) 100%);
+          border: 2px solid rgba(79,255,176,0.15);
+          border-radius: 20px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 1rem;
+          padding: 2rem;
+          backdrop-filter: blur(10px);
+          transition: all 0.4s ease;
+          box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+
+        .cube-face:hover {
+          background: linear-gradient(135deg, rgba(27,67,50,0.3) 0%, rgba(10,22,40,0.5) 100%);
+          border-color: rgba(79,255,176,0.6);
+          box-shadow: 0 0 80px rgba(79,255,176,0.4);
+        }
+
+        .cube-feature {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 900;
+          font-size: 2rem;
+          letter-spacing: -0.03em;
+          text-transform: uppercase;
+          color: #4fffb0;
           text-align: center;
-          box-shadow: 0 4px 24px rgba(27,67,50,0.07);
+          line-height: 1;
           transition: all 0.3s ease;
         }
-        .hiw-step-card:hover { transform: translateY(-8px); box-shadow: 0 20px 50px rgba(27,67,50,0.15); }
-        .hiw-num {
-          font-size: 4rem; font-weight: 900; letter-spacing: '-0.05em'; line-height: 1;
-          background: linear-gradient(135deg, #1B4332, #00d4aa);
-          -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-          background-clip: text; margin-bottom: 1rem;
-        }
-        .hiw-step-title { font-size: 1.1rem; font-weight: 800; color: #0d1117; margin-bottom: 0.5rem; letter-spacing: '-0.02em'; }
-        .hiw-step-desc { font-size: 0.85rem; color: #64748b; line-height: 1.65; }
 
-        /* CTA */
-        .cta-sec {
-          background: #06100c; padding: 7rem 4rem; text-align: center; position: relative; overflow: hidden;
+        .cube-desc {
+          font-family: 'Barlow', sans-serif;
+          font-size: 0.9rem;
+          line-height: 1.5;
+          color: rgba(255,255,255,0.7);
+          text-align: center;
+          opacity: 0;
+          max-height: 0;
+          overflow: hidden;
+          transition: all 0.4s ease;
         }
-        .cta-h2 {
-          font-size: clamp(2.5rem, 5vw, 4.5rem); font-weight: 900;
-          color: #fff; letter-spacing: '-0.04em'; line-height: 0.95;
-          margin-bottom: 1.25rem; position: relative; z-index: 2;
-        }
-        .cta-h2 em { font-style: normal; color: #c8f135; }
-        .cta-sub { font-size: 1.05rem; color: rgba(255,255,255,0.4); margin-bottom: 2.5rem; position: relative; z-index: 2; }
-        .cta-btns { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; position: relative; z-index: 2; }
 
-        /* FOOTER */
-        .footer {
-          background: #030a06; padding: 1.75rem 3.5rem;
-          display: flex; align-items: center; justify-content: space-between;
-          border-top: 1px solid rgba(255,255,255,0.05);
+        .cube-face:hover .cube-feature {
+          transform: scale(1.05);
+          text-shadow: 0 0 40px rgba(79,255,176,0.7);
         }
-        .footer-copy { font-size: 0.78rem; color: rgba(255,255,255,0.25); }
 
-        /* SECTION HEADINGS */
-        .sec-h2-dark {
-          font-size: clamp(2.2rem, 4vw, 3.5rem); font-weight: 900;
-          color: #0d1117; letter-spacing: '-0.04em'; text-align: center;
+        .cube-face:hover .cube-desc {
+          opacity: 1;
+          max-height: 200px;
         }
-        .sec-h2-white {
-          font-size: clamp(2.2rem, 4vw, 3.5rem); font-weight: 900;
-          color: #fff; letter-spacing: '-0.04em'; text-align: center;
+
+        /* Face positions - CLOSER (220px apart) */
+        .cube-face-front {
+          transform: translateZ(220px);
         }
-        .sec-sub { font-size: 1rem; text-align: center; margin-top: 0.75rem; color: #64748b; }
-        .sec-sub-light { font-size: 1rem; text-align: center; margin-top: 0.75rem; color: rgba(255,255,255,0.4); }
+
+        .cube-face-back {
+          transform: rotateY(180deg) translateZ(220px);
+        }
+
+        .cube-face-right {
+          transform: rotateY(90deg) translateZ(220px);
+        }
+
+        .cube-face-left {
+          transform: rotateY(-90deg) translateZ(220px);
+        }
+
+        .cube-face-top {
+          transform: rotateX(90deg) translateZ(220px);
+        }
+
+        .cube-face-bottom {
+          transform: rotateX(-90deg) translateZ(220px);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+          .cube-container {
+            height: 500px;
+            perspective: 1000px;
+          }
+          .cube-exploded {
+            width: 200px;
+            height: 200px;
+          }
+          .cube-face {
+            width: 200px;
+            height: 200px;
+            padding: 1.5rem;
+          }
+          .cube-feature {
+            font-size: 1.2rem;
+          }
+          .cube-face-front,
+          .cube-face-back,
+          .cube-face-right,
+          .cube-face-left,
+          .cube-face-top,
+          .cube-face-bottom {
+            transform: translateZ(150px);
+          }
+          .cube-face-back { transform: rotateY(180deg) translateZ(150px); }
+          .cube-face-right { transform: rotateY(90deg) translateZ(150px); }
+          .cube-face-left { transform: rotateY(-90deg) translateZ(150px); }
+          .cube-face-top { transform: rotateX(90deg) translateZ(150px); }
+          .cube-face-bottom { transform: rotateX(-90deg) translateZ(150px); }
+        }
+
+        /* ── MODAL ── */
+        .modal-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(6, 13, 31, 0.85);
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+          z-index: 300;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 2rem;
+          animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+
+        .modal {
+          background: linear-gradient(160deg, #0a1628 0%, #060d1f 100%);
+          border: 1px solid rgba(255,255,255,0.1);
+          border-radius: 12px;
+          padding: 2.5rem 2rem;
+          max-width: 480px;
+          width: 100%;
+          position: relative;
+          box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+          animation: modalSlide 0.4s cubic-bezier(0.34,1.56,0.64,1);
+        }
+
+        @keyframes modalSlide {
+          from {
+            opacity: 0;
+            transform: translateY(30px) scale(0.95);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+
+        .modal-close {
+          position: absolute;
+          top: 1.5rem;
+          right: 1.5rem;
+          background: transparent;
+          border: none;
+          color: rgba(255,255,255,0.5);
+          font-size: 1.5rem;
+          cursor: pointer;
+          width: 32px;
+          height: 32px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 4px;
+          transition: all 0.2s ease;
+        }
+        .modal-close:hover {
+          background: rgba(255,255,255,0.05);
+          color: #fff;
+        }
+
+        .modal-title {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 900;
+          font-size: 2.5rem;
+          letter-spacing: -0.02em;
+          text-transform: uppercase;
+          color: #fff;
+          margin-bottom: 0.5rem;
+        }
+
+        .modal-subtitle {
+          font-family: 'Barlow', sans-serif;
+          font-size: 0.95rem;
+          color: rgba(255,255,255,0.45);
+          margin-bottom: 2.5rem;
+        }
+
+        .form-group {
+          margin-bottom: 1.5rem;
+        }
+
+        .form-row {
+          display: flex;
+          gap: 1rem;
+        }
+        .form-row .form-group {
+          flex: 1;
+        }
+
+        .form-label {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 600;
+          font-size: 0.85rem;
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+          color: rgba(255,255,255,0.7);
+          display: block;
+          margin-bottom: 0.5rem;
+        }
+
+        .form-input {
+          width: 100%;
+          padding: 0.85rem 1.2rem;
+          background: rgba(255,255,255,0.03);
+          border: 1px solid rgba(255,255,255,0.1);
+          border-radius: 6px;
+          color: #fff;
+          font-family: 'Barlow', sans-serif;
+          font-size: 1rem;
+          transition: all 0.2s ease;
+        }
+        .form-input:focus {
+          outline: none;
+          border-color: #4fffb0;
+          background: rgba(255,255,255,0.05);
+          box-shadow: 0 0 0 3px rgba(79,255,176,0.1);
+        }
+        .form-input::placeholder {
+          color: rgba(255,255,255,0.3);
+        }
+
+        .password-wrapper {
+          position: relative;
+        }
+
+        .password-toggle {
+          position: absolute;
+          right: 1rem;
+          top: 50%;
+          transform: translateY(-50%);
+          background: none;
+          border: none;
+          color: rgba(255,255,255,0.5);
+          cursor: pointer;
+          font-size: 1.2rem;
+          padding: 0.25rem;
+          transition: color 0.2s ease;
+        }
+
+        .password-toggle:hover {
+          color: #4fffb0;
+        }
+
+        .btn-modal {
+          width: 100%;
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 700;
+          font-size: 1.1rem;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+          padding: 1rem;
+          border-radius: 6px;
+          border: none;
+          cursor: pointer;
+          background: linear-gradient(135deg, #1B4332, #2d6a4f);
+          color: #4fffb0;
+          box-shadow: 0 4px 20px rgba(27,67,50,0.5);
+          transition: all 0.2s ease;
+          margin-top: 1rem;
+        }
+        .btn-modal:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 28px rgba(27,67,50,0.6);
+        }
+
+        .modal-footer {
+          margin-top: 2rem;
+          text-align: center;
+          font-family: 'Barlow', sans-serif;
+          font-size: 0.9rem;
+          color: rgba(255,255,255,0.45);
+        }
+        .modal-footer button {
+          background: none;
+          border: none;
+          color: #4fffb0;
+          cursor: pointer;
+          font-weight: 600;
+          text-decoration: underline;
+          transition: color 0.2s ease;
+        }
+        .modal-footer button:hover {
+          color: #00c9a7;
+        }
+
+        .form-error {
+          background: linear-gradient(135deg, rgba(27,67,50,0.95) 0%, rgba(10,22,40,0.98) 100%);
+          border: 1.5px solid rgba(79,255,176,0.5);
+          border-radius: 8px;
+          padding: 0.75rem 1rem;
+          margin-bottom: 1rem;
+          font-family: 'Barlow', sans-serif;
+          font-size: 0.9rem;
+          color: #4fffb0;
+          box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+          animation: jitterIn 0.5s cubic-bezier(0.34,1.56,0.64,1);
+          text-align: center;
+          backdrop-filter: blur(10px);
+        }
+
+        @keyframes jitterIn {
+          0% {
+            opacity: 0;
+            transform: translateX(-10px);
+          }
+          25% {
+            transform: translateX(5px);
+          }
+          50% {
+            transform: translateX(-5px);
+          }
+          75% {
+            transform: translateX(3px);
+          }
+          100% {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
 
         @media (max-width: 768px) {
-          .lnav { padding: 1rem 1.5rem; }
-          .lnav-links { display: none; }
-          .bracket-sec { grid-template-columns: 1fr; padding: 4rem 1.5rem; gap: 3rem; }
-          .everyone-grid { grid-template-columns: 1fr; }
-          .features-grid { grid-template-columns: 1fr; }
-          .hiw-steps { grid-template-columns: 1fr; }
-          .everyone-sec, .hiw-sec { padding: 4rem 1.5rem; }
-          .features-sec, .cta-sec { padding: 4rem 1.5rem; }
-          .footer { flex-direction: column; gap: 0.75rem; text-align: center; padding: 1.5rem; }
+          .nav { padding: 0 1.5rem; }
+          .section { padding: 5rem 1.5rem; }
+          .modal { padding: 2rem; }
+          .nav-btns { gap: 0.5rem; }
+          .btn-nav { padding: 0.6rem 1.2rem; font-size: 0.85rem; }
         }
       `}</style>
 
-      <div className="land">
+      {/* ── INTRO ── */}
+      <div className={`intro ${phase}`}>
+        <div className="intro-blob" />
+        <div className="intro-text">StepOut2Play</div>
+      </div>
 
-        {/* ── NAV ── */}
-        <nav className="lnav">
-          <div className="lnav-logo">
-            <div className="lnav-mark">S</div>
-            <span className="lnav-name">StepOut2Play</span>
+      {/* ── PAGE ── */}
+      <div style={{ opacity: phase === 'done' ? 1 : 0, transition: 'opacity 0.6s ease' }}>
+
+        {/* NAV */}
+        <nav className="nav">
+          <div className="nav-logo" onClick={handleLogoClick}>
+            Step<span>Out</span>2Play
           </div>
-          <div className="lnav-links">
-            <button className="lnav-link" onClick={() => navigate('/tournaments')}>Tournaments</button>
-            <button className="lnav-link" onClick={() => navigate('/explore')}>Explore</button>
-            <button className="lnav-link">How it works</button>
+          <div className="nav-btns">
+            <button className="btn-nav login" onClick={() => setShowLogin(true)}>Login</button>
+            <button className="btn-nav signup" onClick={() => setShowSignup(true)}>Sign Up</button>
           </div>
-          <RippleButton
-            className="lnav-cta"
-            onClick={() => navigate(isLoggedIn ? '/dashboard' : '/login')}
-          >
-            {isLoggedIn ? 'Dashboard →' : 'Get started free'}
-          </RippleButton>
         </nav>
 
-        {/* ── HERO ── */}
+        {/* HERO */}
         <section className="hero">
-          {/* Aurora blobs */}
-          <AuroraBlob style={{ width: 700, height: 700, background: 'radial-gradient(circle, #1B4332 0%, transparent 70%)', top: -200, left: -200, animation: 'aurora-1 18s ease-in-out infinite' }} />
-          <AuroraBlob style={{ width: 500, height: 500, background: 'radial-gradient(circle, #00d4aa 0%, transparent 70%)', opacity: 0.2, bottom: -100, right: -100, animation: 'aurora-2 22s ease-in-out infinite' }} />
-          <AuroraBlob style={{ width: 350, height: 350, background: 'radial-gradient(circle, #0891b2 0%, transparent 70%)', opacity: 0.18, top: '30%', right: '15%', animation: 'aurora-3 15s ease-in-out infinite' }} />
-          <AuroraBlob style={{ width: 250, height: 250, background: 'radial-gradient(circle, #92400e 0%, transparent 70%)', opacity: 0.12, bottom: '20%', left: '20%', animation: 'aurora-2 25s ease-in-out infinite reverse' }} />
+          <div className="orb orb-1" />
+          <div className="orb orb-2" />
+          <div className="orb orb-3" />
+          <div className="hero-grid" />
 
-          {/* Mesh grid overlay */}
-          <div style={{
-            position: 'absolute', inset: 0, pointerEvents: 'none',
-            backgroundImage: 'linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px)',
-            backgroundSize: '50px 50px'
-          }} />
-
-          <div className="hero-content">
-            <LivePill />
-            <h1 className="hero-h1">
-              <span className="hero-h1-line1">Tournament</span>
-              <span className="hero-h1-line2">Unlocked.</span>
-            </h1>
-            <p className="hero-sub">
-              Run racket sports tournaments that actually feel professional. Brackets that build themselves. Scores that update live. Players who come back every season.
-            </p>
-            <div className="hero-ctas">
-              <RippleButton className="btn-aurora" onClick={() => navigate(isLoggedIn ? '/dashboard' : '/register')}>
-                {isLoggedIn ? 'Go to Dashboard →' : 'Start for free →'}
-              </RippleButton>
-              <RippleButton className="btn-ghost" onClick={() => navigate('/tournaments')}>
-                Browse tournaments
-              </RippleButton>
+          <BulgeSection>
+            <div className="hero-content">
+              <h1 className="hero-h1">
+                Where Every
+                <span className="accent">Match Matters.</span>
+              </h1>
+              <p className="hero-sub">
+                From discovering tournaments to competing, organizing, climbing rankings, and following live matches — all in one platform.
+              </p>
+              <div className="hero-ctas">
+                <button className="btn-main" onClick={() => setShowSignup(true)}>Get Started</button>
+                <button className="btn-sec" onClick={() => navigate('/browse')}>Browse Tournaments</button>
+              </div>
             </div>
-            <div className="stat-chips">
-              {[['1200+', 'Matches Played'], ['64+', 'Tournaments'], ['6', 'Sports'], ['< 60s', 'Bracket Time']].map(([v, l]) => (
-                <div key={l} className="stat-chip">
-                  <div className="stat-val">{v}</div>
-                  <div className="stat-label">{l}</div>
-                </div>
-              ))}
-            </div>
-          </div>
+          </BulgeSection>
         </section>
 
-        {/* ── SPORTS TICKER ── */}
-        <div className="sports-ticker">
-          <div className="ticker-inner">
-            {[...Array(4)].flatMap(() => [
-              { emoji: '🏸', name: 'Badminton' }, { emoji: '🎾', name: 'Tennis' },
-              { emoji: '🏓', name: 'Table Tennis' }, { emoji: '🥊', name: 'Squash' },
-              { emoji: '🏐', name: 'Pickleball' }, { emoji: '🏏', name: 'Padel' },
-            ]).map((s, i) => (
-              <div key={i} className="ticker-item">
-                <span style={{ fontSize: '1.2rem' }}>{s.emoji}</span>
-                <span>{s.name}</span>
-                <span className="ticker-sep" />
-              </div>
-            ))}
+        {/* CYCLING TEXT SECTION */}
+        <section className="cycling-section">
+          <CyclingText />
+        </section>
+
+        {/* FEATURES SECTION */}
+        <section className="features-section">
+          <BulgeSection>
+            <div className="features-header">
+              <h2 className="features-headline">
+                Loaded With<br/>Features.
+              </h2>
+              <p className="features-subhead">
+                We didn't hold back. Here's everything we packed in.
+              </p>
+            </div>
+          </BulgeSection>
+          <BulgeSection style={{ marginTop: '3rem' }}>
+            <FeaturesBento />
+          </BulgeSection>
+        </section>
+
+        {/* PLACEHOLDER SECTIONS — bulge in on scroll */}
+        <div className="section-wrapper">
+          <div className="section">
+            <BulgeSection>
+              <div className="section-label">Coming soon</div>
+              <h2 className="section-h2">More<br/>sections<br/>here.</h2>
+            </BulgeSection>
           </div>
         </div>
 
-        {/* ── BRACKET SHOWCASE ── */}
-        <section className="bracket-sec">
-          {/* Aurora behind */}
-          <AuroraBlob style={{ width: 400, height: 400, background: 'radial-gradient(circle, #00d4aa 0%, transparent 70%)', opacity: 0.08, top: '50%', right: '10%' }} />
-
-          <div style={{ position: 'relative', zIndex: 2 }}>
-            <div className="eyebrow">⚡ Smart bracket engine</div>
-            <h2 className="sec-h2-light">Brackets that<br/>build<br/>themselves.</h2>
-            <p className="sec-body-muted">
-              Pick your format, hit generate. The engine seeds players, assigns courts, handles byes — and the whole thing updates live as matches finish.
-            </p>
-            <div className="feat-list">
-              {['Knockout & Round Robin formats', 'Snake, random, or manual seeding', 'Bye auto-advance & court assignment', 'Live score propagation across rounds'].map(f => (
-                <div key={f} className="feat-item">
-                  <div className="feat-check">
-                    <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
-                      <path d="M2 5.5l2.5 2.5 4.5-4.5" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </div>
-                  {f}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Ticket + floating glass accent */}
-          <div style={{ position: 'relative', display: 'flex', justifyContent: 'center', zIndex: 2 }}>
-            <div style={{ animation: 'float-y 5s ease-in-out infinite' }}>
-              <TicketCard />
-            </div>
-            {/* Floating glass badge */}
-            <GlassCard tilt={-3} style={{
-              position: 'absolute', top: -20, right: -20,
-              padding: '0.75rem 1rem', animation: 'float-y2 4s ease-in-out infinite',
-            }}>
-              <div style={{ fontSize: '0.65rem', color: '#c8f135', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Auto seeded</div>
-              <div style={{ fontSize: '1.3rem', fontWeight: 900, color: '#fff' }}>100%</div>
-            </GlassCard>
-          </div>
-        </section>
-
-        <Wave topColor="#071410" bottomColor="#f0fdf8" />
-
-        {/* ── FOR EVERYONE ── */}
-        <section className="everyone-sec">
-          {/* Ambient aurora on light bg */}
-          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'radial-gradient(ellipse 60% 50% at 30% 50%, rgba(0,212,170,0.07), transparent), radial-gradient(ellipse 50% 60% at 70% 50%, rgba(8,145,178,0.06), transparent)', pointerEvents: 'none' }} />
-
-          <div style={{ position: 'relative', zIndex: 2 }}>
-            <h2 className="sec-h2-dark">Built for everyone<br/>on the court.</h2>
-            <p className="sec-sub">Whether you're sweating it out or running the show.</p>
-
-            <div className="everyone-grid">
-              {/* Players */}
-              <div className="player-glass">
-                <div className="card-emoji-clay" style={{ background: 'linear-gradient(135deg, #dcfce7, #bbf7d0)', boxShadow: '0 8px 20px rgba(34,197,94,0.25), inset 0 1px 0 rgba(255,255,255,0.7)' }}>🎾</div>
-                <h3 className="card-h3-dark">For Players</h3>
-                <ul className="card-feats">
-                  {['Register for tournaments in seconds', 'Track your schedule & court assignments', 'Follow live brackets as matches unfold', 'Build your competitive history'].map(f => (
-                    <li key={f} className="card-feat-dark">
-                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0, marginTop: 2 }}>
-                        <circle cx="8" cy="8" r="7" stroke="#22c55e" strokeWidth="1.5"/>
-                        <path d="M5 8l2 2 4-4" stroke="#22c55e" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-                <RippleButton className="btn-dark-green" onClick={() => navigate('/tournaments')}>
-                  Find Tournaments →
-                </RippleButton>
-              </div>
-
-              {/* Organizers */}
-              <div className="org-brutalist">
-                <div className="card-emoji-clay" style={{ background: 'linear-gradient(135deg, rgba(200,241,53,0.2), rgba(200,241,53,0.1))', boxShadow: '0 8px 20px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1)' }}>🏆</div>
-                <h3 className="card-h3-light">For Organizers</h3>
-                <ul className="card-feats">
-                  {['Create unlimited tournaments & events', 'Auto-generate brackets from registrations', 'Manage courts, timing & match scheduling', 'Track live scores & publish standings'].map(f => (
-                    <li key={f} className="card-feat-light">
-                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0, marginTop: 2 }}>
-                        <circle cx="8" cy="8" r="7" stroke="#52b788" strokeWidth="1.5"/>
-                        <path d="M5 8l2 2 4-4" stroke="#52b788" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-                <RippleButton className="btn-lime-filled" onClick={() => navigate(isLoggedIn ? '/dashboard' : '/register')}>
-                  Create a Tournament →
-                </RippleButton>
-              </div>
-            </div>
-
-            {/* Clay sport chips row */}
-            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'center', marginTop: '3rem' }}>
-              <ClayChip emoji="🏸" label="Badminton" color="#1B4332" />
-              <ClayChip emoji="🎾" label="Tennis" color="#0891b2" />
-              <ClayChip emoji="🏓" label="Table Tennis" color="#7c3aed" />
-              <ClayChip emoji="🥊" label="Squash" color="#b45309" />
-              <ClayChip emoji="🏐" label="Pickleball" color="#0d9488" />
-              <ClayChip emoji="🏏" label="Padel" color="#be185d" />
-            </div>
-          </div>
-        </section>
-
-        <Wave topColor="#f0fdf8" bottomColor="#06100c" />
-
-        {/* ── FEATURES ── */}
-        <section className="features-sec">
-          <AuroraBlob style={{ width: 500, height: 500, background: 'radial-gradient(circle, #1B4332 0%, transparent 70%)', opacity: 0.4, top: -100, left: -100 }} />
-          <AuroraBlob style={{ width: 400, height: 400, background: 'radial-gradient(circle, #0891b2 0%, transparent 70%)', opacity: 0.15, bottom: 0, right: -100 }} />
-
-          <div style={{ position: 'relative', zIndex: 2 }}>
-            <h2 className="sec-h2-white">Everything you need.</h2>
-            <p className="sec-sub-light">No spreadsheets. No WhatsApp groups. No chaos.</p>
-            <div className="features-grid">
-              {[
-                { emoji: '📅', label: 'Event Categories', desc: "Men's, Women's, U19, Veterans 40+ — any category your tournament needs.", bg: 'linear-gradient(135deg,#1B4332,#2d6a4f)' },
-                { emoji: '👥', label: 'Doubles Support', desc: 'Singles, doubles, mixed doubles. Partner management and team brackets built in.', bg: 'linear-gradient(135deg,#0891b2,#0e7490)' },
-                { emoji: '📊', label: 'Live Scoring', desc: 'Score updates hit every screen instantly. No refresh, no lag, no confusion.', bg: 'linear-gradient(135deg,#7c3aed,#6d28d9)' },
-                { emoji: '⚡', label: 'Multiple Formats', desc: 'Knockout, Round Robin, hybrid. Choose your format and generate instantly.', bg: 'linear-gradient(135deg,#b45309,#92400e)' },
-                { emoji: '🎯', label: '6 Sports', desc: 'Badminton, Tennis, Table Tennis, Squash, Pickleball, Padel — all supported.', bg: 'linear-gradient(135deg,#be185d,#9d174d)' },
-                { emoji: '🚀', label: 'Quick Setup', desc: 'From idea to live tournament in under 5 minutes. Smart defaults, zero friction.', bg: 'linear-gradient(135deg,#0d9488,#0f766e)' },
-              ].map(f => (
-                <div key={f.label} className="feat-glass-card">
-                  <div className="feat-icon-clay" style={{ background: f.bg }}>
-                    <span style={{ fontSize: '1.4rem' }}>{f.emoji}</span>
-                  </div>
-                  <div className="feat-card-title">{f.label}</div>
-                  <div className="feat-card-desc">{f.desc}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <Wave topColor="#06100c" bottomColor="#f0fdf8" />
-
-        {/* ── HOW IT WORKS ── */}
-        <section className="hiw-sec">
-          <h2 className="sec-h2-dark">Up and running<br/>in 3 steps.</h2>
-          <p className="sec-sub">Seriously, that's it.</p>
-          <div className="hiw-steps">
-            {[
-              { n: '1', title: 'Create your tournament', desc: 'Name it, set your sport, dates, and events. Under 5 minutes, no training required.' },
-              { n: '2', title: 'Players register', desc: 'Share a link. Players sign up, pick events, pay if needed. All tracked automatically.' },
-              { n: '3', title: 'Generate & play', desc: 'Hit generate. Brackets built, courts assigned, matches scheduled. You just watch the game.' },
-            ].map(s => (
-              <div key={s.n} className="hiw-step-card">
-                <div className="hiw-num">{s.n}</div>
-                <div className="hiw-step-title">{s.title}</div>
-                <div className="hiw-step-desc">{s.desc}</div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <Wave topColor="#f0fdf8" bottomColor="#06100c" />
-
-        {/* ── CTA ── */}
-        <section className="cta-sec">
-          <AuroraBlob style={{ width: 600, height: 600, background: 'radial-gradient(circle, #1B4332 0%, transparent 65%)', opacity: 0.6, top: '50%', left: '50%', transform: 'translate(-50%,-50%)' }} />
-          <AuroraBlob style={{ width: 300, height: 300, background: 'radial-gradient(circle, #00d4aa 0%, transparent 70%)', opacity: 0.2, top: 0, right: '15%' }} />
-          <AuroraBlob style={{ width: 200, height: 200, background: 'radial-gradient(circle, #92400e 0%, transparent 70%)', opacity: 0.15, bottom: '10%', left: '10%' }} />
-
-          {/* Dot grid */}
-          <div style={{ position: 'absolute', inset: 0, backgroundImage: 'radial-gradient(circle, rgba(200,241,53,0.12) 1px, transparent 1px)', backgroundSize: '28px 28px', pointerEvents: 'none' }} />
-
-          <h2 className="cta-h2" style={{ position: 'relative', zIndex: 2 }}>
-            Your next tournament<br/>starts <em>right here.</em>
-          </h2>
-          <p className="cta-sub">Free to use. No credit card. Just great tournaments.</p>
-          <div className="cta-btns">
-            <RippleButton
-              onClick={() => navigate(isLoggedIn ? '/dashboard' : '/register')}
-              style={{
-                background: '#c8f135', color: '#0d1117',
-                fontWeight: 800, fontSize: '1rem',
-                padding: '1rem 2.5rem', borderRadius: '14px', border: 'none',
-                cursor: 'pointer', fontFamily: 'inherit', letterSpacing: '-0.01em',
-                boxShadow: '0 8px 32px rgba(200,241,53,0.35)',
-                transition: 'all 0.25s',
-              }}
-            >
-              {isLoggedIn ? 'Go to Dashboard →' : 'Get started free →'}
-            </RippleButton>
-            <RippleButton
-              onClick={() => navigate('/tournaments')}
-              style={{
-                background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(10px)',
-                color: 'rgba(255,255,255,0.85)', fontWeight: 600, fontSize: '1rem',
-                padding: '1rem 2.5rem', borderRadius: '14px',
-                border: '1px solid rgba(255,255,255,0.15)',
-                cursor: 'pointer', fontFamily: 'inherit',
-                transition: 'all 0.25s',
-              }}
-            >
-              Browse tournaments
-            </RippleButton>
-          </div>
-        </section>
-
-        {/* ── FOOTER ── */}
-        <footer className="footer">
-          <div className="lnav-logo" style={{ gap: '0.6rem' }}>
-            <div className="lnav-mark" style={{ width: 30, height: 30, fontSize: '0.85rem' }}>S</div>
-            <span className="lnav-name" style={{ fontSize: '0.95rem' }}>StepOut2Play</span>
-          </div>
-          <span className="footer-copy">© 2026 StepOut2Play · Making tournament management effortless.</span>
-        </footer>
       </div>
+
+      {/* ── LOGIN MODAL ── */}
+      {showLogin && (
+        <div className="modal-overlay" onClick={() => { setShowLogin(false); setError(''); }}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => { setShowLogin(false); setError(''); }}>×</button>
+            <h2 className="modal-title">Game on!</h2>
+            <p className="modal-subtitle">Everything you need, one login away.</p>
+
+            <form onSubmit={handleLogin}>
+              {error && showLogin && <div className="form-error">{error}</div>}
+
+              <div className="form-group">
+                <label className="form-label">Email</label>
+                <input
+                  type="email"
+                  className="form-input"
+                  placeholder="your@email.com"
+                  value={loginData.email}
+                  onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
+                  required
+                  disabled={loading}
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Password</label>
+                <div className="password-wrapper">
+                  <input
+                    type={showLoginPassword ? "text" : "password"}
+                    className="form-input"
+                    placeholder="••••••••"
+                    value={loginData.password}
+                    onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
+                    required
+                    disabled={loading}
+                  />
+                  <button
+                    type="button"
+                    className="password-toggle"
+                    onClick={() => setShowLoginPassword(!showLoginPassword)}
+                  >
+                    {showLoginPassword ? '👁️' : '👁️‍🗨️'}
+                  </button>
+                </div>
+              </div>
+
+              <button type="submit" className="btn-modal" disabled={loading}>
+                {loading ? 'Logging in...' : 'Login'}
+              </button>
+            </form>
+
+            <div className="modal-footer">
+              Don't have an account?{' '}
+              <button onClick={() => { setShowLogin(false); setShowSignup(true); setError(''); }}>
+                Sign up
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── SIGNUP MODAL ── */}
+      {showSignup && (
+        <div className="modal-overlay" onClick={() => { setShowSignup(false); setError(''); }}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => { setShowSignup(false); setError(''); }}>×</button>
+            <h2 className="modal-title">The game begins here!</h2>
+            <p className="modal-subtitle">Sign up and make every match count.</p>
+
+            <form onSubmit={handleSignup}>
+              {error && showSignup && <div className="form-error">{error}</div>}
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label">First Name</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="John"
+                    value={signupData.firstName}
+                    onChange={(e) => setSignupData({ ...signupData, firstName: e.target.value })}
+                    required
+                    disabled={loading}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Last Name</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="Doe"
+                    value={signupData.lastName}
+                    onChange={(e) => setSignupData({ ...signupData, lastName: e.target.value })}
+                    required
+                    disabled={loading}
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Email</label>
+                <input
+                  type="email"
+                  className="form-input"
+                  placeholder="your@email.com"
+                  value={signupData.email}
+                  onChange={(e) => setSignupData({ ...signupData, email: e.target.value })}
+                  required
+                  disabled={loading}
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Password</label>
+                <div className="password-wrapper">
+                  <input
+                    type={showSignupPassword ? "text" : "password"}
+                    className="form-input"
+                    placeholder="••••••••"
+                    value={signupData.password}
+                    onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
+                    required
+                    disabled={loading}
+                    minLength={8}
+                  />
+                  <button
+                    type="button"
+                    className="password-toggle"
+                    onClick={() => setShowSignupPassword(!showSignupPassword)}
+                  >
+                    {showSignupPassword ? '👁️' : '👁️‍🗨️'}
+                  </button>
+                </div>
+              </div>
+
+              <button type="submit" className="btn-modal" disabled={loading}>
+                {loading ? 'Creating Account...' : 'Create Account'}
+              </button>
+            </form>
+
+            <div className="modal-footer">
+              Already have an account?{' '}
+              <button onClick={() => { setShowSignup(false); setShowLogin(true); setError(''); }}>
+                Login
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </>
   )
 }

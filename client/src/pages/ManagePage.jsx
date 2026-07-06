@@ -1,561 +1,824 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
-import Navbar from '../components/Navbar'
-import OrganizationCard from '../components/OrganizationCard'
-import CreateOrganizationModal from '../components/CreateOrganizationModal'
-import Toast from '../components/Toast'
 import { useNavigate } from 'react-router-dom'
+import Navbar from '../components/Navbar'
+import CreateOrganizationModal from '../components/CreateOrganizationModal'
 import api from '../services/api'
-
-const BuildingIcon = (props) => (
-  <svg {...props} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-  </svg>
-)
-
-const PlusIcon = (props) => (
-  <svg {...props} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-  </svg>
-)
-
-const UsersIcon = (props) => (
-  <svg {...props} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-  </svg>
-)
-
-const CheckIcon = (props) => (
-  <svg {...props} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-  </svg>
-)
-
-const XIcon = (props) => (
-  <svg {...props} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-  </svg>
-)
 
 const ManagePage = () => {
   const { context, refreshContext } = useAuth()
   const navigate = useNavigate()
+  const [activeTab, setActiveTab] = useState('organizations')
   const [organizations, setOrganizations] = useState([])
+  const [joinRequests, setJoinRequests] = useState([])
+  const [invitations, setInvitations] = useState([])
   const [loading, setLoading] = useState(true)
   const [showCreateModal, setShowCreateModal] = useState(false)
-  const [activeTab, setActiveTab] = useState('organizations') // organizations | requests | invitations
-  const [joinRequests, setJoinRequests] = useState([])
-  const [loadingRequests, setLoadingRequests] = useState(false)
-  const [invitations, setInvitations] = useState([])
-  const [loadingInvitations, setLoadingInvitations] = useState(false)
-  const [showToast, setShowToast] = useState(false)
-  const [toastMessage, setToastMessage] = useState('')
-  const [toastType, setToastType] = useState('success')
+  const [editingOrg, setEditingOrg] = useState(null)
+  const [deleteConfirmModal, setDeleteConfirmModal] = useState(null)
 
   useEffect(() => {
-    setOrganizations(context?.orgs || [])
-    setLoading(false)
-    loadJoinRequests()
-    loadInvitations()
+    loadOrganizations()
   }, [context])
 
-  const loadJoinRequests = async () => {
-    setLoadingRequests(true)
-    try {
-      const orgs = context?.orgs || []
-      const ownerAdminOrgs = orgs.filter(o => o.myRole === 'OWNER' || o.myRole === 'ADMIN')
+  const loadOrganizations = () => {
+    if (context?.orgs) {
+      setOrganizations(context.orgs)
+      setLoading(false)
+    }
+  }
 
-      const allRequests = []
+  useEffect(() => {
+    if (activeTab === 'requests') {
+      loadJoinRequests()
+    } else if (activeTab === 'invitations') {
+      loadInvitations()
+    }
+  }, [activeTab])
+
+  const loadJoinRequests = async () => {
+    try {
+      const ownerAdminOrgs = organizations.filter(o => o.myRole === 'OWNER' || o.myRole === 'ADMIN')
+      let allRequests = []
+
       for (const org of ownerAdminOrgs) {
-        try {
-          const res = await api.get(`/orgs/${org.id}/join-requests`)
-          if (res.data.success && res.data.requests.length > 0) {
-            allRequests.push(...res.data.requests)
-          }
-        } catch (err) {
-          console.error(`Error loading requests for org ${org.id}:`, err)
+        const res = await api.get(`/orgs/${org.id}/join-requests`)
+        if (res.data.success) {
+          allRequests = [...allRequests, ...res.data.requests.map(r => ({ ...r, orgName: org.name }))]
         }
       }
+
       setJoinRequests(allRequests)
     } catch (err) {
       console.error('Error loading join requests:', err)
-    } finally {
-      setLoadingRequests(false)
-    }
-  }
-
-  const handleAcceptRequest = async (request) => {
-    try {
-      await api.post(`/orgs/${request.orgId}/join-requests/${request.id}/accept`)
-      setToastMessage(`Accepted ${request.user.firstName} ${request.user.lastName}`)
-      setToastType('success')
-      setShowToast(true)
-      loadJoinRequests()
-      refreshContext()
-    } catch (err) {
-      console.error('Error accepting request:', err)
-      setToastMessage('Failed to accept request')
-      setToastType('error')
-      setShowToast(true)
-    }
-  }
-
-  const handleRejectRequest = async (request) => {
-    try {
-      await api.post(`/orgs/${request.orgId}/join-requests/${request.id}/reject`)
-      setToastMessage(`Rejected ${request.user.firstName} ${request.user.lastName}`)
-      setToastType('success')
-      setShowToast(true)
-      loadJoinRequests()
-    } catch (err) {
-      console.error('Error rejecting request:', err)
-      setToastMessage('Failed to reject request')
-      setToastType('error')
-      setShowToast(true)
     }
   }
 
   const loadInvitations = async () => {
-    setLoadingInvitations(true)
     try {
       const res = await api.get('/orgs/invitations/received')
       if (res.data.success) {
-        setInvitations(res.data.invitations || [])
+        setInvitations(res.data.invitations)
       }
     } catch (err) {
       console.error('Error loading invitations:', err)
-      setInvitations([])
-    } finally {
-      setLoadingInvitations(false)
     }
   }
 
-  const handleAcceptInvitation = async (invitation) => {
-    try {
-      await api.post(`/orgs/invitations/${invitation.id}/accept`)
-      setToastMessage(`Joined ${invitation.organization.name}!`)
-      setToastType('success')
-      setShowToast(true)
-      loadInvitations()
-      refreshContext()
-    } catch (err) {
-      console.error('Error accepting invitation:', err)
-      setToastMessage(err.response?.data?.error || 'Failed to accept invitation')
-      setToastType('error')
-      setShowToast(true)
+  const getRoleColor = (role) => {
+    switch (role) {
+      case 'OWNER': return '#ec4899'
+      case 'ADMIN': return '#00d4ff'
+      case 'MEMBER': return '#4fffb0'
+      default: return '#4fffb0'
     }
   }
 
-  const handleDeclineInvitation = async (invitation) => {
-    try {
-      await api.post(`/orgs/invitations/${invitation.id}/decline`)
-      setToastMessage('Invitation declined')
-      setToastType('success')
-      setShowToast(true)
-      loadInvitations()
-    } catch (err) {
-      console.error('Error declining invitation:', err)
-      setToastMessage('Failed to decline invitation')
-      setToastType('error')
-      setShowToast(true)
-    }
-  }
-
-  const handleViewOrg = (org) => {
-    navigate(`/manage/org/${org.id}`)
-  }
-
-  const handleCreateSuccess = async (newOrg) => {
-    await refreshContext()
+  const handleCreateSuccess = (newOrg) => {
+    refreshContext()
     setShowCreateModal(false)
+    setEditingOrg(null)
   }
 
-  const pendingRequestsCount = joinRequests.length
-  const pendingInvitationsCount = invitations.length
+  const handleDeleteOrg = async (orgId) => {
+    try {
+      await api.delete(`/orgs/${orgId}`)
+      refreshContext()
+      setDeleteConfirmModal(null)
+    } catch (err) {
+      console.error('Error deleting organization:', err)
+      alert('Failed to delete organization')
+    }
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-primary-50/20">
-      <Navbar />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8 gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              My Organizations
-            </h1>
-            <p className="text-gray-600">
-              Manage your organizations and member requests
-            </p>
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;900&family=Barlow:wght@400;500;600&display=swap');
+
+        body {
+          background: #060d1f;
+          margin: 0;
+          font-family: 'Barlow', sans-serif;
+        }
+
+        .manage-container {
+          min-height: 100vh;
+          background: linear-gradient(180deg, #060d1f 0%, #0a1628 50%, #071a2e 100%);
+          padding-top: 80px;
+        }
+
+        .content-wrapper {
+          max-width: 1400px;
+          margin: 0 auto;
+          padding: 3rem 2rem;
+        }
+
+        .page-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 2rem;
+        }
+
+        .header-left {
+          display: flex;
+          flex-direction: column;
+          gap: 0.25rem;
+        }
+
+        .page-title {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 900;
+          font-size: 3.5rem;
+          letter-spacing: -0.02em;
+          text-transform: uppercase;
+          color: #4fffb0;
+          line-height: 1;
+        }
+
+        .page-subtitle {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 700;
+          font-size: 2.5rem;
+          color: rgba(255, 255, 255, 0.8);
+          text-transform: uppercase;
+          letter-spacing: -0.02em;
+        }
+
+        .create-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          background: #4fffb0;
+          color: #060d1f;
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 700;
+          font-size: 1rem;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          padding: 0.75rem 1.5rem;
+          border: none;
+          border-radius: 50px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+        }
+
+        .create-btn:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 25px rgba(79, 255, 176, 0.4);
+        }
+
+        .tabs-container {
+          display: flex;
+          gap: 0.5rem;
+          margin-bottom: 2rem;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+          padding-bottom: 0.5rem;
+        }
+
+        .tab {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 600;
+          font-size: 1rem;
+          letter-spacing: 0.05em;
+          text-transform: uppercase;
+          padding: 0.75rem 1.5rem;
+          background: transparent;
+          border: none;
+          color: rgba(255, 255, 255, 0.5);
+          cursor: pointer;
+          transition: all 0.2s ease;
+          border-radius: 6px;
+          position: relative;
+        }
+
+        .tab:hover {
+          color: rgba(255, 255, 255, 0.8);
+          background: rgba(255, 255, 255, 0.03);
+        }
+
+        .tab.active {
+          color: #4fffb0;
+          background: rgba(79, 255, 176, 0.08);
+        }
+
+        .tab.active::after {
+          content: '';
+          position: absolute;
+          bottom: -0.5rem;
+          left: 0;
+          right: 0;
+          height: 2px;
+          background: #4fffb0;
+          box-shadow: 0 0 10px rgba(79, 255, 176, 0.5);
+        }
+
+        .orgs-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(450px, 1fr));
+          gap: 1.5rem;
+        }
+
+        .org-card {
+          border: 2px dashed rgba(79, 255, 176, 0.3);
+          border-radius: 12px;
+          padding: 0;
+          overflow: hidden;
+          position: relative;
+          transition: all 0.3s ease;
+          display: flex;
+          flex-direction: column;
+          height: 100%;
+        }
+
+
+        .org-card-body {
+          background: linear-gradient(135deg, rgba(10, 22, 40, 0.9), rgba(6, 13, 31, 0.95));
+          position: relative;
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+        }
+
+        .org-card-body::before {
+          content: '';
+          position: absolute;
+          left: 0;
+          top: 0;
+          bottom: 0;
+          width: 8px;
+          background: linear-gradient(180deg, var(--role-color), rgba(236, 72, 153, 0.5));
+        }
+
+        .org-card-body::after {
+          content: '';
+          position: absolute;
+          right: 20px;
+          top: 50%;
+          transform: translateY(-50%);
+          width: 30px;
+          height: 30px;
+          border-radius: 50%;
+          background: rgba(79, 255, 176, 0.05);
+          border: 2px solid rgba(79, 255, 176, 0.2);
+        }
+
+        .org-card:hover {
+          border-color: var(--role-color);
+          transform: translateY(-3px) scale(1.01);
+          box-shadow: 0 8px 30px rgba(79, 255, 176, 0.25);
+        }
+
+        .org-card-content {
+          padding: 1.5rem;
+          padding-left: 2rem;
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+        }
+
+        .org-header {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          margin-bottom: 1rem;
+        }
+
+        .org-title-section {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+        }
+
+        .org-logo {
+          width: 60px;
+          height: 60px;
+          border-radius: 50%;
+          object-fit: cover;
+          border: 2px solid rgba(79, 255, 176, 0.3);
+          background: rgba(6, 13, 31, 0.8);
+        }
+
+        .org-name {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 900;
+          font-size: 1.75rem;
+          letter-spacing: -0.02em;
+          text-transform: uppercase;
+          color: #fff;
+          margin-bottom: 0.75rem;
+        }
+
+        .role-ribbon {
+          display: inline-block;
+          background: var(--role-color);
+          color: #060d1f;
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 700;
+          font-size: 0.85rem;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          padding: 0.4rem 1.2rem;
+          clip-path: polygon(0 0, 100% 0, 95% 100%, 0% 100%);
+          transform: skew(-5deg);
+        }
+
+        .org-description {
+          font-family: 'Barlow', sans-serif;
+          font-size: 0.95rem;
+          color: rgba(255, 255, 255, 0.65);
+          line-height: 1.6;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+        }
+
+        .org-sports {
+          display: flex;
+          gap: 0.6rem;
+          flex-wrap: wrap;
+        }
+
+        .sport-tag {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 600;
+          font-size: 0.85rem;
+          text-transform: uppercase;
+          padding: 0.35rem 0.9rem;
+          background: rgba(79, 255, 176, 0.1);
+          border: 1px solid rgba(79, 255, 176, 0.3);
+          border-radius: 14px;
+          color: #4fffb0;
+        }
+
+        .org-stats {
+          display: flex;
+          gap: 1.5rem;
+          font-family: 'Barlow', sans-serif;
+          font-size: 1rem;
+          color: rgba(255, 255, 255, 0.7);
+        }
+
+        .org-stat-value {
+          color: #4fffb0;
+          font-weight: 700;
+          font-family: 'Barlow Condensed', sans-serif;
+          font-size: 1.1rem;
+        }
+
+        .org-contact {
+          display: flex;
+          flex-direction: column;
+          gap: 0.6rem;
+          font-family: 'Barlow', sans-serif;
+          font-size: 0.9rem;
+          color: rgba(255, 255, 255, 0.55);
+        }
+
+        .contact-item {
+          display: flex;
+          align-items: center;
+          gap: 0.6rem;
+        }
+
+        .org-actions {
+          margin-top: auto;
+          display: flex;
+          gap: 0.75rem;
+          align-items: center;
+          flex-wrap: wrap;
+        }
+
+        .btn-primary {
+          background: #4fffb0;
+          color: #060d1f;
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 700;
+          font-size: 1rem;
+          text-transform: uppercase;
+          padding: 0.75rem 1.5rem;
+          border: none;
+          border-radius: 50px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 15px rgba(79, 255, 176, 0.4);
+        }
+
+        .btn-secondary {
+          background: transparent;
+          color: rgba(255, 255, 255, 0.8);
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 600;
+          font-size: 0.95rem;
+          text-transform: uppercase;
+          padding: 0.65rem 1.25rem;
+          border: 1px solid rgba(255, 255, 255, 0.3);
+          border-radius: 8px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .btn-secondary:hover {
+          border-color: #4fffb0;
+          color: #4fffb0;
+        }
+
+        .btn-tertiary {
+          background: transparent;
+          color: rgba(255, 255, 255, 0.6);
+          font-family: 'Barlow', sans-serif;
+          font-size: 0.9rem;
+          padding: 0.4rem 0.75rem;
+          border: none;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          display: flex;
+          align-items: center;
+          gap: 0.35rem;
+        }
+
+        .btn-delete {
+          background: transparent;
+          color: rgba(236, 72, 153, 0.7);
+          font-family: 'Barlow', sans-serif;
+          font-size: 0.9rem;
+          padding: 0.4rem 0.75rem;
+          border: none;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          display: flex;
+          align-items: center;
+          gap: 0.35rem;
+        }
+
+        .btn-delete:hover {
+          color: #ec4899;
+        }
+
+        .btn-tertiary:hover {
+          color: #00d4ff;
+        }
+
+        .delete-modal-overlay {
+          position: fixed;
+          inset: 0;
+          z-index: 999;
+          background: rgba(6, 13, 31, 0.85);
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 2rem;
+        }
+
+        .delete-modal-content {
+          background: linear-gradient(135deg, rgba(10, 22, 40, 0.95), rgba(6, 13, 31, 0.98));
+          backdrop-filter: blur(20px);
+          -webkit-backdrop-filter: blur(20px);
+          border: 2px solid rgba(236, 72, 153, 0.3);
+          border-radius: 16px;
+          padding: 2.5rem;
+          max-width: 500px;
+          width: 100%;
+          box-shadow: 0 0 40px rgba(236, 72, 153, 0.2);
+          text-align: center;
+        }
+
+        .delete-modal-icon {
+          font-size: 4rem;
+          margin-bottom: 1rem;
+        }
+
+        .delete-modal-title {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 900;
+          font-size: 2rem;
+          letter-spacing: -0.02em;
+          text-transform: uppercase;
+          color: #ec4899;
+          margin-bottom: 1rem;
+        }
+
+        .delete-modal-text {
+          font-family: 'Barlow', sans-serif;
+          font-size: 1rem;
+          color: rgba(255, 255, 255, 0.7);
+          margin-bottom: 0.5rem;
+          line-height: 1.6;
+        }
+
+        .delete-modal-org-name {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 700;
+          font-size: 1.5rem;
+          color: #fff;
+          margin: 1.5rem 0;
+          padding: 1rem;
+          background: rgba(236, 72, 153, 0.1);
+          border-radius: 8px;
+          border-left: 3px solid #ec4899;
+        }
+
+        .delete-modal-warning {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 700;
+          font-size: 0.9rem;
+          text-transform: uppercase;
+          color: #ec4899;
+          margin-bottom: 2rem;
+        }
+
+        .delete-modal-actions {
+          display: flex;
+          gap: 1rem;
+          justify-content: center;
+        }
+
+        .btn-confirm-delete {
+          background: #ec4899;
+          color: #fff;
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 700;
+          font-size: 0.95rem;
+          text-transform: uppercase;
+          padding: 0.75rem 2rem;
+          border: none;
+          border-radius: 50px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+        }
+
+        .btn-confirm-delete:hover {
+          background: #d81b60;
+          transform: translateY(-2px);
+          box-shadow: 0 4px 15px rgba(236, 72, 153, 0.4);
+        }
+
+        .btn-cancel {
+          background: transparent;
+          color: rgba(255, 255, 255, 0.7);
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 600;
+          font-size: 0.95rem;
+          text-transform: uppercase;
+          padding: 0.75rem 2rem;
+          border: 1px solid rgba(255, 255, 255, 0.3);
+          border-radius: 50px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .btn-cancel:hover {
+          border-color: #4fffb0;
+          color: #4fffb0;
+        }
+
+        .empty-state {
+          text-align: center;
+          padding: 4rem 2rem;
+        }
+
+        .empty-emoji {
+          font-size: 4rem;
+          margin-bottom: 1rem;
+          animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+          0%, 100% {
+            transform: translateY(0px);
+          }
+          50% {
+            transform: translateY(-15px);
+          }
+        }
+
+        .empty-text {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 700;
+          font-size: 1.5rem;
+          text-transform: uppercase;
+          color: rgba(255, 255, 255, 0.6);
+        }
+
+        @media (max-width: 768px) {
+          .orgs-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+      `}</style>
+
+      <div className="manage-container">
+        <Navbar />
+        <div className="content-wrapper">
+          <div className="page-header">
+            <div className="header-left">
+              <div className="page-title">YOUR ORGANIZATIONS</div>
+              <div className="page-subtitle">THE HOME OF EVERY COMPETITION.</div>
+            </div>
+            <button className="create-btn" onClick={() => setShowCreateModal(true)}>
+              + CREATE ORGANIZATION
+            </button>
           </div>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-xl transition-all shadow-sm hover:shadow-md flex items-center gap-2 self-start sm:self-auto"
-          >
-            <PlusIcon className="w-5 h-5" />
-            Create Organization
-          </button>
-        </div>
 
-        {/* Tabs */}
-        <div className="flex gap-2 mb-6 border-b border-gray-200">
-          <button
-            onClick={() => setActiveTab('organizations')}
-            className={`px-6 py-3 font-medium transition-all border-b-2 ${
-              activeTab === 'organizations'
-                ? 'border-primary-600 text-primary-600'
-                : 'border-transparent text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            Organizations ({organizations.length})
-          </button>
-          <button
-            onClick={() => setActiveTab('requests')}
-            className={`px-6 py-3 font-medium transition-all border-b-2 relative ${
-              activeTab === 'requests'
-                ? 'border-primary-600 text-primary-600'
-                : 'border-transparent text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            Member Requests ({pendingRequestsCount})
-            {pendingRequestsCount > 0 && (
-              <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                {pendingRequestsCount}
-              </span>
-            )}
-          </button>
-          <button
-            onClick={() => setActiveTab('invitations')}
-            className={`px-6 py-3 font-medium transition-all border-b-2 relative ${
-              activeTab === 'invitations'
-                ? 'border-primary-600 text-primary-600'
-                : 'border-transparent text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            Invitations ({pendingInvitationsCount})
-            {pendingInvitationsCount > 0 && (
-              <span className="absolute -top-1 -right-1 w-5 h-5 bg-green-500 text-white text-xs rounded-full flex items-center justify-center">
-                {pendingInvitationsCount}
-              </span>
-            )}
-          </button>
-        </div>
+          <CreateOrganizationModal
+            isOpen={showCreateModal}
+            onClose={() => {
+              setShowCreateModal(false)
+              setEditingOrg(null)
+            }}
+            onSuccess={handleCreateSuccess}
+            editOrg={editingOrg}
+          />
 
-        {/* Organizations Tab */}
-        {activeTab === 'organizations' && (
-          <>
-            {loading ? (
-              <div className="flex items-center justify-center py-20">
-                <div className="flex flex-col items-center gap-4">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-                  <p className="text-sm text-gray-500">Loading organizations...</p>
+          <div className="tabs-container">
+            <button
+              className={`tab ${activeTab === 'organizations' ? 'active' : ''}`}
+              onClick={() => setActiveTab('organizations')}
+            >
+              My Organizations
+            </button>
+            <button
+              className={`tab ${activeTab === 'requests' ? 'active' : ''}`}
+              onClick={() => setActiveTab('requests')}
+            >
+              Join Requests
+            </button>
+            <button
+              className={`tab ${activeTab === 'invitations' ? 'active' : ''}`}
+              onClick={() => setActiveTab('invitations')}
+            >
+              Join Invitations
+            </button>
+          </div>
+
+          {activeTab === 'organizations' && (
+            <>
+              {loading ? (
+                <div className="empty-state">
+                  <div className="empty-text">Loading...</div>
                 </div>
-              </div>
-            ) : organizations.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20">
-                <div className="glass-card rounded-2xl p-12 max-w-lg text-center">
-                  <BuildingIcon className="w-16 h-16 text-gray-400 mx-auto mb-6" />
-                  <h2 className="text-2xl font-bold text-gray-900 mb-3">No organizations yet</h2>
-                  <p className="text-gray-600 mb-8">
-                    Create your first organization to start managing tournaments and events
-                  </p>
+              ) : organizations.length === 0 ? (
+                <div className="empty-state">
+                  <div className="empty-emoji">🏟️</div>
+                  <div className="empty-text">You're not in any organizations yet</div>
+                </div>
+              ) : (
+                <div className="orgs-grid">
+                  {organizations.map(org => (
+                    <div
+                      key={org.id}
+                      className="org-card"
+                      style={{ '--role-color': getRoleColor(org.myRole) }}
+                    >
+                      <div className="org-card-body">
+                        <div className="org-card-content">
+                          <div className="org-header">
+                            <div className="org-title-section">
+                              {org.logoUrl && (
+                                <img src={org.logoUrl} alt={org.name} className="org-logo" />
+                              )}
+                              <div>
+                                <div className="org-name">{org.name}</div>
+                                <div className="role-ribbon" style={{ background: getRoleColor(org.myRole) }}>
+                                  {org.myRole}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                        {org.sports && org.sports.length > 0 && (
+                          <div className="org-sports">
+                            {org.sports.map((sport, idx) => (
+                              <span key={idx} className="sport-tag">{sport}</span>
+                            ))}
+                          </div>
+                        )}
+
+                        {org.description && (
+                          <div className="org-description">{org.description}</div>
+                        )}
+
+                        <div className="org-stats">
+                          <span>
+                            <span className="org-stat-value">{org.memberCount || 0}</span> Members
+                          </span>
+                          <span>•</span>
+                          <span>
+                            <span className="org-stat-value">{org.tournamentCount || 0}</span> Tournaments
+                          </span>
+                        </div>
+
+                        {(org.location || org.contactEmail) && (
+                          <div className="org-contact">
+                            {org.location && <div className="contact-item">📍 {org.location}</div>}
+                            {org.contactEmail && <div className="contact-item">✉ {org.contactEmail}</div>}
+                          </div>
+                        )}
+
+                        <div className="org-actions">
+                          <button
+                            className="btn-primary"
+                            onClick={() => navigate(`/manage/org/${org.id}`)}
+                          >
+                            Manage Org
+                          </button>
+                          <button
+                            className="btn-secondary"
+                            onClick={() => navigate(`/orgs/${org.id}`)}
+                          >
+                            Minisite
+                          </button>
+                          {(org.myRole === 'OWNER' || org.myRole === 'ADMIN') && (
+                            <>
+                              <button
+                                className="btn-tertiary"
+                                onClick={() => navigate(`/orgs/edit?id=${org.id}`)}
+                              >
+                                ⚙ Edit Minisite
+                              </button>
+                              <button
+                                className="btn-tertiary"
+                                onClick={() => {
+                                  setEditingOrg(org)
+                                  setShowCreateModal(true)
+                                }}
+                              >
+                                ✏ Edit Org
+                              </button>
+                            </>
+                          )}
+                          {org.myRole === 'OWNER' && (
+                            <button
+                              className="btn-delete"
+                              onClick={() => setDeleteConfirmModal(org)}
+                            >
+                              🗑 Delete Org
+                            </button>
+                          )}
+                        </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+
+          {activeTab === 'requests' && (
+            <div className="empty-state">
+              <div className="empty-text">✓ All caught up! No pending requests.</div>
+            </div>
+          )}
+
+          {activeTab === 'invitations' && (
+            <div className="empty-state">
+              <div className="empty-text">📬 No invitations yet.</div>
+            </div>
+          )}
+
+          {deleteConfirmModal && (
+            <div className="delete-modal-overlay" onClick={() => setDeleteConfirmModal(null)}>
+              <div className="delete-modal-content" onClick={(e) => e.stopPropagation()}>
+                <div className="delete-modal-icon">🏟️</div>
+                <div className="delete-modal-title">GAME OVER?</div>
+                <div className="delete-modal-text">
+                  You're about to bench this organization permanently.
+                </div>
+                <div className="delete-modal-org-name">{deleteConfirmModal.name}</div>
+                <div className="delete-modal-warning">
+                  ⚠ This action can't be reversed. All tournaments, members, and data will be lost.
+                </div>
+                <div className="delete-modal-actions">
                   <button
-                    onClick={() => setShowCreateModal(true)}
-                    className="px-8 py-3 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-xl transition-all shadow-sm hover:shadow-md inline-flex items-center gap-2"
+                    className="btn-confirm-delete"
+                    onClick={() => handleDeleteOrg(deleteConfirmModal.id)}
                   >
-                    <PlusIcon className="w-5 h-5" />
-                    Create Your First Organization
+                    Yes, Delete Forever
+                  </button>
+                  <button
+                    className="btn-cancel"
+                    onClick={() => setDeleteConfirmModal(null)}
+                  >
+                    Keep Playing
                   </button>
                 </div>
               </div>
-            ) : (
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {organizations.map((org) => (
-                  <div key={org.id} className="glass-card rounded-xl p-6 hover:shadow-lg transition-all">
-                    {/* Org Header */}
-                    <div className="flex items-start gap-4 mb-4">
-                      <div className="w-14 h-14 shrink-0 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center shadow-md text-white text-xl font-bold">
-                        {org.name.charAt(0).toUpperCase()}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-lg font-semibold text-gray-900 truncate mb-1">
-                          {org.name}
-                        </h3>
-                        <span className={`inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full ${
-                          org.myRole === 'OWNER'
-                            ? 'bg-primary-50 text-primary-700 border border-primary-200'
-                            : org.myRole === 'ADMIN'
-                            ? 'bg-purple-50 text-purple-700 border border-purple-200'
-                            : 'bg-blue-50 text-blue-700 border border-blue-200'
-                        }`}>
-                          {org.myRole === 'OWNER' ? '👑 Owner' : org.myRole === 'ADMIN' ? '⚡ Admin' : '✓ Member'}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Tagline */}
-                    {org.tagline && (
-                      <p className="text-sm text-gray-600 mb-4 line-clamp-2">{org.tagline}</p>
-                    )}
-
-                    {/* Stats */}
-                    <div className="flex items-center gap-4 mb-4 text-sm text-gray-600">
-                      <div className="flex items-center gap-1.5">
-                        <UsersIcon className="w-4 h-4 text-primary-500" />
-                        <span>{org.memberCount || 0} members</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <svg className="w-4 h-4 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-                        </svg>
-                        <span>{org.tournamentCount || 0} tournaments</span>
-                      </div>
-                    </div>
-
-                    {/* Action Buttons */}
-                    <div className="flex gap-2 pt-4 border-t border-gray-100">
-                      <button
-                        onClick={() => navigate(`/manage/org/${org.id}`)}
-                        className="flex-1 px-4 py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-all text-sm"
-                      >
-                        Manage
-                      </button>
-                      <button
-                        onClick={() => navigate(`/orgs/${org.slug}`)}
-                        className="flex-1 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-all text-sm"
-                      >
-                        Minisite
-                      </button>
-                    </div>
-
-                    {/* Edit Minisite Button (for OWNER/ADMIN only) */}
-                    {(org.myRole === 'OWNER' || org.myRole === 'ADMIN') && (
-                      <button
-                        onClick={() => navigate('/orgs/edit')}
-                        className="w-full mt-2 px-4 py-2 border-2 border-gray-300 hover:border-primary-500 text-gray-700 hover:text-primary-600 font-medium rounded-lg transition-all text-sm"
-                      >
-                        ✏️ Edit Minisite
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </>
-        )}
-
-        {/* Member Requests Tab */}
-        {activeTab === 'requests' && (
-          <div className="space-y-4">
-            {loadingRequests ? (
-              <div className="flex items-center justify-center py-20">
-                <div className="flex flex-col items-center gap-4">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-                  <p className="text-sm text-gray-500">Loading requests...</p>
-                </div>
-              </div>
-            ) : joinRequests.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20">
-                <div className="glass-card rounded-2xl p-12 max-w-lg text-center">
-                  <UsersIcon className="w-16 h-16 text-gray-400 mx-auto mb-6" />
-                  <h2 className="text-2xl font-bold text-gray-900 mb-3">No pending requests</h2>
-                  <p className="text-gray-600">
-                    You don't have any pending member requests at the moment
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {joinRequests.map((request) => (
-                  <div key={request.id} className="glass-card rounded-xl p-6 hover:shadow-lg transition-all">
-                    <div className="flex flex-col md:flex-row md:items-center gap-4">
-                      {/* User Info */}
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-3">
-                          <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-700 rounded-full flex items-center justify-center text-white font-bold text-lg">
-                            {request.user.firstName.charAt(0)}{request.user.lastName.charAt(0)}
-                          </div>
-                          <div>
-                            <h3 className="text-lg font-bold text-gray-900">
-                              {request.user.firstName} {request.user.lastName}
-                            </h3>
-                            <p className="text-sm text-gray-500">{request.user.email}</p>
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
-                          <div>
-                            <p className="text-xs text-gray-500 mb-1">Organization</p>
-                            <p className="text-sm font-medium text-gray-900">{request.organization.name}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-gray-500 mb-1">Applying for</p>
-                            <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
-                              request.role === 'ADMIN'
-                                ? 'bg-purple-100 text-purple-700'
-                                : 'bg-blue-100 text-blue-700'
-                            }`}>
-                              {request.role}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="space-y-2">
-                          <div>
-                            <p className="text-xs text-gray-500 mb-1">Why they want to join</p>
-                            <p className="text-sm text-gray-700 leading-relaxed">{request.reason}</p>
-                          </div>
-                          {request.experience && (
-                            <div>
-                              <p className="text-xs text-gray-500 mb-1">Experience</p>
-                              <p className="text-sm text-gray-700 leading-relaxed">{request.experience}</p>
-                            </div>
-                          )}
-                        </div>
-
-                        <p className="text-xs text-gray-400 mt-3">
-                          Requested {new Date(request.createdAt).toLocaleDateString()}
-                        </p>
-                      </div>
-
-                      {/* Actions */}
-                      <div className="flex md:flex-col gap-3 shrink-0">
-                        <button
-                          onClick={() => handleAcceptRequest(request)}
-                          className="flex-1 md:w-32 px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl transition-all flex items-center justify-center gap-2"
-                        >
-                          <CheckIcon className="w-5 h-5" />
-                          Accept
-                        </button>
-                        <button
-                          onClick={() => handleRejectRequest(request)}
-                          className="flex-1 md:w-32 px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-medium rounded-xl transition-all flex items-center justify-center gap-2"
-                        >
-                          <XIcon className="w-5 h-5" />
-                          Reject
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Invitations Tab */}
-        {activeTab === 'invitations' && (
-          <div className="space-y-4">
-            {loadingInvitations ? (
-              <div className="flex items-center justify-center py-20">
-                <div className="flex flex-col items-center gap-4">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-                  <p className="text-sm text-gray-500">Loading invitations...</p>
-                </div>
-              </div>
-            ) : invitations.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20">
-                <div className="glass-card rounded-2xl p-12 max-w-lg text-center">
-                  <svg className="w-16 h-16 text-gray-400 mx-auto mb-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 19v-8.93a2 2 0 01.89-1.664l7-4.666a2 2 0 012.22 0l7 4.666A2 2 0 0121 10.07V19M3 19a2 2 0 002 2h14a2 2 0 002-2M3 19l6.75-4.5M21 19l-6.75-4.5M3 10l6.75 4.5M21 10l-6.75 4.5m0 0l-1.14.76a2 2 0 01-2.22 0l-1.14-.76" />
-                  </svg>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-3">No invitations</h2>
-                  <p className="text-gray-600">
-                    You don't have any pending invitations at the moment
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {invitations.map((invitation) => (
-                  <div key={invitation.id} className="glass-card rounded-xl p-6 hover:shadow-lg transition-all">
-                    <div className="flex flex-col md:flex-row md:items-center gap-4">
-                      {/* Org Info */}
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-3">
-                          <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-700 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-md">
-                            {invitation.organization.name.charAt(0).toUpperCase()}
-                          </div>
-                          <div>
-                            <h3 className="text-lg font-bold text-gray-900">
-                              {invitation.organization.name}
-                            </h3>
-                            <p className="text-sm text-gray-500">
-                              Invited by {invitation.inviter?.firstName} {invitation.inviter?.lastName}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium text-gray-700">Role:</span>
-                            <span className={`inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-full ${
-                              invitation.role === 'ADMIN'
-                                ? 'bg-purple-50 text-purple-700 border border-purple-200'
-                                : 'bg-blue-50 text-blue-700 border border-blue-200'
-                            }`}>
-                              {invitation.role === 'ADMIN' ? '⚡ Admin' : '✓ Member'}
-                            </span>
-                          </div>
-
-                          {invitation.message && (
-                            <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-100">
-                              <p className="text-sm font-medium text-blue-900 mb-1">Message:</p>
-                              <p className="text-sm text-blue-700 leading-relaxed">{invitation.message}</p>
-                            </div>
-                          )}
-                        </div>
-
-                        <p className="text-xs text-gray-400 mt-3">
-                          Invited {new Date(invitation.createdAt).toLocaleDateString()}
-                          {invitation.expiresAt && (
-                            <span className="ml-2">
-                              • Expires {new Date(invitation.expiresAt).toLocaleDateString()}
-                            </span>
-                          )}
-                        </p>
-                      </div>
-
-                      {/* Actions */}
-                      <div className="flex md:flex-col gap-3 shrink-0">
-                        <button
-                          onClick={() => handleAcceptInvitation(invitation)}
-                          className="flex-1 md:w-32 px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl transition-all flex items-center justify-center gap-2"
-                        >
-                          <CheckIcon className="w-5 h-5" />
-                          Accept
-                        </button>
-                        <button
-                          onClick={() => handleDeclineInvitation(invitation)}
-                          className="flex-1 md:w-32 px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium rounded-xl transition-all flex items-center justify-center gap-2"
-                        >
-                          <XIcon className="w-5 h-5" />
-                          Decline
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-      </main>
-
-      {/* Create Organization Modal */}
-      <CreateOrganizationModal
-        isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
-        onSuccess={handleCreateSuccess}
-      />
-
-      {showToast && (
-        <Toast
-          message={toastMessage}
-          type={toastType}
-          onClose={() => setShowToast(false)}
-        />
-      )}
-    </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </>
   )
 }
 

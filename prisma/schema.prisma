@@ -52,8 +52,10 @@ model Organization {
   membershipBenefits String?
   membershipFee      String?
   location           String?
+  contactPerson      String?
   contactEmail       String?
   contactPhone       String?
+  sports             String[]     @default([])
   instagramUrl       String?
   facebookUrl        String?
   twitterUrl         String?

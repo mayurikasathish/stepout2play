@@ -24,9 +24,14 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('authToken')
-      window.location.href = '/login'
+    // Only redirect on 401 if user is already logged in (has a token)
+    // Don't redirect on login/signup failures
+    if (error.response?.status === 401 && localStorage.getItem('authToken')) {
+      // Token expired or invalid - only redirect if not on login/signup
+      if (!error.config.url.includes('/auth/login') && !error.config.url.includes('/auth/register')) {
+        localStorage.removeItem('authToken')
+        window.location.href = '/'
+      }
     }
     return Promise.reject(error)
   }

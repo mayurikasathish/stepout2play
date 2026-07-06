@@ -149,185 +149,333 @@ const Navbar = () => {
   ]
 
   return (
-    <nav className="glass-nav sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;900&family=Barlow:wght@400;500;600&display=swap');
 
-          {/* Logo - Smaller & Cleaner */}
-          <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
-            <div className="w-8 h-8 bg-gradient-to-br from-primary-600 to-primary-700 rounded-lg flex items-center justify-center shadow-sm">
-              <span className="text-white font-black text-base">S</span>
-            </div>
-            <span className="text-base font-bold text-gray-900">StepOut2Play</span>
+        .dark-nav {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          z-index: 200;
+          background: rgba(6, 13, 31, 0.45);
+          backdrop-filter: blur(20px);
+          -webkit-backdrop-filter: blur(20px);
+          border-bottom: 1px solid rgba(255,255,255,0.07);
+          height: 64px;
+        }
+
+        .nav-container {
+          max-width: 1400px;
+          margin: 0 auto;
+          padding: 0 2rem;
+          height: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+
+        .nav-logo {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 900;
+          font-size: 1.4rem;
+          letter-spacing: -0.02em;
+          color: #fff;
+          text-transform: uppercase;
+          cursor: pointer;
+          transition: opacity 0.2s ease;
+        }
+
+        .nav-logo:hover {
+          opacity: 0.8;
+        }
+
+        .nav-logo span {
+          color: #4fffb0;
+        }
+
+        .nav-center {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+
+        .nav-link {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 600;
+          font-size: 0.95rem;
+          letter-spacing: 0.03em;
+          text-transform: uppercase;
+          padding: 0.6rem 1.2rem;
+          border-radius: 6px;
+          background: transparent;
+          border: none;
+          color: rgba(255,255,255,0.7);
+          cursor: pointer;
+          transition: all 0.2s ease;
+          position: relative;
+        }
+
+        .nav-link:hover {
+          color: #fff;
+          background: rgba(255,255,255,0.05);
+        }
+
+        .nav-link.active {
+          color: #4fffb0;
+          background: rgba(79,255,176,0.1);
+        }
+
+        .nav-link.live-btn {
+          background: linear-gradient(135deg, #1e40af, #1e3a8a);
+          color: #fff;
+          padding: 0.6rem 1.5rem;
+          border-radius: 50px;
+          box-shadow: 0 0 20px rgba(30, 64, 175, 0.4);
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+
+        .nav-link.live-btn:hover {
+          box-shadow: 0 0 30px rgba(30, 64, 175, 0.6);
+          transform: translateY(-1px);
+        }
+
+        .live-dot {
+          width: 8px;
+          height: 8px;
+          background: #ef4444;
+          border-radius: 50%;
+          animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @keyframes pulse {
+          0%, 100% {
+            opacity: 1;
+          }
+          50% {
+            opacity: 0.5;
+          }
+        }
+
+        .nav-badge {
+          position: absolute;
+          top: -4px;
+          right: -4px;
+          background: #ef4444;
+          color: #fff;
+          font-size: 0.7rem;
+          font-weight: 700;
+          padding: 0.15rem 0.4rem;
+          border-radius: 10px;
+          min-width: 18px;
+          text-align: center;
+        }
+
+        .nav-right {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+        }
+
+        .bell-btn {
+          position: relative;
+          background: transparent;
+          border: none;
+          padding: 0.5rem;
+          cursor: pointer;
+          color: rgba(255,255,255,0.7);
+          transition: color 0.2s ease;
+        }
+
+        .bell-btn:hover {
+          color: #fff;
+        }
+
+        .bell-badge {
+          position: absolute;
+          top: 4px;
+          right: 4px;
+          background: #ef4444;
+          color: #fff;
+          font-size: 0.65rem;
+          font-weight: 700;
+          padding: 0.15rem 0.35rem;
+          border-radius: 8px;
+          min-width: 16px;
+        }
+
+        .user-menu-btn {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          background: transparent;
+          border: none;
+          padding: 0.4rem 0.8rem;
+          border-radius: 8px;
+          cursor: pointer;
+          transition: background 0.2s ease;
+        }
+
+        .user-menu-btn:hover {
+          background: rgba(255,255,255,0.05);
+        }
+
+        .user-avatar {
+          width: 36px;
+          height: 36px;
+          background: linear-gradient(135deg, #1B4332, #2d6a4f);
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #4fffb0;
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 700;
+          font-size: 0.9rem;
+        }
+
+        .user-info {
+          text-align: right;
+        }
+
+        .user-name {
+          font-family: 'Barlow', sans-serif;
+          font-size: 0.9rem;
+          font-weight: 600;
+          color: #fff;
+        }
+
+        .user-email {
+          font-family: 'Barlow', sans-serif;
+          font-size: 0.75rem;
+          color: rgba(255,255,255,0.5);
+        }
+
+        .dropdown {
+          position: absolute;
+          top: calc(100% + 0.5rem);
+          right: 0;
+          background: linear-gradient(160deg, #0a1628 0%, #060d1f 100%);
+          border: 1px solid rgba(255,255,255,0.1);
+          border-radius: 12px;
+          padding: 0.5rem;
+          min-width: 200px;
+          box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+          backdrop-filter: blur(20px);
+        }
+
+        .dropdown-item {
+          font-family: 'Barlow', sans-serif;
+          font-size: 0.9rem;
+          padding: 0.75rem 1rem;
+          background: transparent;
+          border: none;
+          color: rgba(255,255,255,0.8);
+          cursor: pointer;
+          width: 100%;
+          text-align: left;
+          border-radius: 6px;
+          transition: all 0.2s ease;
+        }
+
+        .dropdown-item:hover {
+          background: rgba(255,255,255,0.05);
+          color: #fff;
+        }
+
+        .dropdown-item.danger {
+          color: #ef4444;
+        }
+
+        .dropdown-item.danger:hover {
+          background: rgba(239, 68, 68, 0.1);
+        }
+
+        .dropdown-divider {
+          height: 1px;
+          background: rgba(255,255,255,0.1);
+          margin: 0.5rem 0;
+        }
+
+        @media (max-width: 768px) {
+          .nav-container {
+            padding: 0 1rem;
+          }
+          .nav-center {
+            display: none;
+          }
+          .user-info {
+            display: none;
+          }
+        }
+      `}</style>
+
+      <nav className="dark-nav">
+        <div className="nav-container">
+          <div className="nav-logo" onClick={() => navigate('/')}>
+            Step<span>Out</span>2Play
           </div>
 
-          {/* Navigation */}
-          <div className="hidden md:flex items-center gap-1">
+          <div className="nav-center">
             {navItems.map((item) => (
               <button
                 key={item.path}
                 onClick={() => navigate(item.path)}
-                className={`px-4 py-2 rounded-lg text-[15px] font-medium transition-all whitespace-nowrap relative ${
-                  item.isLive
-                    ? isActive(item.path)
-                      ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
-                      : 'bg-gradient-to-r from-blue-400 to-blue-500 text-white hover:from-blue-500 hover:to-blue-600 shadow-md'
-                    : isActive(item.path)
-                    ? 'bg-primary-50 text-primary-700'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                }`}
+                className={item.isLive ? 'nav-link live-btn' : `nav-link ${isActive(item.path) ? 'active' : ''}`}
               >
-                <span className="flex items-center gap-2">
-                  {item.isLive && (
-                    <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-                    </span>
-                  )}
-                  {item.name}
-                  {item.badge && (
-                    <span className="w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
-                      {item.badge > 9 ? '9+' : item.badge}
-                    </span>
-                  )}
-                </span>
+                {item.isLive && <span className="live-dot"></span>}
+                {item.name}
+                {item.badge && <span className="nav-badge">{item.badge > 9 ? '9+' : item.badge}</span>}
               </button>
             ))}
 
-            {/* Explore dropdown */}
-            <div className="relative" ref={exploreRef}>
-              <button
-                onClick={() => setIsExploreOpen((o) => !o)}
-                className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-[15px] font-medium transition-all ${
-                  isExploreActive
-                    ? 'bg-primary-50 text-primary-700'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                }`}
-              >
-                Explore
-                <ChevronDownIcon
-                  className={`w-4 h-4 transition-transform duration-200 ${isExploreOpen ? 'rotate-180' : ''}`}
-                />
-              </button>
-
-              {isExploreOpen && (
-                <div className="absolute left-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-200 py-2 z-50">
-                  {exploreItems.map(({ label, description, path, Icon }) => (
-                    <button
-                      key={path}
-                      onClick={() => navigate(path)}
-                      className={`w-full flex items-start gap-3 px-4 py-3 text-left transition-colors ${
-                        isActive(path) ? 'bg-primary-50' : 'hover:bg-green-50'
-                      }`}
-                    >
-                      <div className={`mt-0.5 w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                        isActive(path)
-                          ? 'bg-primary-100 text-primary-600'
-                          : 'bg-gray-100 text-gray-500'
-                      }`}>
-                        <Icon className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <p className={`text-sm font-medium ${isActive(path) ? 'text-primary-700' : 'text-gray-900'}`}>
-                          {label}
-                        </p>
-                        <p className="text-xs text-gray-500 mt-0.5">{description}</p>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
           </div>
 
-          {/* User Menu */}
-          <div className="flex items-center gap-3">
+          <div className="nav-right">
             {user ? (
               <>
-                {/* Notifications Bell */}
-                <button
-                  onClick={() => navigate('/notifications')}
-                  className="relative p-2 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  <BellIcon className="w-6 h-6 text-gray-600" />
+                <button onClick={() => navigate('/notifications')} className="bell-btn">
+                  <BellIcon className="w-6 h-6" />
                   {unreadNotifications > 0 && (
-                    <span className="absolute top-0 right-0 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
-                      {unreadNotifications > 9 ? '9+' : unreadNotifications}
-                    </span>
+                    <span className="bell-badge">{unreadNotifications > 9 ? '9+' : unreadNotifications}</span>
                   )}
                 </button>
 
-                <div className="relative" ref={userMenuRef}>
-                <button
-                  onClick={() => setIsUserMenuOpen((o) => !o)}
-                  className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  <div className="hidden sm:block text-right">
-                    <p className="text-sm font-medium text-gray-900">
-                      {user?.firstName} {user?.lastName}
-                    </p>
-                    <p className="text-xs text-gray-500">{user?.email}</p>
-                  </div>
-                  <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-700 rounded-full flex items-center justify-center shadow-sm">
-                    <span className="text-white font-semibold text-sm">
-                      {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
-                    </span>
-                  </div>
-                </button>
-
-                {isUserMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-gray-200 py-2 z-50">
-                    <div className="px-4 py-3 border-b border-gray-100">
-                      <p className="text-sm font-medium text-gray-900">
-                        {user?.firstName} {user?.lastName}
-                      </p>
-                      <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+                <div style={{ position: 'relative' }} ref={userMenuRef}>
+                  <button onClick={() => setIsUserMenuOpen((o) => !o)} className="user-menu-btn">
+                    <div className="user-info">
+                      <div className="user-name">{user?.firstName} {user?.lastName}</div>
+                      <div className="user-email">{user?.email}</div>
                     </div>
-                    <button
-                      onClick={() => navigate('/profile')}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                    >
-                      My Profile
-                    </button>
-                    <button
-                      onClick={() => navigate('/settings')}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                    >
-                      Settings
-                    </button>
-                    <div className="border-t border-gray-100 mt-2 pt-2">
-                      <button
-                        onClick={handleLogout}
-                        className="w-full text-left px-4 py-2 text-sm text-danger-600 hover:bg-danger-50 transition-colors"
-                      >
+                    <div className="user-avatar">
+                      {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
+                    </div>
+                  </button>
+
+                  {isUserMenuOpen && (
+                    <div className="dropdown">
+                      <button onClick={() => navigate('/profile')} className="dropdown-item">
+                        My Profile
+                      </button>
+                      <button onClick={() => navigate('/settings')} className="dropdown-item">
+                        Settings
+                      </button>
+                      <div className="dropdown-divider"></div>
+                      <button onClick={handleLogout} className="dropdown-item danger">
                         Sign out
                       </button>
                     </div>
-                  </div>
-                )}
+                  )}
                 </div>
               </>
-            ) : (
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => navigate('/login')}
-                  className="px-5 py-2 text-gray-700 font-medium hover:text-gray-900 transition-colors"
-                >
-                  Log In
-                </button>
-                <button
-                  onClick={() => navigate('/signup')}
-                  className="px-6 py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg shadow-sm hover:shadow-md transition-all"
-                >
-                  Sign Up
-                </button>
-              </div>
-            )}
+            ) : null}
           </div>
-
         </div>
-      </div>
-    </nav>
+      </nav>
+    </>
   )
 }
 
