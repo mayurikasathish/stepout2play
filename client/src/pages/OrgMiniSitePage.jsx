@@ -6,43 +6,12 @@ import Toast from '../components/Toast'
 import Carousel from '../components/Carousel'
 import api from '../services/api'
 
-const HeartIcon = ({ filled, ...props }) => (
-  <svg {...props} fill={filled ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-  </svg>
-)
-
-const UsersIcon = (p) => (
-  <svg {...p} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-  </svg>
-)
-
-const TrophyIcon = (p) => (
-  <svg {...p} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-  </svg>
-)
-
-const MailIcon = (p) => (
-  <svg {...p} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-  </svg>
-)
-
-const PhoneIcon = (p) => (
-  <svg {...p} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-  </svg>
-)
-
 const colorSchemes = {
-  blue: { primary: 'from-blue-500 to-blue-700', accent: 'bg-blue-600', light: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-300' },
-  green: { primary: 'from-green-500 to-green-700', accent: 'bg-green-600', light: 'bg-green-50', text: 'text-green-700', border: 'border-green-300' },
-  purple: { primary: 'from-purple-500 to-purple-700', accent: 'bg-purple-600', light: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-300' },
-  orange: { primary: 'from-orange-500 to-orange-700', accent: 'bg-orange-600', light: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-300' },
-  pink: { primary: 'from-pink-500 to-pink-700', accent: 'bg-pink-600', light: 'bg-pink-50', text: 'text-pink-700', border: 'border-pink-300' },
-  teal: { primary: 'from-teal-500 to-teal-700', accent: 'bg-teal-600', light: 'bg-teal-50', text: 'text-teal-700', border: 'border-teal-300' }
+  'neon-arena': { primary: '#4fffb0', dark: '#3dd68f', light: '#6bffbe' },
+  'cyber-court': { primary: '#00d4ff', dark: '#00a8cc', light: '#33ddff' },
+  'power-surge': { primary: '#a855f7', dark: '#8b3dd6', light: '#ba6ff8' },
+  'blaze-mode': { primary: '#fb923c', dark: '#e07420', light: '#fca55d' },
+  'hot-streak': { primary: '#ec4899', dark: '#d1347a', light: '#f067ab' }
 }
 
 const OrgMiniSitePage = () => {
@@ -75,7 +44,6 @@ const OrgMiniSitePage = () => {
       const res = await api.get(`/orgs/${id}/public`)
       if (res.data.success) {
         setOrg(res.data.org || res.data.organization)
-        // TODO: Add follower count and isFollowing from backend
         setFollowersCount(0)
         setIsFollowing(false)
       }
@@ -92,19 +60,19 @@ const OrgMiniSitePage = () => {
         await api.delete(`/orgs/${id}/follow`)
         setIsFollowing(false)
         setFollowersCount(prev => prev - 1)
-        setToastMessage('Unfollowed organization')
+        setToastMessage('Unfollowed')
         setToastType('success')
       } else {
         await api.post(`/orgs/${id}/follow`)
         setIsFollowing(true)
         setFollowersCount(prev => prev + 1)
-        setToastMessage('Following organization!')
+        setToastMessage('Following!')
         setToastType('success')
       }
       setShowToast(true)
     } catch (err) {
       console.error('Error following org:', err)
-      setToastMessage(err.response?.data?.error || 'Failed to follow organization')
+      setToastMessage(err.response?.data?.error || 'Failed to follow')
       setToastType('error')
       setShowToast(true)
     }
@@ -112,7 +80,7 @@ const OrgMiniSitePage = () => {
 
   const handleJoin = () => {
     if (!user) {
-      setToastMessage('Please login to join this organization')
+      setToastMessage('Please login to join')
       setToastType('error')
       setShowToast(true)
       return
@@ -133,13 +101,13 @@ const OrgMiniSitePage = () => {
     try {
       await api.post(`/orgs/${org.id}/join-request`, joinFormData)
       setShowJoinModal(false)
-      setToastMessage('Join request sent successfully!')
+      setToastMessage('Request sent!')
       setToastType('success')
       setShowToast(true)
       setJoinFormData({ role: 'MEMBER', email: user?.email || '', reason: '', experience: '' })
     } catch (err) {
       console.error('Error submitting join request:', err)
-      setToastMessage(err.response?.data?.error || 'Failed to send join request')
+      setToastMessage(err.response?.data?.error || 'Failed to send request')
       setToastType('error')
       setShowToast(true)
     } finally {
@@ -149,292 +117,1133 @@ const OrgMiniSitePage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-primary-50/20">
-        <Navbar />
-        <div className="flex items-center justify-center py-20">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      <>
+        <style>{`
+          @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;900&family=Barlow:wght@400;500;600&display=swap');
+
+          body {
+            background: #060d1f;
+            margin: 0;
+            font-family: 'Barlow', sans-serif;
+          }
+
+          .loading-container {
+            min-height: 100vh;
+            background: linear-gradient(180deg, #060d1f 0%, #0a1628 50%, #060d1f 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding-top: 80px;
+          }
+
+          .spinner {
+            width: 60px;
+            height: 60px;
+            border: 3px solid rgba(79, 255, 176, 0.1);
+            border-top: 3px solid #4fffb0;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+          }
+
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}</style>
+        <div className="loading-container">
+          <Navbar />
+          <div className="spinner"></div>
         </div>
-      </div>
+      </>
     )
   }
 
   if (!org) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-primary-50/20">
-        <Navbar />
-        <div className="max-w-4xl mx-auto px-4 py-20">
-          <div className="glass-card rounded-2xl p-12 text-center">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Organization Not Found</h2>
-            <button
-              onClick={() => navigate('/discover')}
-              className="px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-xl transition-all"
-            >
+      <>
+        <style>{`
+          @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;900&family=Barlow:wght@400;500;600&display=swap');
+
+          body {
+            background: #060d1f;
+            margin: 0;
+            font-family: 'Barlow', sans-serif;
+          }
+
+          .not-found-container {
+            min-height: 100vh;
+            background: linear-gradient(180deg, #060d1f 0%, #0a1628 50%, #060d1f 100%);
+            padding-top: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+          }
+
+          .not-found-card {
+            background: linear-gradient(145deg, #0a1628, #060d1f);
+            border: 2px solid rgba(236, 72, 153, 0.2);
+            border-radius: 16px;
+            padding: 3rem;
+            text-align: center;
+            max-width: 500px;
+          }
+
+          .not-found-title {
+            font-family: 'Barlow Condensed', sans-serif;
+            font-weight: 900;
+            font-size: 2rem;
+            color: #ec4899;
+            margin-bottom: 1rem;
+          }
+
+          .not-found-btn {
+            background: #4fffb0;
+            color: #060d1f;
+            font-family: 'Barlow Condensed', sans-serif;
+            font-weight: 700;
+            font-size: 1rem;
+            text-transform: uppercase;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+          }
+
+          .not-found-btn:hover {
+            transform: translateY(-4px) scale(1.05);
+          }
+        `}</style>
+        <div className="not-found-container">
+          <Navbar />
+          <div className="not-found-card">
+            <div className="not-found-title">404 • NOT FOUND</div>
+            <button onClick={() => navigate('/discover')} className="not-found-btn">
               Browse Organizations
             </button>
           </div>
         </div>
-      </div>
+      </>
     )
   }
 
-  const scheme = colorSchemes[org.colorScheme || 'blue']
+  const scheme = colorSchemes[org.colorScheme] || colorSchemes['neon-arena']
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100">
-      <Navbar />
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;900&family=Barlow:wght@400;500;600&display=swap');
 
-      {/* Banner */}
-      {org.bannerImageUrl ? (
-        <div className="w-full h-64 md:h-96 relative">
-          <img src={org.bannerImageUrl} alt={org.name} className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
+        body {
+          background: #060d1f;
+          margin: 0;
+          padding: 0;
+          font-family: 'Barlow', sans-serif;
+          overflow-x: hidden;
+        }
+
+        .org-site-container {
+          min-height: 100vh;
+          background: #060d1f;
+          padding-top: 80px;
+          padding-bottom: 0;
+        }
+
+        /* Banner Section */
+        .banner-section {
+          position: relative;
+          width: 100%;
+          height: 500px;
+          overflow: hidden;
+        }
+
+        .banner-image {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .banner-section:hover .banner-image {
+          transform: scale(1.08);
+        }
+
+        .banner-gradient {
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(135deg, ${scheme.primary}, rgba(6, 13, 31, 0.6));
+          opacity: 0.85;
+        }
+
+        .banner-overlay {
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(180deg, transparent 0%, #060d1f 100%);
+        }
+
+        /* Header Card - BULGING DEPTH */
+        .header-card {
+          max-width: 1200px;
+          margin: 0 auto;
+          padding: 0 2rem;
+          margin-top: -140px;
+          position: relative;
+          z-index: 10;
+        }
+
+        .header-content {
+          background: linear-gradient(145deg, #0d1a2e, #060d1f);
+          border: 2.5px solid rgba(255, 255, 255, 0.12);
+          border-radius: 24px;
+          padding: 3rem;
+          transform: translateY(0);
+          transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+          box-shadow:
+            0 15px 50px rgba(0, 0, 0, 0.7),
+            inset 0 1px 0 rgba(255, 255, 255, 0.08),
+            inset 0 -3px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .header-content:hover {
+          transform: translateY(-12px) scale(1.015);
+          border-color: rgba(255, 255, 255, 0.18);
+          box-shadow:
+            0 25px 80px rgba(0, 0, 0, 0.9),
+            inset 0 1px 0 rgba(255, 255, 255, 0.12),
+            inset 0 -3px 10px rgba(0, 0, 0, 0.4);
+        }
+
+        .header-top {
+          display: grid;
+          grid-template-columns: auto 1fr auto;
+          align-items: center;
+          gap: 3rem;
+        }
+
+        /* Logo - POP OUT EFFECT */
+        .org-logo-wrapper {
+          width: 140px;
+          height: 140px;
+          flex-shrink: 0;
+          border-radius: 50%;
+          border: 4px solid ${scheme.primary};
+          overflow: hidden;
+          background: linear-gradient(145deg, #0d1a2e, #060d1f);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transform: translateZ(0);
+          transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+          box-shadow:
+            0 8px 24px rgba(0, 0, 0, 0.6),
+            inset 0 2px 4px rgba(255, 255, 255, 0.1);
+        }
+
+        .org-logo-wrapper:hover {
+          transform: scale(1.15) translateY(-8px);
+          border-width: 5px;
+          box-shadow:
+            0 12px 40px rgba(0, 0, 0, 0.8),
+            inset 0 2px 4px rgba(255, 255, 255, 0.15);
+        }
+
+        .org-logo {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+
+        .org-logo-fallback {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 900;
+          font-size: 3.5rem;
+          color: ${scheme.primary};
+        }
+
+        /* Name & Info */
+        .org-info {
+          flex: 1;
+        }
+
+        .org-name-title {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 900;
+          font-size: 3.5rem;
+          letter-spacing: -0.03em;
+          text-transform: uppercase;
+          color: #fff;
+          margin: 0 0 0.75rem 0;
+          line-height: 1;
+        }
+
+        .org-tagline {
+          font-family: 'Barlow', sans-serif;
+          font-size: 1.4rem;
+          color: rgba(255, 255, 255, 0.65);
+          margin-bottom: 1.75rem;
+          font-weight: 500;
+        }
+
+        .org-stats {
+          display: flex;
+          gap: 3rem;
+          flex-wrap: wrap;
+        }
+
+        .stat-item {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          font-family: 'Barlow Condensed', sans-serif;
+          font-size: 1.1rem;
+          font-weight: 600;
+          color: rgba(255, 255, 255, 0.7);
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+
+        .stat-icon {
+          font-size: 1.5rem;
+        }
+
+        /* Action Buttons - SIDE BY SIDE */
+        .header-actions {
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+          align-items: stretch;
+          min-width: 200px;
+        }
+
+        .role-badge {
+          padding: 1rem 1.75rem;
+          border-radius: 12px;
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 700;
+          font-size: 1.1rem;
+          text-transform: uppercase;
+          white-space: nowrap;
+          text-align: center;
+          letter-spacing: 0.05em;
+        }
+
+        .role-owner {
+          background: linear-gradient(145deg, rgba(251, 191, 36, 0.2), rgba(251, 191, 36, 0.08));
+          border: 2px solid rgba(251, 191, 36, 0.5);
+          color: #fbbf24;
+        }
+
+        .role-admin {
+          background: linear-gradient(145deg, rgba(168, 85, 247, 0.2), rgba(168, 85, 247, 0.08));
+          border: 2px solid rgba(168, 85, 247, 0.5);
+          color: #a855f7;
+        }
+
+        .role-member {
+          background: linear-gradient(145deg, rgba(79, 255, 176, 0.2), rgba(79, 255, 176, 0.08));
+          border: 2px solid rgba(79, 255, 176, 0.5);
+          color: #4fffb0;
+        }
+
+        .action-buttons-row {
+          display: flex;
+          gap: 1rem;
+        }
+
+        .btn-follow {
+          flex: 1;
+          padding: 0.9rem 1.5rem;
+          border-radius: 10px;
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 700;
+          font-size: 1rem;
+          text-transform: uppercase;
+          cursor: pointer;
+          transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+          border: 2px solid rgba(255, 255, 255, 0.25);
+          background: linear-gradient(145deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
+          color: rgba(255, 255, 255, 0.85);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
+          letter-spacing: 0.05em;
+          box-shadow:
+            0 4px 12px rgba(0, 0, 0, 0.3),
+            inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-follow:hover {
+          transform: translateY(-4px) scale(1.05);
+          border-color: rgba(255, 255, 255, 0.4);
+          background: linear-gradient(145deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.05));
+          box-shadow:
+            0 8px 20px rgba(0, 0, 0, 0.5),
+            inset 0 1px 0 rgba(255, 255, 255, 0.15);
+        }
+
+        .btn-join {
+          flex: 1;
+          padding: 0.9rem 1.5rem;
+          border-radius: 10px;
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 700;
+          font-size: 1rem;
+          text-transform: uppercase;
+          cursor: pointer;
+          transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+          border: none;
+          background: linear-gradient(145deg, ${scheme.light}, ${scheme.dark});
+          color: #060d1f;
+          letter-spacing: 0.05em;
+          box-shadow:
+            0 4px 12px rgba(0, 0, 0, 0.3),
+            inset 0 -2px 4px rgba(0, 0, 0, 0.2),
+            inset 0 1px 0 rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-join:hover {
+          transform: translateY(-4px) scale(1.05);
+          box-shadow:
+            0 8px 20px rgba(0, 0, 0, 0.5),
+            inset 0 -2px 4px rgba(0, 0, 0, 0.25),
+            inset 0 1px 0 rgba(255, 255, 255, 0.4);
+        }
+
+        .btn-edit {
+          padding: 0.9rem 1.75rem;
+          border-radius: 10px;
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 700;
+          font-size: 1rem;
+          text-transform: uppercase;
+          cursor: pointer;
+          transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+          border: 2px solid ${scheme.primary};
+          background: linear-gradient(145deg, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.05));
+          color: ${scheme.primary};
+          letter-spacing: 0.05em;
+          box-shadow:
+            0 4px 12px rgba(0, 0, 0, 0.3),
+            inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        }
+
+        .btn-edit:hover {
+          transform: translateY(-4px) scale(1.05);
+          border-color: ${scheme.light};
+          color: ${scheme.light};
+          box-shadow:
+            0 8px 20px rgba(0, 0, 0, 0.5),
+            inset 0 1px 0 rgba(255, 255, 255, 0.08);
+        }
+
+        /* Main Content - DEPTH & HIERARCHY */
+        .main-content {
+          max-width: 1200px;
+          margin: 0 auto;
+          padding: 4rem 2rem 0 2rem;
+        }
+
+        .content-card {
+          background: linear-gradient(145deg, #0d1a2e, #060d1f);
+          border: 2px solid rgba(255, 255, 255, 0.1);
+          border-radius: 20px;
+          padding: 3rem;
+          margin-bottom: 2.5rem;
+          transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+          box-shadow:
+            0 10px 40px rgba(0, 0, 0, 0.6),
+            inset 0 1px 0 rgba(255, 255, 255, 0.06);
+        }
+
+        .content-card:hover {
+          transform: translateY(-8px);
+          border-color: rgba(255, 255, 255, 0.15);
+          box-shadow:
+            0 20px 60px rgba(0, 0, 0, 0.8),
+            inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        .section-title {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 900;
+          font-size: 2rem;
+          text-transform: uppercase;
+          color: ${scheme.primary};
+          margin-bottom: 2rem;
+          padding-bottom: 1rem;
+          border-bottom: 3px solid rgba(255, 255, 255, 0.08);
+          letter-spacing: 0.02em;
+        }
+
+        .section-text {
+          font-family: 'Barlow', sans-serif;
+          font-size: 1.1rem;
+          line-height: 1.9;
+          color: rgba(255, 255, 255, 0.8);
+          white-space: pre-wrap;
+        }
+
+        .motto-card {
+          background: linear-gradient(145deg, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.1));
+          border-left: 5px solid ${scheme.primary};
+          border-radius: 16px;
+          padding: 2.5rem;
+          margin-bottom: 2.5rem;
+          transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+          box-shadow:
+            0 8px 32px rgba(0, 0, 0, 0.5),
+            inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        }
+
+        .motto-card:hover {
+          transform: translateX(8px);
+          border-left-width: 7px;
+          box-shadow:
+            0 12px 48px rgba(0, 0, 0, 0.7),
+            inset 0 1px 0 rgba(255, 255, 255, 0.08);
+        }
+
+        .motto-title {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 900;
+          font-size: 1.75rem;
+          text-transform: uppercase;
+          color: ${scheme.primary};
+          margin-bottom: 1.5rem;
+          letter-spacing: 0.02em;
+        }
+
+        /* Contact Section - BULGE CARDS */
+        .contact-items {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+          gap: 1.5rem;
+        }
+
+        .contact-item {
+          display: flex;
+          align-items: center;
+          gap: 1.25rem;
+          padding: 1.5rem;
+          background: linear-gradient(145deg, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.2));
+          border: 2px solid rgba(255, 255, 255, 0.08);
+          border-radius: 14px;
+          transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+          box-shadow:
+            0 4px 16px rgba(0, 0, 0, 0.4),
+            inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        }
+
+        .contact-item:hover {
+          transform: translateY(-6px) scale(1.03);
+          border-color: ${scheme.primary};
+          background: linear-gradient(145deg, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.3));
+          box-shadow:
+            0 8px 24px rgba(0, 0, 0, 0.6),
+            inset 0 1px 0 rgba(255, 255, 255, 0.08);
+        }
+
+        .contact-icon {
+          width: 50px;
+          height: 50px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: linear-gradient(145deg, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.3));
+          border: 2px solid rgba(255, 255, 255, 0.1);
+          border-radius: 12px;
+          font-size: 1.5rem;
+        }
+
+        .contact-info {
+          flex: 1;
+        }
+
+        .contact-label {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-size: 0.8rem;
+          color: rgba(255, 255, 255, 0.5);
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          margin-bottom: 0.35rem;
+          font-weight: 600;
+        }
+
+        .contact-value {
+          font-family: 'Barlow', sans-serif;
+          font-size: 1.05rem;
+          color: ${scheme.primary};
+          font-weight: 600;
+          text-decoration: none;
+          transition: all 0.2s ease;
+        }
+
+        .contact-value:hover {
+          color: ${scheme.light};
+        }
+
+        /* Social Buttons - BULGE */
+        .social-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.75rem;
+          padding: 1rem 1.75rem;
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 700;
+          font-size: 1rem;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          border-radius: 12px;
+          text-decoration: none;
+          transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+          box-shadow:
+            0 4px 12px rgba(0, 0, 0, 0.4),
+            inset 0 -2px 4px rgba(0, 0, 0, 0.3),
+            inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        }
+
+        .social-btn:hover {
+          transform: translateY(-6px) scale(1.08);
+          box-shadow:
+            0 10px 28px rgba(0, 0, 0, 0.6),
+            inset 0 -2px 4px rgba(0, 0, 0, 0.4),
+            inset 0 1px 0 rgba(255, 255, 255, 0.3);
+        }
+
+        /* Modal */
+        .modal-overlay {
+          position: fixed;
+          inset: 0;
+          z-index: 999;
+          background: rgba(6, 13, 31, 0.92);
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 2rem;
+        }
+
+        .modal-content {
+          background: linear-gradient(145deg, #0d1a2e, #060d1f);
+          border: 3px solid ${scheme.primary};
+          border-radius: 20px;
+          padding: 3rem;
+          max-width: 600px;
+          width: 100%;
+          box-shadow:
+            0 20px 60px rgba(0, 0, 0, 0.9),
+            inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        .modal-title {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 900;
+          font-size: 2.25rem;
+          text-transform: uppercase;
+          color: ${scheme.primary};
+          margin-bottom: 0.5rem;
+          letter-spacing: 0.02em;
+        }
+
+        .modal-subtitle {
+          color: rgba(255, 255, 255, 0.6);
+          margin-bottom: 2.5rem;
+          font-size: 1.1rem;
+        }
+
+        .modal-form-group {
+          margin-bottom: 1.75rem;
+        }
+
+        .modal-label {
+          display: block;
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 600;
+          font-size: 0.95rem;
+          color: rgba(255, 255, 255, 0.85);
+          margin-bottom: 0.75rem;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+
+        .modal-input, .modal-textarea {
+          width: 100%;
+          background: linear-gradient(145deg, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.3));
+          border: 2px solid rgba(255, 255, 255, 0.15);
+          border-radius: 10px;
+          padding: 1rem 1.25rem;
+          color: #fff;
+          font-family: 'Barlow', sans-serif;
+          font-size: 1rem;
+          transition: all 0.3s ease;
+          box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-input:focus, .modal-textarea:focus {
+          outline: none;
+          border-color: ${scheme.primary};
+          box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.4);
+        }
+
+        .modal-textarea {
+          resize: vertical;
+          min-height: 100px;
+        }
+
+        .modal-actions {
+          display: flex;
+          gap: 1.25rem;
+          margin-top: 2.5rem;
+        }
+
+        .btn-modal-cancel {
+          flex: 1;
+          padding: 1rem;
+          background: linear-gradient(145deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
+          color: rgba(255, 255, 255, 0.75);
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          border: 2px solid rgba(255, 255, 255, 0.2);
+          border-radius: 10px;
+          cursor: pointer;
+          transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .btn-modal-cancel:hover {
+          transform: translateY(-3px);
+          background: linear-gradient(145deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.05));
+          color: #fff;
+        }
+
+        .btn-modal-submit {
+          flex: 1;
+          padding: 1rem;
+          background: linear-gradient(145deg, ${scheme.light}, ${scheme.dark});
+          color: #060d1f;
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          border: none;
+          border-radius: 10px;
+          cursor: pointer;
+          transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+          box-shadow:
+            0 4px 12px rgba(0, 0, 0, 0.4),
+            inset 0 -2px 4px rgba(0, 0, 0, 0.3),
+            inset 0 1px 0 rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-modal-submit:hover:not(:disabled) {
+          transform: translateY(-4px) scale(1.03);
+          box-shadow:
+            0 8px 20px rgba(0, 0, 0, 0.6),
+            inset 0 -2px 4px rgba(0, 0, 0, 0.4),
+            inset 0 1px 0 rgba(255, 255, 255, 0.4);
+        }
+
+        .btn-modal-submit:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        @media (max-width: 968px) {
+          .header-top {
+            grid-template-columns: 1fr;
+            text-align: center;
+            justify-items: center;
+            gap: 2rem;
+          }
+
+          .org-name-title {
+            font-size: 2.5rem;
+          }
+
+          .org-stats {
+            justify-content: center;
+          }
+
+          .banner-section {
+            height: 350px;
+          }
+
+          .header-card {
+            margin-top: -100px;
+          }
+        }
+
+        @media (max-width: 640px) {
+          .header-content {
+            padding: 2rem 1.5rem;
+          }
+
+          .org-name-title {
+            font-size: 2rem;
+          }
+
+          .action-buttons-row {
+            flex-direction: column;
+          }
+
+          .main-content {
+            padding: 3rem 1.5rem 0 1.5rem;
+          }
+
+          .content-card {
+            padding: 2rem 1.5rem;
+          }
+        }
+      `}</style>
+
+      <div className="org-site-container">
+        <Navbar />
+
+        {/* Banner */}
+        <div className="banner-section">
+          {org.bannerImageUrl ? (
+            <>
+              <img src={org.bannerImageUrl} alt={org.name} className="banner-image" />
+              <div className="banner-overlay"></div>
+            </>
+          ) : (
+            <>
+              <div className="banner-gradient"></div>
+              <div className="banner-overlay"></div>
+            </>
+          )}
         </div>
-      ) : (
-        <div className={`w-full h-64 md:h-96 bg-gradient-to-br ${scheme.primary}`}></div>
-      )}
 
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
-
-        {/* Header Card with Half-Out Logo (LinkedIn style) */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-8 mb-8 shadow-xl -mt-12 relative">
-          <div className="flex flex-col md:flex-row items-start md:items-end gap-6 relative">
-            {/* Logo - Positioned to sit half above the card */}
-            <div className={`w-20 h-20 shrink-0 bg-gradient-to-br ${scheme.primary} rounded-full flex items-center justify-center shadow-2xl text-white text-3xl font-bold border-4 border-white -mt-16 md:-mt-20`}>
-              {org.logoUrl ? (
-                <img src={org.logoUrl} alt={org.name} className="w-full h-full object-cover rounded-full" />
-              ) : (
-                org.name.charAt(0).toUpperCase()
-              )}
-            </div>
-
-            {/* Name & Tagline */}
-            <div className="flex-1 pt-0">
-              <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">{org.name}</h1>
-              {org.tagline && (
-                <p className="text-lg text-gray-600 mb-4">{org.tagline}</p>
-              )}
-              <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
-                {(org.memberCount || 0) > 0 && (
-                  <div className="flex items-center gap-1.5">
-                    <UsersIcon className="w-4 h-4" />
-                    <span>{org.memberCount} members</span>
-                  </div>
+        {/* Header Card */}
+        <div className="header-card">
+          <div className="header-content">
+            <div className="header-top">
+              {/* Logo */}
+              <div className="org-logo-wrapper">
+                {org.logoUrl ? (
+                  <img src={org.logoUrl} alt={org.name} className="org-logo" />
+                ) : (
+                  <div className="org-logo-fallback">{org.name.charAt(0).toUpperCase()}</div>
                 )}
-                {(org.tournamentCount || 0) > 0 && (
-                  <div className="flex items-center gap-1.5">
-                    <TrophyIcon className="w-4 h-4" />
-                    <span>{org.tournamentCount} tournaments</span>
-                  </div>
+              </div>
+
+              {/* Name & Info */}
+              <div className="org-info">
+                <h1 className="org-name-title">{org.name}</h1>
+                {org.tagline && (
+                  <p className="org-tagline">{org.tagline}</p>
                 )}
-                {followersCount > 0 && (
-                  <div className="flex items-center gap-1.5">
-                    <HeartIcon className="w-4 h-4" filled={false} />
-                    <span>{followersCount} followers</span>
+                <div className="org-stats">
+                  {(org.memberCount || 0) > 0 && (
+                    <div className="stat-item">
+                      <span className="stat-icon">👥</span>
+                      <span>{org.memberCount} members</span>
+                    </div>
+                  )}
+                  {(org.tournamentCount || 0) > 0 && (
+                    <div className="stat-item">
+                      <span className="stat-icon">🏆</span>
+                      <span>{org.tournamentCount} tournaments</span>
+                    </div>
+                  )}
+                  {followersCount > 0 && (
+                    <div className="stat-item">
+                      <span className="stat-icon">💚</span>
+                      <span>{followersCount} followers</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="header-actions">
+                {org.userRole ? (
+                  <>
+                    <div className={`role-badge role-${org.userRole.toLowerCase()}`}>
+                      {org.userRole === 'OWNER' ? '👑 Owner' :
+                       org.userRole === 'ADMIN' ? '⚡ Admin' :
+                       '✓ Member'}
+                    </div>
+                    {(org.userRole === 'OWNER' || org.userRole === 'ADMIN') && (
+                      <button
+                        onClick={() => navigate('/orgs/edit')}
+                        className="btn-edit"
+                      >
+                        ✏ Edit Website
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  <div className="action-buttons-row">
+                    <button onClick={handleFollow} className="btn-follow">
+                      <span>{isFollowing ? '💚' : '🤍'}</span>
+                      {isFollowing ? 'Following' : 'Follow'}
+                    </button>
+                    <button onClick={handleJoin} className="btn-join">
+                      Join Us
+                    </button>
                   </div>
                 )}
               </div>
             </div>
+          </div>
+        </div>
 
-            {/* Actions or Role Badge */}
-            {org.userRole ? (
-              <div className="shrink-0 flex items-center gap-3">
-                <div className={`px-6 py-3 rounded-xl font-semibold text-center ${
-                  org.userRole === 'OWNER' ? 'bg-primary-100 text-primary-700' :
-                  org.userRole === 'ADMIN' ? 'bg-purple-100 text-purple-700' :
-                  'bg-blue-100 text-blue-700'
-                }`}>
-                  {org.userRole === 'OWNER' ? '👑 Owner' :
-                   org.userRole === 'ADMIN' ? '⚡ Admin' :
-                   '✓ Member'}
+        {/* Main Content */}
+        <div className="main-content">
+
+          {/* Photo Gallery */}
+          {org.photoGallery && org.photoGallery.length > 0 && (
+            <div className="content-card">
+              <div className="section-title">📸 MOMENTS & MEMORIES</div>
+              <Carousel
+                images={org.photoGallery}
+                autoPlayInterval={3000}
+              />
+            </div>
+          )}
+
+          {/* Motto */}
+          {org.motto && (
+            <div className="motto-card">
+              <div className="motto-title">⚡ OUR MOTTO & CULTURE</div>
+              <div className="section-text">{org.motto}</div>
+            </div>
+          )}
+
+          {/* About Us */}
+          {org.aboutUs && (
+            <div className="content-card">
+              <div className="section-title">📖 ABOUT US</div>
+              <div className="section-text">{org.aboutUs}</div>
+            </div>
+          )}
+
+          {/* What We Offer */}
+          {org.whatWeOffer && (
+            <div className="content-card">
+              <div className="section-title">🎯 WHAT WE OFFER</div>
+              <div className="section-text">{org.whatWeOffer}</div>
+            </div>
+          )}
+
+          {/* Membership Benefits */}
+          {org.membershipBenefits && (
+            <div className="content-card">
+              <div className="section-title">✨ MEMBERSHIP BENEFITS</div>
+              <div className="section-text">{org.membershipBenefits}</div>
+              {org.membershipFee && (
+                <div style={{
+                  marginTop: '2rem',
+                  padding: '1.5rem',
+                  background: 'linear-gradient(145deg, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.2))',
+                  borderRadius: '12px',
+                  border: `2px solid rgba(255, 255, 255, 0.08)`
+                }}>
+                  <span style={{
+                    fontFamily: "'Barlow Condensed', sans-serif",
+                    fontWeight: '700',
+                    textTransform: 'uppercase',
+                    color: 'rgba(255, 255, 255, 0.6)',
+                    fontSize: '0.9rem',
+                    letterSpacing: '0.05em'
+                  }}>Membership Fee: </span>
+                  <span style={{
+                    fontFamily: "'Barlow', sans-serif",
+                    fontWeight: '700',
+                    color: scheme.primary,
+                    fontSize: '1.3rem'
+                  }}>{org.membershipFee}</span>
                 </div>
-                {(org.userRole === 'OWNER' || org.userRole === 'ADMIN') && (
-                  <button
-                    onClick={() => navigate('/orgs/edit')}
-                    className="px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-xl transition-all"
+              )}
+            </div>
+          )}
+
+          {/* Join Us Info */}
+          {org.joinUsInfo && (
+            <div className="content-card">
+              <div className="section-title">🚀 HOW TO JOIN</div>
+              <div className="section-text">{org.joinUsInfo}</div>
+              <button
+                onClick={handleJoin}
+                className="btn-join"
+                style={{ marginTop: '2rem' }}
+              >
+                Request to Join
+              </button>
+            </div>
+          )}
+
+          {/* Contact */}
+          {(org.contactEmail || org.contactPhone || org.location) && (
+            <div className="content-card">
+              <div className="section-title">📞 CONTACT US</div>
+              <div className="contact-items">
+                {org.contactEmail && (
+                  <div className="contact-item">
+                    <div className="contact-icon">✉</div>
+                    <div className="contact-info">
+                      <div className="contact-label">Email</div>
+                      <a href={`mailto:${org.contactEmail}`} className="contact-value">
+                        {org.contactEmail}
+                      </a>
+                    </div>
+                  </div>
+                )}
+                {org.contactPhone && (
+                  <div className="contact-item">
+                    <div className="contact-icon">📞</div>
+                    <div className="contact-info">
+                      <div className="contact-label">Phone</div>
+                      <a href={`tel:${org.contactPhone}`} className="contact-value">
+                        {org.contactPhone}
+                      </a>
+                    </div>
+                  </div>
+                )}
+                {org.location && (
+                  <div className="contact-item">
+                    <div className="contact-icon">📍</div>
+                    <div className="contact-info">
+                      <div className="contact-label">Location</div>
+                      <div className="contact-value">{org.location}</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Social Links */}
+          {(org.instagramUrl || org.facebookUrl || org.twitterUrl || org.websiteUrl) && (
+            <div className="content-card" style={{ marginBottom: 0 }}>
+              <div className="section-title">🌐 CONNECT WITH US</div>
+              <div style={{ display: 'flex', gap: '1.25rem', flexWrap: 'wrap' }}>
+                {org.instagramUrl && (
+                  <a
+                    href={org.instagramUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="social-btn"
+                    style={{
+                      background: 'linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)',
+                      color: '#fff'
+                    }}
                   >
-                    ✏️ Edit Minisite
-                  </button>
+                    Instagram
+                  </a>
+                )}
+                {org.facebookUrl && (
+                  <a
+                    href={org.facebookUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="social-btn"
+                    style={{ background: '#1877f2', color: '#fff' }}
+                  >
+                    Facebook
+                  </a>
+                )}
+                {org.twitterUrl && (
+                  <a
+                    href={org.twitterUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="social-btn"
+                    style={{ background: '#000', color: '#fff' }}
+                  >
+                    Twitter / X
+                  </a>
+                )}
+                {org.websiteUrl && (
+                  <a
+                    href={org.websiteUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="social-btn"
+                    style={{
+                      background: `linear-gradient(145deg, ${scheme.light}, ${scheme.dark})`,
+                      color: '#060d1f'
+                    }}
+                  >
+                    🌐 Website
+                  </a>
                 )}
               </div>
-            ) : (
-              <div className="flex gap-3 shrink-0">
-                <button
-                  onClick={handleFollow}
-                  className={`px-6 py-3 rounded-xl font-medium transition-all flex items-center gap-2 border-2 ${
-                    isFollowing
-                      ? 'border-gray-400 bg-gray-50 text-gray-700 hover:bg-gray-100'
-                      : 'border-gray-400 bg-white text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  <HeartIcon className="w-5 h-5" filled={isFollowing} />
-                  {isFollowing ? 'Following' : 'Follow'}
-                </button>
-                <button
-                  onClick={handleJoin}
-                  className="px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-xl transition-all"
-                >
-                  Join Us
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Photo Gallery Carousel */}
-        {org.photoGallery && org.photoGallery.length > 0 && (
-          <div className="glass-card rounded-2xl p-8 mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">Moments & Memories</h2>
-            <Carousel
-              images={org.photoGallery}
-              autoPlayInterval={3000}
-            />
-          </div>
-        )}
-
-        {/* Motto / Culture */}
-        {org.motto && (
-          <div className={`${scheme.light} rounded-2xl p-8 mb-8 border-l-4 ${scheme.border}`}>
-            <h2 className={`text-xl font-bold ${scheme.text} mb-3`}>Our Motto & Culture</h2>
-            <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{org.motto}</p>
-          </div>
-        )}
-
-        {/* About Us */}
-        {org.aboutUs && (
-          <div className="glass-card rounded-2xl p-8 mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">About Us</h2>
-            <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{org.aboutUs}</p>
-          </div>
-        )}
-
-        {/* Join Us Info */}
-        {org.joinUsInfo && (
-          <div className="glass-card rounded-2xl p-8 mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Join Us</h2>
-            <p className="text-gray-700 leading-relaxed whitespace-pre-wrap mb-6">{org.joinUsInfo}</p>
-            <button
-              onClick={handleJoin}
-              className={`px-6 py-3 ${scheme.accent} text-white font-medium rounded-xl hover:opacity-90 transition-all`}
-            >
-              Request to Join
-            </button>
-          </div>
-        )}
-
-        {/* Contact */}
-        {(org.contactEmail || org.contactPhone) && (
-          <div className="glass-card rounded-2xl p-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">Contact Us</h2>
-            <div className="space-y-4">
-              {org.contactEmail && (
-                <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 ${scheme.light} rounded-lg flex items-center justify-center`}>
-                    <MailIcon className={`w-5 h-5 ${scheme.text}`} />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Email</p>
-                    <a href={`mailto:${org.contactEmail}`} className={`font-medium ${scheme.text} hover:underline`}>
-                      {org.contactEmail}
-                    </a>
-                  </div>
-                </div>
-              )}
-              {org.contactPhone && (
-                <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 ${scheme.light} rounded-lg flex items-center justify-center`}>
-                    <PhoneIcon className={`w-5 h-5 ${scheme.text}`} />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Phone</p>
-                    <a href={`tel:${org.contactPhone}`} className={`font-medium ${scheme.text} hover:underline`}>
-                      {org.contactPhone}
-                    </a>
-                  </div>
-                </div>
-              )}
             </div>
-          </div>
-        )}
-      </main>
+          )}
+        </div>
+      </div>
 
-      {/* Join Request Modal */}
+      {/* Join Modal */}
       {showJoinModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="glass-card rounded-2xl p-8 max-w-lg w-full">
-            <h3 className="text-2xl font-bold text-gray-900 mb-2">Request to Join</h3>
-            <p className="text-gray-600 mb-6">{org.name}</p>
+        <div className="modal-overlay" onClick={() => setShowJoinModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-title">REQUEST TO JOIN</div>
+            <div className="modal-subtitle">{org.name}</div>
 
-            <div className="space-y-4">
-              {/* Role Selection */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Role you're applying for
-                </label>
+            <div>
+              <div className="modal-form-group">
+                <label className="modal-label">Role</label>
                 <select
                   value={joinFormData.role}
                   onChange={(e) => setJoinFormData({ ...joinFormData, role: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                  className="modal-input"
                 >
                   <option value="MEMBER">Member</option>
                   <option value="ADMIN">Admin</option>
                 </select>
               </div>
 
-              {/* Email */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Email Address
-                </label>
+              <div className="modal-form-group">
+                <label className="modal-label">Email</label>
                 <input
                   type="email"
                   value={joinFormData.email}
                   onChange={(e) => setJoinFormData({ ...joinFormData, email: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                  className="modal-input"
                   placeholder="your.email@example.com"
                 />
               </div>
 
-              {/* Reason */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Why do you want to join? *
-                </label>
+              <div className="modal-form-group">
+                <label className="modal-label">Why do you want to join? *</label>
                 <textarea
                   value={joinFormData.reason}
                   onChange={(e) => setJoinFormData({ ...joinFormData, reason: e.target.value })}
                   rows={4}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none resize-none"
-                  placeholder="Tell us why you're interested in joining this organization..."
+                  className="modal-textarea"
+                  placeholder="Tell us why you're interested..."
                 />
               </div>
 
-              {/* Experience */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Any prior experience? (Optional)
-                </label>
+              <div className="modal-form-group">
+                <label className="modal-label">Prior experience (Optional)</label>
                 <textarea
                   value={joinFormData.experience}
                   onChange={(e) => setJoinFormData({ ...joinFormData, experience: e.target.value })}
                   rows={3}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none resize-none"
-                  placeholder="Relevant sports experience, previous organizations, skills..."
+                  className="modal-textarea"
+                  placeholder="Relevant experience, skills..."
                 />
               </div>
             </div>
 
-            {/* Actions */}
-            <div className="flex gap-3 mt-6">
+            <div className="modal-actions">
               <button
                 onClick={() => setShowJoinModal(false)}
-                className="flex-1 px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium rounded-xl transition-all"
+                className="btn-modal-cancel"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSubmitJoinRequest}
                 disabled={submittingJoin}
-                className={`flex-1 px-6 py-3 ${scheme.accent} text-white font-medium rounded-xl hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed`}
+                className="btn-modal-submit"
               >
                 {submittingJoin ? 'Sending...' : 'Send Request'}
               </button>
@@ -450,7 +1259,7 @@ const OrgMiniSitePage = () => {
           onClose={() => setShowToast(false)}
         />
       )}
-    </div>
+    </>
   )
 }
 

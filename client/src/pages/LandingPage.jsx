@@ -113,8 +113,8 @@ function FeaturesBento() {
     },
     {
       name: 'bottom',
-      title: 'Org Mini-Sites',
-      desc: 'Your org, your brand, your fully customizable space. Own your tournament presence. No compromises.'
+      title: 'No website? No problem.',
+      desc: 'Every organization on StepOut2Play gets a beautiful public home—complete with tournaments, galleries, achievements, and a shareable link.'
     },
   ]
 

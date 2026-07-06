@@ -300,6 +300,16 @@ const LiveArena = () => {
 
             {activeTab === 'turf' && (
               <>
+                <div style={{
+                  fontFamily: 'Barlow, sans-serif',
+                  fontSize: '0.75rem',
+                  color: 'rgba(255, 255, 255, 0.5)',
+                  textAlign: 'center',
+                  marginBottom: '0.5rem',
+                  fontStyle: 'italic'
+                }}>
+                  Tournaments near you
+                </div>
                 {turfItems.map(item => (
                   <div key={item.id} className="liquid-card">
                     <div className="card-content">

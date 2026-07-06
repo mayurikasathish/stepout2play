@@ -176,13 +176,20 @@ const getOrgPublic = async (req, res, next) => {
         slug: org.slug,
         logoUrl: org.logoUrl,
         tagline: org.tagline,
+        description: org.description,
         bannerImageUrl: org.bannerImageUrl,
         photoGallery: org.photoGallery,
         motto: org.motto,
         aboutUs: org.aboutUs,
         joinUsInfo: org.joinUsInfo,
+        membershipFee: org.membershipFee,
+        location: org.location,
         contactEmail: org.contactEmail,
         contactPhone: org.contactPhone,
+        instagramUrl: org.instagramUrl,
+        facebookUrl: org.facebookUrl,
+        twitterUrl: org.twitterUrl,
+        websiteUrl: org.websiteUrl,
         colorScheme: org.colorScheme,
         memberCount: org.members.length,
         tournamentCount: org.tournaments.length,
@@ -247,6 +254,11 @@ const updateOrg = async (req, res) => {
     description,
     sports,
     socialLinks,
+    membershipFee,
+    instagramUrl,
+    facebookUrl,
+    twitterUrl,
+    websiteUrl,
     colorScheme
   } = req.body;
 
@@ -277,6 +289,11 @@ const updateOrg = async (req, res) => {
   if (description !== undefined) updateData.description = description || null;
   if (sports !== undefined) updateData.sports = sports || [];
   if (socialLinks !== undefined) updateData.socialLinks = socialLinks;
+  if (membershipFee !== undefined) updateData.membershipFee = membershipFee || null;
+  if (instagramUrl !== undefined) updateData.instagramUrl = instagramUrl || null;
+  if (facebookUrl !== undefined) updateData.facebookUrl = facebookUrl || null;
+  if (twitterUrl !== undefined) updateData.twitterUrl = twitterUrl || null;
+  if (websiteUrl !== undefined) updateData.websiteUrl = websiteUrl || null;
   if (colorScheme !== undefined) updateData.colorScheme = colorScheme;
 
   const org = await prisma.organization.update({

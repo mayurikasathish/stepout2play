@@ -16,6 +16,7 @@ const ManagePage = () => {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [editingOrg, setEditingOrg] = useState(null)
   const [deleteConfirmModal, setDeleteConfirmModal] = useState(null)
+  const [readMoreModal, setReadMoreModal] = useState(null)
 
   useEffect(() => {
     loadOrganizations()
@@ -72,6 +73,36 @@ const ManagePage = () => {
       case 'MEMBER': return '#4fffb0'
       default: return '#4fffb0'
     }
+  }
+
+  const getSocialIcon = (platform) => {
+    const lowerPlatform = platform.toLowerCase()
+    if (lowerPlatform.includes('instagram') || lowerPlatform.includes('insta')) return '📷'
+    if (lowerPlatform.includes('facebook') || lowerPlatform.includes('fb')) return '👥'
+    if (lowerPlatform.includes('twitter') || lowerPlatform.includes('x')) return '🐦'
+    if (lowerPlatform.includes('linkedin')) return '💼'
+    if (lowerPlatform.includes('youtube')) return '📺'
+    if (lowerPlatform.includes('whatsapp')) return '💬'
+    return '🔗'
+  }
+
+  const calculateProfileCompletion = (org) => {
+    let completed = 0
+    const total = 10
+
+    if (org.name) completed++
+    if (org.logoUrl) completed++
+    if (org.description) completed++
+    if (org.contactPerson) completed++
+    if (org.contactEmail) completed++
+    if (org.contactPhone) completed++
+    if (org.location) completed++
+    if (org.sports && org.sports.length > 0) completed++
+    if (org.socialLinks && org.socialLinks.length > 0) completed++
+    // Extra point if they have all 3 social links
+    if (org.socialLinks && org.socialLinks.length >= 3) completed++
+
+    return Math.round((completed / total) * 100)
   }
 
   const handleCreateSuccess = (newOrg) => {
@@ -325,6 +356,33 @@ const ManagePage = () => {
           transform: skew(-5deg);
         }
 
+        .profile-completion {
+          position: absolute;
+          top: 1rem;
+          right: 1rem;
+          background: rgba(6, 13, 31, 0.9);
+          border: 1.5px solid;
+          border-radius: 20px;
+          padding: 0.35rem 0.9rem;
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 700;
+          font-size: 0.8rem;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          z-index: 10;
+        }
+
+        .profile-completion.complete {
+          border-color: #4fffb0;
+          color: #4fffb0;
+          box-shadow: 0 0 15px rgba(79, 255, 176, 0.3);
+        }
+
+        .profile-completion.incomplete {
+          border-color: rgba(255, 255, 255, 0.3);
+          color: rgba(255, 255, 255, 0.6);
+        }
+
         .org-description {
           font-family: 'Barlow', sans-serif;
           font-size: 0.95rem;
@@ -341,18 +399,21 @@ const ManagePage = () => {
           display: flex;
           gap: 0.6rem;
           flex-wrap: wrap;
+          margin-bottom: 0.25rem;
         }
 
         .sport-tag {
           font-family: 'Barlow Condensed', sans-serif;
-          font-weight: 600;
-          font-size: 0.85rem;
+          font-weight: 700;
+          font-size: 0.9rem;
           text-transform: uppercase;
-          padding: 0.35rem 0.9rem;
-          background: rgba(79, 255, 176, 0.1);
-          border: 1px solid rgba(79, 255, 176, 0.3);
-          border-radius: 14px;
+          padding: 0.4rem 1rem;
+          background: linear-gradient(135deg, rgba(79, 255, 176, 0.15), rgba(79, 255, 176, 0.08));
+          border: 1.5px solid rgba(79, 255, 176, 0.4);
+          border-radius: 16px;
           color: #4fffb0;
+          letter-spacing: 0.02em;
+          box-shadow: 0 2px 8px rgba(79, 255, 176, 0.1);
         }
 
         .org-stats {
@@ -383,6 +444,64 @@ const ManagePage = () => {
           display: flex;
           align-items: center;
           gap: 0.6rem;
+        }
+
+        .email-link {
+          color: rgba(255, 255, 255, 0.55);
+          text-decoration: none;
+          transition: color 0.2s ease;
+        }
+
+        .email-link:hover {
+          color: #4fffb0;
+          text-decoration: underline;
+        }
+
+        .social-links {
+          display: flex;
+          gap: 0.5rem;
+        }
+
+        .social-icon {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 32px;
+          height: 32px;
+          border-radius: 6px;
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 700;
+          font-size: 0.75rem;
+          text-decoration: none;
+          color: #fff;
+          transition: all 0.2s ease;
+        }
+
+        .social-instagram {
+          background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+        }
+
+        .social-instagram:hover {
+          transform: scale(1.1);
+          box-shadow: 0 4px 12px rgba(188, 24, 136, 0.4);
+        }
+
+        .social-facebook {
+          background: #1877f2;
+        }
+
+        .social-facebook:hover {
+          transform: scale(1.1);
+          box-shadow: 0 4px 12px rgba(24, 119, 242, 0.4);
+        }
+
+        .social-twitter {
+          background: #000;
+        }
+
+        .social-twitter:hover {
+          transform: scale(1.1);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
         }
 
         .org-actions {
@@ -681,6 +800,11 @@ const ManagePage = () => {
                       style={{ '--role-color': getRoleColor(org.myRole) }}
                     >
                       <div className="org-card-body">
+                        {/* Profile Completion Badge */}
+                        <div className={`profile-completion ${calculateProfileCompletion(org) === 100 ? 'complete' : 'incomplete'}`}>
+                          {calculateProfileCompletion(org)}% Complete
+                        </div>
+
                         <div className="org-card-content">
                           <div className="org-header">
                             <div className="org-title-section">
@@ -705,7 +829,18 @@ const ManagePage = () => {
                         )}
 
                         {org.description && (
-                          <div className="org-description">{org.description}</div>
+                          <div>
+                            <div className="org-description">{org.description}</div>
+                            {org.description.length > 150 && (
+                              <button
+                                className="btn-tertiary"
+                                onClick={() => setReadMoreModal(org)}
+                                style={{ marginTop: '0.5rem', padding: '0.25rem 0.5rem', fontSize: '0.8rem' }}
+                              >
+                                Read more
+                              </button>
+                            )}
+                          </div>
                         )}
 
                         <div className="org-stats">
@@ -718,12 +853,47 @@ const ManagePage = () => {
                           </span>
                         </div>
 
-                        {(org.location || org.contactEmail) && (
-                          <div className="org-contact">
-                            {org.location && <div className="contact-item">📍 {org.location}</div>}
-                            {org.contactEmail && <div className="contact-item">✉ {org.contactEmail}</div>}
-                          </div>
-                        )}
+                        <div className="org-contact">
+                          {org.contactPerson && <div className="contact-item">👤 {org.contactPerson}</div>}
+                          {org.contactPhone && <div className="contact-item">📞 {org.contactPhone}</div>}
+                          {org.contactEmail && (
+                            <div className="contact-item">
+                              ✉ <a href={`mailto:${org.contactEmail}`} className="email-link">{org.contactEmail}</a>
+                            </div>
+                          )}
+                          {org.location && <div className="contact-item">📍 {org.location}</div>}
+                          {org.socialLinks && Array.isArray(org.socialLinks) && org.socialLinks.length > 0 && (
+                            <div className="contact-item social-links">
+                              {org.socialLinks.map((link, idx) => {
+                                const platform = link.platform.toLowerCase()
+                                let iconText = ''
+                                let iconClass = ''
+                                if (platform.includes('instagram') || platform.includes('insta')) {
+                                  iconText = 'IG'
+                                  iconClass = 'social-instagram'
+                                } else if (platform.includes('facebook') || platform.includes('fb')) {
+                                  iconText = 'FB'
+                                  iconClass = 'social-facebook'
+                                } else if (platform.includes('twitter') || platform.includes('x')) {
+                                  iconText = 'X'
+                                  iconClass = 'social-twitter'
+                                }
+                                return iconText ? (
+                                  <a
+                                    key={idx}
+                                    href={link.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    title={link.platform}
+                                    className={`social-icon ${iconClass}`}
+                                  >
+                                    {iconText}
+                                  </a>
+                                ) : null
+                              })}
+                            </div>
+                          )}
+                        </div>
 
                         <div className="org-actions">
                           <button
@@ -736,7 +906,7 @@ const ManagePage = () => {
                             className="btn-secondary"
                             onClick={() => navigate(`/orgs/${org.id}`)}
                           >
-                            Minisite
+                            Website
                           </button>
                           {(org.myRole === 'OWNER' || org.myRole === 'ADMIN') && (
                             <>
@@ -744,7 +914,7 @@ const ManagePage = () => {
                                 className="btn-tertiary"
                                 onClick={() => navigate(`/orgs/edit?id=${org.id}`)}
                               >
-                                ⚙ Edit Minisite
+                                ⚙ Edit Website
                               </button>
                               <button
                                 className="btn-tertiary"
@@ -801,16 +971,42 @@ const ManagePage = () => {
                 </div>
                 <div className="delete-modal-actions">
                   <button
+                    className="btn-cancel"
+                    onClick={() => setDeleteConfirmModal(null)}
+                  >
+                    Keep Playing
+                  </button>
+                  <button
                     className="btn-confirm-delete"
                     onClick={() => handleDeleteOrg(deleteConfirmModal.id)}
                   >
                     Yes, Delete Forever
                   </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {readMoreModal && (
+            <div className="delete-modal-overlay" onClick={() => setReadMoreModal(null)}>
+              <div className="delete-modal-content" onClick={(e) => e.stopPropagation()}>
+                <div className="delete-modal-icon">📖</div>
+                <div className="delete-modal-title">{readMoreModal.name}</div>
+                <div className="delete-modal-text" style={{
+                  maxHeight: '400px',
+                  overflowY: 'auto',
+                  textAlign: 'left',
+                  lineHeight: '1.6',
+                  whiteSpace: 'pre-wrap'
+                }}>
+                  {readMoreModal.description}
+                </div>
+                <div className="delete-modal-actions" style={{ justifyContent: 'center' }}>
                   <button
-                    className="btn-cancel"
-                    onClick={() => setDeleteConfirmModal(null)}
+                    className="btn-primary"
+                    onClick={() => setReadMoreModal(null)}
                   >
-                    Keep Playing
+                    Close
                   </button>
                 </div>
               </div>

@@ -61,7 +61,7 @@ model Organization {
   twitterUrl         String?
   websiteUrl         String?
   socialLinks        Json?
-  colorScheme        String?      @default("blue")
+  colorScheme        String?      @default("neon-arena")
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt
   members            OrgMember[]

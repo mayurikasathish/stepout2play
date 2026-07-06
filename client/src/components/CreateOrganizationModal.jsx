@@ -11,7 +11,9 @@ const CreateOrganizationModal = ({ isOpen, onClose, onSuccess, editOrg = null })
     location: '',
     description: '',
     sports: [],
-    socialLinks: []
+    instagram: '',
+    facebook: '',
+    twitter: ''
   })
   const [logo, setLogo] = useState(null)
   const [logoPreview, setLogoPreview] = useState(null)
@@ -20,7 +22,6 @@ const CreateOrganizationModal = ({ isOpen, onClose, onSuccess, editOrg = null })
   const [nameCheckMessage, setNameCheckMessage] = useState('')
   const [nameCheckLoading, setNameCheckLoading] = useState(false)
   const [cropModal, setCropModal] = useState(null) // { type: 'logo' | 'banner', image: dataUrl }
-  const [socialLinkInput, setSocialLinkInput] = useState({ platform: '', url: '' })
 
   // Available sports
   const availableSports = ['Tennis', 'Badminton', 'Table Tennis', 'Football', 'Basketball', 'Cricket']
@@ -36,26 +37,15 @@ const CreateOrganizationModal = ({ isOpen, onClose, onSuccess, editOrg = null })
     }
   }
 
-  const addSocialLink = () => {
-    if (socialLinkInput.platform.trim() && socialLinkInput.url.trim()) {
-      setFormData({
-        ...formData,
-        socialLinks: [...formData.socialLinks, socialLinkInput]
-      })
-      setSocialLinkInput({ platform: '', url: '' })
-    }
-  }
-
-  const removeSocialLink = (index) => {
-    setFormData({
-      ...formData,
-      socialLinks: formData.socialLinks.filter((_, i) => i !== index)
-    })
-  }
-
   // Populate form when editing
   useEffect(() => {
     if (editOrg) {
+      // Extract social links from array to individual fields
+      const socialLinks = Array.isArray(editOrg.socialLinks) ? editOrg.socialLinks : []
+      const instagram = socialLinks.find(s => s.platform.toLowerCase().includes('instagram'))?.url || ''
+      const facebook = socialLinks.find(s => s.platform.toLowerCase().includes('facebook'))?.url || ''
+      const twitter = socialLinks.find(s => s.platform.toLowerCase().includes('twitter') || s.platform.toLowerCase() === 'x')?.url || ''
+
       setFormData({
         name: editOrg.name || '',
         contactPerson: editOrg.contactPerson || '',
@@ -64,10 +54,13 @@ const CreateOrganizationModal = ({ isOpen, onClose, onSuccess, editOrg = null })
         location: editOrg.location || '',
         description: editOrg.description || '',
         sports: Array.isArray(editOrg.sports) ? editOrg.sports : [],
-        socialLinks: Array.isArray(editOrg.socialLinks) ? editOrg.socialLinks : []
+        instagram,
+        facebook,
+        twitter
       })
       setLogoPreview(editOrg.logoUrl || null)
       setNameCheckMessage('')
+      setError('') // Clear error when opening for edit
     } else {
       // Reset form when creating new
       setFormData({
@@ -78,11 +71,14 @@ const CreateOrganizationModal = ({ isOpen, onClose, onSuccess, editOrg = null })
         location: '',
         description: '',
         sports: [],
-        socialLinks: []
+        instagram: '',
+        facebook: '',
+        twitter: ''
       })
       setLogo(null)
       setLogoPreview(null)
       setNameCheckMessage('')
+      setError('') // Clear error when opening for create
     }
   }, [editOrg, isOpen])
 
@@ -212,6 +208,18 @@ const CreateOrganizationModal = ({ isOpen, onClose, onSuccess, editOrg = null })
       let orgId
       let response
 
+      // Convert individual social fields to socialLinks array
+      const socialLinks = []
+      if (formData.instagram.trim()) {
+        socialLinks.push({ platform: 'Instagram', url: formData.instagram.trim() })
+      }
+      if (formData.facebook.trim()) {
+        socialLinks.push({ platform: 'Facebook', url: formData.facebook.trim() })
+      }
+      if (formData.twitter.trim()) {
+        socialLinks.push({ platform: 'Twitter', url: formData.twitter.trim() })
+      }
+
       if (editOrg) {
         // Update existing organization
         response = await api.patch(`/orgs/${editOrg.id}`, {
@@ -222,7 +230,7 @@ const CreateOrganizationModal = ({ isOpen, onClose, onSuccess, editOrg = null })
           location: formData.location.trim(),
           description: formData.description.trim() || null,
           sports: formData.sports,
-          socialLinks: formData.socialLinks
+          socialLinks
         })
         orgId = editOrg.id
       } else {
@@ -246,7 +254,7 @@ const CreateOrganizationModal = ({ isOpen, onClose, onSuccess, editOrg = null })
           location: formData.location.trim(),
           description: formData.description.trim() || null,
           sports: formData.sports,
-          socialLinks: formData.socialLinks
+          socialLinks
         })
         orgId = response.data.org.id
       }
@@ -288,19 +296,7 @@ const CreateOrganizationModal = ({ isOpen, onClose, onSuccess, editOrg = null })
 
   const handleClose = () => {
     if (!loading) {
-      // Clear all state
-      setFormData({
-        name: '',
-        sports: [],
-        contactPerson: '',
-        contactEmail: '',
-        contactPhone: '',
-        city: '',
-        description: '',
-        socialLinks: []
-      })
-      setLogo(null)
-      setLogoPreview(null)
+      // Clear all state including error
       setError('')
       setNameCheckMessage('')
       setCropModal(null)
@@ -792,14 +788,16 @@ const CreateOrganizationModal = ({ isOpen, onClose, onSuccess, editOrg = null })
                 placeholder="e.g. NBC Sports Academy"
                 disabled={loading}
               />
-              <button
-                type="button"
-                className="check-name-btn"
-                onClick={checkNameAvailability}
-                disabled={loading || nameCheckLoading || !formData.name.trim()}
-              >
-                {nameCheckLoading ? 'Checking...' : 'Check Name Availability'}
-              </button>
+              {(!editOrg || (editOrg && formData.name !== editOrg.name)) && (
+                <button
+                  type="button"
+                  className="check-name-btn"
+                  onClick={checkNameAvailability}
+                  disabled={loading || nameCheckLoading || !formData.name.trim()}
+                >
+                  {nameCheckLoading ? 'Checking...' : 'Check Name Availability'}
+                </button>
+              )}
               {nameCheckMessage && (
                 <div className={`name-check-message ${
                   nameCheckMessage.includes('✓') ? 'available' :
@@ -884,10 +882,23 @@ const CreateOrganizationModal = ({ isOpen, onClose, onSuccess, editOrg = null })
               <textarea
                 className="form-input"
                 value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                onChange={(e) => {
+                  if (e.target.value.length <= 500) {
+                    setFormData({ ...formData, description: e.target.value })
+                  }
+                }}
                 placeholder="Tell us about your organization..."
                 disabled={loading}
+                maxLength={500}
               />
+              <div style={{
+                textAlign: 'right',
+                fontSize: '0.75rem',
+                color: formData.description.length > 450 ? '#ec4899' : 'rgba(255, 255, 255, 0.4)',
+                marginTop: '0.25rem'
+              }}>
+                {formData.description.length}/500
+              </div>
             </div>
 
             {/* Logo */}
@@ -943,40 +954,46 @@ const CreateOrganizationModal = ({ isOpen, onClose, onSuccess, editOrg = null })
 
             {/* Social Links */}
             <div className="form-group">
-              <label className="form-label">Social Links (Optional)</label>
-              <div className="tag-input-container">
-                <input
-                  type="text"
-                  className="form-input"
-                  value={socialLinkInput.platform}
-                  onChange={(e) => setSocialLinkInput({ ...socialLinkInput, platform: e.target.value })}
-                  placeholder="Platform (e.g. Instagram)"
-                  disabled={loading}
-                  style={{ flex: 1 }}
-                />
+              <label className="form-label">Social Media (Optional)</label>
+
+              {/* Instagram */}
+              <div style={{ marginBottom: '0.75rem' }}>
+                <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>Instagram</label>
                 <input
                   type="url"
                   className="form-input"
-                  value={socialLinkInput.url}
-                  onChange={(e) => setSocialLinkInput({ ...socialLinkInput, url: e.target.value })}
-                  placeholder="URL"
+                  value={formData.instagram}
+                  onChange={(e) => setFormData({ ...formData, instagram: e.target.value })}
+                  placeholder="https://instagram.com/yourorg"
                   disabled={loading}
-                  style={{ flex: 2 }}
                 />
-                <button type="button" className="btn btn-secondary btn-small" onClick={addSocialLink} disabled={loading}>
-                  + Add
-                </button>
               </div>
-              {formData.socialLinks.length > 0 && (
-                <div style={{ marginTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  {formData.socialLinks.map((link, idx) => (
-                    <div key={idx} className="social-link-item">
-                      <span className="social-link-text">{link.platform}: {link.url}</span>
-                      <button type="button" className="tag-remove" onClick={() => removeSocialLink(idx)}>×</button>
-                    </div>
-                  ))}
-                </div>
-              )}
+
+              {/* Facebook */}
+              <div style={{ marginBottom: '0.75rem' }}>
+                <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>Facebook</label>
+                <input
+                  type="url"
+                  className="form-input"
+                  value={formData.facebook}
+                  onChange={(e) => setFormData({ ...formData, facebook: e.target.value })}
+                  placeholder="https://facebook.com/yourorg"
+                  disabled={loading}
+                />
+              </div>
+
+              {/* Twitter */}
+              <div>
+                <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>Twitter / X</label>
+                <input
+                  type="url"
+                  className="form-input"
+                  value={formData.twitter}
+                  onChange={(e) => setFormData({ ...formData, twitter: e.target.value })}
+                  placeholder="https://twitter.com/yourorg"
+                  disabled={loading}
+                />
+              </div>
             </div>
 
             {/* Actions */}
