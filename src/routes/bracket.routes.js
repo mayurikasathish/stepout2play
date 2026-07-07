@@ -86,4 +86,29 @@ router.patch(
   bracketController.updateMatchResult.bind(bracketController)
 );
 
+/**
+ * Match status control routes (organizer only)
+ */
+
+// POST /matches/:matchId/start - Manually start a match (set to IN_PROGRESS)
+router.post(
+  '/matches/:matchId/start',
+  authenticate,
+  bracketController.startMatch.bind(bracketController)
+);
+
+// POST /matches/:matchId/complete - Manually complete a match
+router.post(
+  '/matches/:matchId/complete',
+  authenticate,
+  bracketController.completeMatch.bind(bracketController)
+);
+
+// POST /matches/:matchId/cancel - Cancel a match
+router.post(
+  '/matches/:matchId/cancel',
+  authenticate,
+  bracketController.cancelMatch.bind(bracketController)
+);
+
 module.exports = router;

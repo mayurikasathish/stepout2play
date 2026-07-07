@@ -157,9 +157,38 @@ const BracketView = ({ eventId, eventName, eventFormat, registrationCount, isOrg
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-      </div>
+      <>
+        <style>{`
+          .bracket-view h1, .bracket-view h2, .bracket-view h3, .bracket-view h4 {
+            font-family: 'Barlow Condensed', sans-serif !important;
+            font-weight: 700 !important;
+            text-transform: uppercase !important;
+            color: #fff !important;
+            letter-spacing: -0.02em !important;
+          }
+          .bracket-view p, .bracket-view span, .bracket-view div {
+            font-family: 'Barlow', sans-serif !important;
+            color: rgba(255, 255, 255, 0.8) !important;
+          }
+          .bracket-view .text-gray-900,
+          .bracket-view .text-gray-800,
+          .bracket-view .font-bold,
+          .bracket-view .font-semibold {
+            color: #fff !important;
+          }
+          .bracket-view .text-gray-600,
+          .bracket-view .text-gray-500 {
+            color: rgba(255, 255, 255, 0.6) !important;
+          }
+          .bracket-view button {
+            text-transform: uppercase !important;
+            font-family: 'Barlow Condensed', sans-serif !important;
+          }
+        `}</style>
+        <div className="bracket-view flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{ borderColor: '#4fffb0' }}></div>
+        </div>
+      </>
     )
   }
 
@@ -223,10 +252,6 @@ const BracketView = ({ eventId, eventName, eventFormat, registrationCount, isOrg
     }
     return (
       <div className="space-y-6">
-        <div className="glass-card rounded-xl p-6">
-          <h3 className="text-xl font-bold text-gray-900">{eventName}</h3>
-          <p className="text-sm text-gray-600 mt-1">Generate your tournament bracket below</p>
-        </div>
         <BracketGenerator
           eventId={eventId}
           eventName={eventName}
@@ -251,18 +276,18 @@ const BracketView = ({ eventId, eventName, eventFormat, registrationCount, isOrg
   }[bracket.event.seedingMethod] || bracket.event.seedingMethod
 
   return (
-    <div className="space-y-6">
+    <div className="bracket-view space-y-6">
       {/* Header */}
       {isOrganizer && (
         <div className="glass-card rounded-xl p-6">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
-              <h3 className="text-xl font-bold text-gray-900">{eventName}</h3>
+              <h3 style={{ fontSize: '2rem', fontWeight: '900', color: '#3dd68c', textTransform: 'uppercase', fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: '-0.02em' }}>{eventName}</h3>
               <div className="flex items-center gap-3 mt-2 flex-wrap">
-                <span className="px-3 py-1 bg-indigo-100 text-indigo-700 text-sm font-medium rounded-full">
+                <span style={{ color: '#fff', fontSize: '0.875rem', fontWeight: '600', textTransform: 'uppercase', fontFamily: "'Barlow Condensed', sans-serif" }}>
                   {formatLabel}
                 </span>
-                <span className="px-3 py-1 bg-green-100 text-green-700 text-sm font-medium rounded-full">
+                <span style={{ color: '#fff', fontSize: '0.875rem', fontWeight: '600', textTransform: 'uppercase', fontFamily: "'Barlow Condensed', sans-serif" }}>
                   {seedingLabel}
                 </span>
                 {(isRoundRobin || isHybrid) && bracket.event.groupCount && (
@@ -285,26 +310,99 @@ const BracketView = ({ eventId, eventName, eventFormat, registrationCount, isOrg
                     console.log('Setting showPublishConfirm to true')
                     setShowPublishConfirm(true)
                   }}
-                  className="px-6 py-2 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-lg transition-all shadow-md hover:shadow-lg"
+                  style={{
+                    padding: '0.75rem 2rem',
+                    background: 'linear-gradient(135deg, #4fffb0 0%, #00d4ff 100%)',
+                    color: '#000',
+                    fontFamily: "'Barlow Condensed', sans-serif",
+                    fontWeight: '700',
+                    fontSize: '1.125rem',
+                    textTransform: 'uppercase',
+                    borderRadius: '12px',
+                    border: 'none',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 15px rgba(79, 255, 176, 0.3)',
+                    transition: 'all 0.3s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.boxShadow = '0 6px 20px rgba(79, 255, 176, 0.5)';
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.boxShadow = '0 4px 15px rgba(79, 255, 176, 0.3)';
+                    e.currentTarget.style.transform = 'translateY(0)';
+                  }}
                 >
                   📢 Publish Bracket
                 </button>
               )}
               {bracket?.event?.bracketPublished && (
-                <div className="px-4 py-2 bg-green-100 text-green-800 font-medium rounded-lg border-2 border-green-300">
+                <div style={{
+                  padding: '0.75rem 2rem',
+                  background: 'rgba(79, 255, 176, 0.2)',
+                  color: '#4fffb0',
+                  fontFamily: "'Barlow Condensed', sans-serif",
+                  fontWeight: '700',
+                  fontSize: '1.125rem',
+                  textTransform: 'uppercase',
+                  borderRadius: '12px',
+                  border: '2px solid #4fffb0'
+                }}>
                   ✅ Published
                 </div>
               )}
               <button
                 onClick={() => window.open(`/events/${eventId}/scorecards`, '_blank')}
-                className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-all"
+                style={{
+                  padding: '0.5rem 1.5rem',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  color: '#fff',
+                  fontFamily: "'Barlow Condensed', sans-serif",
+                  fontWeight: '600',
+                  fontSize: '0.875rem',
+                  textTransform: 'uppercase',
+                  borderRadius: '10px',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                }}
               >
                 📥 Download Scorecards
               </button>
               <button
                 onClick={() => setShowDeleteConfirm(true)}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-all"
+                style={{
+                  padding: '0.5rem 1.5rem',
+                  background: '#ec4899',
+                  color: '#000',
+                  fontFamily: "'Barlow Condensed', sans-serif",
+                  fontWeight: '700',
+                  fontSize: '0.875rem',
+                  textTransform: 'uppercase',
+                  borderRadius: '10px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(236, 72, 153, 0.8)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = '#ec4899';
+                }}
               >
+                <svg style={{ width: '1rem', height: '1rem' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
                 Delete Bracket
               </button>
             </div>
@@ -545,50 +643,43 @@ const BracketView = ({ eventId, eventName, eventFormat, registrationCount, isOrg
 
       {/* Publish Confirmation Modal */}
       {showPublishConfirm && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6" style={{backdropFilter: 'blur(8px)', background: 'rgba(255, 255, 255, 0.1)'}}>
-          <div className="glass-card rounded-3xl p-12 max-w-2xl w-full text-center shadow-2xl">
-            <div className="text-8xl mb-6">📢</div>
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">Ready to Publish?</h2>
-            <p className="text-xl text-gray-700 mb-3">All registered players will be notified that the bracket is ready.</p>
-            <div className="inline-flex items-center gap-2 px-6 py-3 bg-primary-100 rounded-full mb-8">
-              <span className="text-lg font-bold text-primary-700">
-                {registrationCount || 0} players will be notified
-              </span>
-            </div>
-            <div className="bg-yellow-50 border-2 border-yellow-300 rounded-2xl p-5 mb-8">
-              <div className="flex items-start gap-4">
-                <span className="text-3xl">⚠️</span>
-                <div className="text-left">
-                  <p className="text-base font-bold text-yellow-900 mb-2">Important</p>
-                  <p className="text-base text-yellow-800">
-                    Make sure you've reviewed the bracket. Once published, all players will be able to view it.
-                  </p>
-                </div>
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-md" onClick={() => setShowPublishConfirm(false)} />
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-10 animate-slide-up">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+                </svg>
               </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">Publish Bracket?</h3>
+              <p className="text-gray-600">
+                All registered players will be notified that the bracket is ready. Make sure you've reviewed it.
+              </p>
             </div>
-            <div className="flex gap-4">
+            <div className="flex gap-3">
               <button
                 onClick={() => setShowPublishConfirm(false)}
                 disabled={publishing}
-                className="flex-1 px-8 py-5 bg-white hover:bg-gray-50 text-gray-900 text-lg font-bold rounded-2xl border-2 border-gray-300 transition-all disabled:opacity-50 shadow-lg"
+                className="flex-1 px-6 py-4 bg-gray-100 hover:bg-gray-200 text-gray-900 font-semibold rounded-xl transition-all disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 onClick={handlePublishBracket}
                 disabled={publishing}
-                className="flex-1 px-8 py-5 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white text-lg font-bold rounded-2xl transition-all disabled:opacity-50 shadow-xl hover:shadow-2xl"
+                className="flex-1 px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-xl transition-all shadow-lg disabled:opacity-50"
               >
                 {publishing ? (
-                  <span className="flex items-center justify-center gap-3">
-                    <svg className="animate-spin h-6 w-6" fill="none" viewBox="0 0 24 24">
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                     </svg>
                     Publishing...
                   </span>
                 ) : (
-                  '✓ Yes, Publish Bracket'
+                  'Publish'
                 )}
               </button>
             </div>
@@ -616,17 +707,15 @@ const MatchResultModal = ({ match, event, isRoundRobin, onClose, onSubmit }) => 
   const extractedRules = rawScoringRules.rules || rawScoringRules
 
   // CRITICAL: Add deuceStartsAt and maxPoints if missing
-  // Default maxPoints based on pointsPerSet (badminton 21→30, pickleball 11→15, others null)
-  const getDefaultMaxPoints = (pointsPerSet) => {
-    if (pointsPerSet === 21) return 30  // Badminton
-    if (pointsPerSet === 11) return 15  // Pickleball
-    return null  // Table tennis, squash (no max)
-  }
-
+  // Handle backward compatibility and new structure
   const scoringRules = {
     ...extractedRules,
     deuceStartsAt: extractedRules.deuceStartsAt ?? (extractedRules.pointsPerSet - 1),
-    maxPoints: extractedRules.maxPoints ?? getDefaultMaxPoints(extractedRules.pointsPerSet)
+    // Support both old (maxPoints) and new (hasScoreCap + scoreCap) structure
+    hasScoreCap: extractedRules.hasScoreCap ?? (extractedRules.maxPoints !== null && extractedRules.maxPoints !== undefined),
+    scoreCap: extractedRules.scoreCap ?? extractedRules.maxPoints ?? null,
+    // Keep maxPoints for backward compatibility
+    maxPoints: extractedRules.scoreCap ?? extractedRules.maxPoints ?? null
   }
 
   const bestOf = scoringRules.bestOf
@@ -915,20 +1004,59 @@ const MatchResultModal = ({ match, event, isRoundRobin, onClose, onSubmit }) => 
 
   return (
     <>
-    <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="fixed inset-0 bg-gray-900/70 backdrop-blur-md" onClick={onClose} />
-      <div className="flex min-h-full items-center justify-center p-4">
-        <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-          <div className="sticky top-0 bg-white z-10 px-8 pt-8 pb-4 border-b border-gray-100">
-            <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto">
+      <div className="fixed inset-0 bg-black/80 backdrop-blur-md" onClick={onClose} />
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', padding: '1rem', width: '100%' }}>
+        <div style={{
+          position: 'relative',
+          background: 'linear-gradient(135deg, rgba(10, 22, 40, 0.98), rgba(6, 13, 31, 0.99))',
+          border: '1px solid rgba(79, 255, 176, 0.3)',
+          borderRadius: '24px',
+          boxShadow: '0 25px 50px rgba(0, 0, 0, 0.5)',
+          width: '100%',
+          maxWidth: '42rem',
+          maxHeight: '90vh',
+          overflowY: 'auto'
+        }}>
+          <div style={{
+            position: 'sticky',
+            top: 0,
+            background: 'linear-gradient(135deg, rgba(10, 22, 40, 0.98), rgba(6, 13, 31, 0.99))',
+            zIndex: 10,
+            padding: '2rem 2rem 1rem 2rem',
+            borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
+          }}>
+            <button
+              onClick={onClose}
+              style={{
+                position: 'absolute',
+                top: '1rem',
+                right: '1rem',
+                padding: '0.5rem',
+                background: 'rgba(255, 255, 255, 0.1)',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+              }}
+            >
+              <svg style={{ width: '1.25rem', height: '1.25rem', color: '#fff' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
-            <h2 className="text-2xl font-bold text-gray-900">Update Match Result</h2>
+            <h2 style={{ fontSize: '1.5rem', fontWeight: '900', color: '#fff', fontFamily: "'Barlow Condensed', sans-serif", textTransform: 'uppercase', letterSpacing: '-0.02em' }}>Update Match Result</h2>
           </div>
 
-          <div className="px-8 pb-8 pt-4">
+          <div style={{ padding: '1rem 2rem 2rem 2rem' }}>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Configuration Error */}
@@ -958,46 +1086,46 @@ const MatchResultModal = ({ match, event, isRoundRobin, onClose, onSubmit }) => 
             )}
 
             {/* Match Info */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="text-center">
+            <div style={{ background: 'rgba(79, 255, 176, 0.1)', border: '1px solid rgba(79, 255, 176, 0.3)', borderRadius: '12px', padding: '1rem' }}>
+              <div style={{ textAlign: 'center' }}>
                 {event?.sportId ? (
-                  <p className="text-xs font-medium text-blue-700 mb-1">
+                  <p style={{ fontSize: '0.75rem', fontWeight: '600', color: '#4fffb0', marginBottom: '0.25rem', fontFamily: "'Barlow Condensed', sans-serif", textTransform: 'uppercase' }}>
                     {event.sportId === 'badminton' && '🏸 Badminton'}
                     {event.sportId === 'table-tennis' && '🏓 Table Tennis'}
                     {event.sportId === 'squash' && '🎾 Squash'}
                     {event.sportId === 'pickleball' && '🥒 Pickleball'}
                   </p>
                 ) : (
-                  <p className="text-xs font-medium text-orange-600 mb-1">
+                  <p style={{ fontSize: '0.75rem', fontWeight: '600', color: '#ec4899', marginBottom: '0.25rem', fontFamily: "'Barlow Condensed', sans-serif", textTransform: 'uppercase' }}>
                     ⚙️ Custom Scoring Rules
                   </p>
                 )}
-                <p className="text-sm font-medium text-blue-900 mb-1">Match Format</p>
-                <p className="text-base font-semibold text-blue-700">
+                <p style={{ fontSize: '0.875rem', fontWeight: '600', color: 'rgba(255, 255, 255, 0.8)', marginBottom: '0.25rem', fontFamily: "'Barlow Condensed', sans-serif", textTransform: 'uppercase' }}>Match Format</p>
+                <p style={{ fontSize: '1rem', fontWeight: '700', color: '#fff' }}>
                   Best of {bestOf} • {pointsPerSet} points per set
                 </p>
               </div>
-              <p className="text-xs text-blue-600 mt-3 text-center">
+              <p style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.6)', marginTop: '0.75rem', textAlign: 'center' }}>
                 ✨ Winner will be automatically determined based on sets won
               </p>
             </div>
 
             {/* Players */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <span className="font-semibold text-gray-900">{getParticipantName(match.participant1)}</span>
-                <span className="text-xs text-gray-500">Player 1</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '12px' }}>
+                <span style={{ fontWeight: '700', color: '#fff', fontFamily: "'Barlow Condensed', sans-serif" }}>{getParticipantName(match.participant1)}</span>
+                <span style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.6)', fontFamily: "'Barlow Condensed', sans-serif", textTransform: 'uppercase' }}>Player 1</span>
               </div>
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <span className="font-semibold text-gray-900">{getParticipantName(match.participant2)}</span>
-                <span className="text-xs text-gray-500">Player 2</span>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '12px' }}>
+                <span style={{ fontWeight: '700', color: '#fff', fontFamily: "'Barlow Condensed', sans-serif" }}>{getParticipantName(match.participant2)}</span>
+                <span style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.6)', fontFamily: "'Barlow Condensed', sans-serif", textTransform: 'uppercase' }}>Player 2</span>
               </div>
             </div>
 
             {/* Set Scores */}
             <div>
-              <label className="block text-sm font-medium text-gray-900 mb-3">
-                Enter Set Scores <span className="text-red-500">*</span>
+              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '700', color: '#fff', marginBottom: '0.75rem', fontFamily: "'Barlow Condensed', sans-serif", textTransform: 'uppercase' }}>
+                Enter Set Scores <span style={{ color: '#ec4899' }}>*</span>
               </label>
               <div className="space-y-4">
                 {setScores.map((set, idx) => (
@@ -1088,16 +1216,16 @@ const MatchResultModal = ({ match, event, isRoundRobin, onClose, onSubmit }) => 
                   {errors.winner}
                 </p>
               )}
-              <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-xs text-blue-800">
-                  <span className="font-semibold">💡 How scoring works:</span><br />
+              <div style={{ marginTop: '0.75rem', padding: '0.75rem', background: 'rgba(168, 85, 247, 0.15)', border: '1px solid rgba(168, 85, 247, 0.3)', borderRadius: '12px' }}>
+                <p style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.9)', lineHeight: '1.6' }}>
+                  <span style={{ fontWeight: '700', fontFamily: "'Barlow Condensed', sans-serif" }}>💡 How scoring works:</span><br />
                   • Click "Save" after entering each set to validate and lock it<br />
                   {event?.scoringType === 'point-based' && scoringRules.deuceStartsAt && (
                     <>
                       • A player wins at {pointsPerSet} if opponent has {scoringRules.deuceStartsAt - 1} or fewer points<br />
                       • After {scoringRules.deuceStartsAt}-{scoringRules.deuceStartsAt}, winner must lead by {scoringRules.minimumLead} points<br />
-                      {scoringRules.maxPoints && (
-                        <>• Maximum possible score: {scoringRules.maxPoints}-{scoringRules.maxPoints - scoringRules.minimumLead}<br /></>
+                      {scoringRules.hasScoreCap && scoringRules.scoreCap && (
+                        <>• Maximum possible score: {scoringRules.scoreCap}-{scoringRules.scoreCap - 1}<br /></>
                       )}
                     </>
                   )}
@@ -1160,13 +1288,56 @@ const MatchResultModal = ({ match, event, isRoundRobin, onClose, onSubmit }) => 
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-all"
+                style={{
+                  flex: 1,
+                  padding: '0.75rem 1rem',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  color: '#fff',
+                  fontWeight: '600',
+                  borderRadius: '12px',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s',
+                  fontFamily: "'Barlow Condensed', sans-serif",
+                  textTransform: 'uppercase'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = '#4fffb0';
+                  e.currentTarget.style.color = '#000';
+                  e.currentTarget.style.borderColor = '#4fffb0';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                  e.currentTarget.style.color = '#fff';
+                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                }}
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="flex-1 px-4 py-3 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-all"
+                style={{
+                  flex: 1,
+                  padding: '0.75rem 1rem',
+                  background: 'linear-gradient(135deg, #4fffb0 0%, #00d4ff 100%)',
+                  border: 'none',
+                  color: '#000',
+                  fontWeight: '700',
+                  borderRadius: '12px',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s',
+                  boxShadow: '0 4px 15px rgba(79, 255, 176, 0.3)',
+                  fontFamily: "'Barlow Condensed', sans-serif",
+                  textTransform: 'uppercase'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.boxShadow = '0 6px 20px rgba(79, 255, 176, 0.5)';
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.boxShadow = '0 4px 15px rgba(79, 255, 176, 0.3)';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                }}
               >
                 Save Result
               </button>

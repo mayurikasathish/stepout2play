@@ -11,7 +11,10 @@
  * @returns {object} { valid: boolean, error: string | null }
  */
 export function validateGameScore(p1Score, p2Score, rules) {
-  const { pointsPerSet, minimumLead, maxPoints } = rules
+  const { pointsPerSet, minimumLead, hasScoreCap, scoreCap } = rules
+
+  // Backward compatibility: support old 'maxPoints' field
+  const maxPoints = hasScoreCap ? scoreCap : (rules.maxPoints || null)
 
   // Default deuceStartsAt to pointsPerSet - 1 if not provided (e.g., 20 for badminton/21)
   const deuceStartsAt = rules.deuceStartsAt ?? (pointsPerSet - 1)
@@ -34,6 +37,14 @@ export function validateGameScore(p1Score, p2Score, rules) {
     return {
       valid: false,
       error: `At least one player must reach ${pointsPerSet} points`
+    }
+  }
+
+  // Special case: If maxPoints exists and winner reached it, allow 1 point lead
+  // Example: Badminton 30-29 is valid (maxPoints=30 reached, 1 point lead)
+  if (maxPoints !== null && maxPoints !== undefined && maxScore === maxPoints) {
+    if (scoreDiff >= 1) {
+      return { valid: true, error: null }
     }
   }
 
@@ -60,15 +71,6 @@ export function validateGameScore(p1Score, p2Score, rules) {
   // Rule 4: Deuce situation (both players at deuceStartsAt or above)
   // Both scores must be >= deuceStartsAt for deuce to apply
   if (minScore >= deuceStartsAt) {
-    // In deuce, score difference must be EXACTLY minimumLead (usually 2)
-    // Cannot have 3-point lead (30-27) or 1-point lead (21-20)
-    if (scoreDiff !== minimumLead) {
-      return {
-        valid: false,
-        error: `Invalid score. After ${deuceStartsAt}-${deuceStartsAt}, the winner must lead by EXACTLY ${minimumLead} points (not ${scoreDiff})`
-      }
-    }
-
     // Check if maxPoints limit exists
     if (maxPoints !== null && maxPoints !== undefined) {
       // Sports with max points (badminton: 30, pickleball: 15)
@@ -77,6 +79,15 @@ export function validateGameScore(p1Score, p2Score, rules) {
           valid: false,
           error: `Maximum score is ${maxPoints} points`
         }
+      }
+    }
+
+    // In deuce, score difference must be EXACTLY minimumLead (usually 2)
+    // (Note: 30-29 is already handled by the maxPoints check above)
+    if (scoreDiff !== minimumLead) {
+      return {
+        valid: false,
+        error: `Invalid score. After ${deuceStartsAt}-${deuceStartsAt}, the winner must lead by EXACTLY ${minimumLead} points (not ${scoreDiff})`
       }
     }
 

@@ -35,19 +35,48 @@ class EventService {
         goldenPoint: eventData.goldenPoint || false
       },
       include: {
-        _count: {
+        registrations: {
+          where: {
+            status: {
+              not: 'CANCELLED'
+            }
+          },
           select: {
-            registrations: true
+            id: true,
+            userId: true,
+            partnerId: true
           }
         }
       }
     });
 
+    let participantCount;
+
+    // For doubles/mixed doubles, count unique teams (pairs)
+    if (event.format === 'DOUBLES' || event.format === 'MIXED_DOUBLES') {
+      const processedPairs = new Set();
+      participantCount = 0;
+
+      event.registrations.forEach(reg => {
+        if (reg.partnerId) {
+          // Create a consistent pair ID (sorted to avoid counting same pair twice)
+          const pairId = [reg.userId, reg.partnerId].sort().join('-');
+          if (!processedPairs.has(pairId)) {
+            processedPairs.add(pairId);
+            participantCount++;
+          }
+        }
+      });
+    } else {
+      // For singles, count individual registrations
+      participantCount = event.registrations.length;
+    }
+
     return {
       ...event,
-      participantCount: event._count.registrations,
+      participantCount,
       spotsRemaining: event.maxParticipants
-        ? event.maxParticipants - event._count.registrations
+        ? event.maxParticipants - participantCount
         : null
     };
   }
@@ -70,9 +99,16 @@ class EventService {
     const events = await prisma.event.findMany({
       where: { tournamentId },
       include: {
-        _count: {
+        registrations: {
+          where: {
+            status: {
+              not: 'CANCELLED'
+            }
+          },
           select: {
-            registrations: true
+            id: true,
+            userId: true,
+            partnerId: true
           }
         }
       },
@@ -82,13 +118,37 @@ class EventService {
     });
 
     // Add participant counts to events
-    const eventsWithCounts = events.map(event => ({
-      ...event,
-      participantCount: event._count.registrations,
-      spotsRemaining: event.maxParticipants
-        ? event.maxParticipants - event._count.registrations
-        : null
-    }));
+    const eventsWithCounts = events.map(event => {
+      let participantCount;
+
+      // For doubles/mixed doubles, count unique teams (pairs)
+      if (event.format === 'DOUBLES' || event.format === 'MIXED_DOUBLES') {
+        const processedPairs = new Set();
+        participantCount = 0;
+
+        event.registrations.forEach(reg => {
+          if (reg.partnerId) {
+            // Create a consistent pair ID (sorted to avoid counting same pair twice)
+            const pairId = [reg.userId, reg.partnerId].sort().join('-');
+            if (!processedPairs.has(pairId)) {
+              processedPairs.add(pairId);
+              participantCount++;
+            }
+          }
+        });
+      } else {
+        // For singles, count individual registrations
+        participantCount = event.registrations.length;
+      }
+
+      return {
+        ...event,
+        participantCount,
+        spotsRemaining: event.maxParticipants
+          ? event.maxParticipants - participantCount
+          : null
+      };
+    });
 
     return eventsWithCounts;
   }

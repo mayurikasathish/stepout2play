@@ -5,6 +5,7 @@ const SeedingModal = ({ event, registrations, onClose, onSaved }) => {
   const [seeds, setSeeds] = useState({})
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [showClearConfirm, setShowClearConfirm] = useState(false)
 
   useEffect(() => {
     // Initialize seed numbers from existing registrations
@@ -103,7 +104,10 @@ const SeedingModal = ({ event, registrations, onClose, onSaved }) => {
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="fixed inset-0 bg-gray-900/70 backdrop-blur-md" onClick={onClose} />
       <div className="flex min-h-full items-center justify-center p-4">
-        <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-3xl p-8 max-h-[90vh] overflow-y-auto">
+        <div className="relative rounded-2xl shadow-2xl w-full max-w-3xl p-8 max-h-[90vh] overflow-y-auto" style={{
+          background: 'rgba(10, 22, 40, 0.98)',
+          border: '1px solid rgba(79, 255, 176, 0.3)'
+        }}>
           <button
             onClick={onClose}
             className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
@@ -113,8 +117,8 @@ const SeedingModal = ({ event, registrations, onClose, onSaved }) => {
             </svg>
           </button>
 
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Manual Seeding</h2>
-          <p className="text-gray-600 mb-6">
+          <h2 className="text-2xl font-bold mb-2" style={{ color: '#4fffb0', fontFamily: "'Barlow Condensed', sans-serif", textTransform: 'uppercase' }}>Manual Seeding</h2>
+          <p className="mb-6" style={{ color: 'rgba(255, 255, 255, 0.7)', fontFamily: "'Barlow Condensed', sans-serif" }}>
             Assign seed numbers to participants for {event.name}. Lower numbers indicate stronger seeds.
           </p>
 
@@ -128,40 +132,80 @@ const SeedingModal = ({ event, registrations, onClose, onSaved }) => {
           <div className="mb-6 flex gap-3">
             <button
               onClick={handleAutoNumber}
-              className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-all text-sm"
+              style={{
+                padding: '0.5rem 1rem',
+                background: '#4fffb0',
+                color: '#000',
+                fontFamily: "'Barlow Condensed', sans-serif",
+                fontWeight: '700',
+                textTransform: 'uppercase',
+                fontSize: '0.875rem',
+                borderRadius: '8px',
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(79, 255, 176, 0.8)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = '#4fffb0'
+              }}
             >
               Auto-Number (1, 2, 3...)
             </button>
             <button
-              onClick={() => {
-                const cleared = {}
-                registrations.forEach(reg => {
-                  cleared[reg.id] = null
-                })
-                setSeeds(cleared)
+              onClick={() => setShowClearConfirm(true)}
+              style={{
+                padding: '0.5rem 1rem',
+                background: '#ec4899',
+                color: '#000',
+                fontFamily: "'Barlow Condensed', sans-serif",
+                fontWeight: '700',
+                textTransform: 'uppercase',
+                fontSize: '0.875rem',
+                borderRadius: '8px',
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
               }}
-              className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-all text-sm"
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(236, 72, 153, 0.8)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = '#ec4899'
+              }}
             >
               Clear All
             </button>
           </div>
 
           {/* Seeding Table */}
-          <div className="border border-gray-200 rounded-xl overflow-hidden mb-6">
+          <div className="border rounded-xl overflow-hidden mb-6" style={{ borderColor: 'rgba(255, 255, 255, 0.1)' }}>
             <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
+              <thead style={{ background: 'rgba(6, 13, 31, 0.6)', borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider w-24" style={{ color: 'rgba(255, 255, 255, 0.7)', fontFamily: "'Barlow Condensed', sans-serif" }}>
                     Seed #
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'rgba(255, 255, 255, 0.7)', fontFamily: "'Barlow Condensed', sans-serif" }}>
                     Participant
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody style={{ background: 'transparent' }}>
                 {sortedRegistrations.map((reg) => (
-                  <tr key={reg.id} className="hover:bg-gray-50 transition-colors">
+                  <tr
+                    key={reg.id}
+                    className="transition-colors"
+                    style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)'
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'transparent'
+                    }}
+                  >
                     <td className="px-4 py-4">
                       <input
                         type="number"
@@ -170,19 +214,38 @@ const SeedingModal = ({ event, registrations, onClose, onSaved }) => {
                         value={seeds[reg.id] !== null ? seeds[reg.id] : ''}
                         onChange={(e) => handleSeedChange(reg.id, e.target.value)}
                         placeholder="#"
-                        className="w-16 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-center font-semibold"
+                        style={{
+                          width: '4rem',
+                          padding: '0.5rem 0.75rem',
+                          background: 'rgba(6, 13, 31, 0.6)',
+                          border: '1px solid rgba(255, 255, 255, 0.2)',
+                          borderRadius: '8px',
+                          outline: 'none',
+                          textAlign: 'center',
+                          fontWeight: '600',
+                          color: '#fff',
+                          fontFamily: "'Barlow Condensed', sans-serif"
+                        }}
+                        onFocus={(e) => {
+                          e.target.style.borderColor = '#4fffb0'
+                          e.target.style.boxShadow = '0 0 0 3px rgba(79, 255, 176, 0.1)'
+                        }}
+                        onBlur={(e) => {
+                          e.target.style.borderColor = 'rgba(255, 255, 255, 0.2)'
+                          e.target.style.boxShadow = 'none'
+                        }}
                       />
                     </td>
                     <td className="px-4 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0">
-                          <span className="text-primary-600 font-semibold text-sm">
+                        <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(79, 255, 176, 0.2)' }}>
+                          <span style={{ color: '#4fffb0', fontWeight: '600', fontSize: '0.875rem', fontFamily: "'Barlow Condensed', sans-serif" }}>
                             {reg.user.firstName[0]}{reg.user.lastName[0]}
                           </span>
                         </div>
                         <div>
-                          <p className="font-medium text-gray-900">{getParticipantName(reg)}</p>
-                          <p className="text-sm text-gray-500">{reg.user.email}</p>
+                          <p className="font-medium" style={{ color: '#fff', fontFamily: "'Barlow Condensed', sans-serif" }}>{getParticipantName(reg)}</p>
+                          <p className="text-sm" style={{ color: 'rgba(255, 255, 255, 0.5)', fontFamily: "'Barlow Condensed', sans-serif" }}>{reg.user.email}</p>
                         </div>
                       </div>
                     </td>
@@ -193,14 +256,17 @@ const SeedingModal = ({ event, registrations, onClose, onSaved }) => {
           </div>
 
           {/* Info Box */}
-          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+          <div className="mb-6 p-4 rounded-xl" style={{
+            background: 'rgba(6, 13, 31, 0.6)',
+            border: '1px solid rgba(79, 255, 176, 0.2)'
+          }}>
             <div className="flex items-start gap-3">
-              <svg className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-5 h-5 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: '#4fffb0' }}>
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <div className="text-sm text-blue-900">
-                <p className="font-medium mb-1">Seeding Tips:</p>
-                <ul className="list-disc list-inside space-y-1 text-blue-800">
+              <div className="text-sm">
+                <p className="font-medium mb-1" style={{ color: '#4fffb0', fontFamily: "'Barlow Condensed', sans-serif", fontWeight: '700', textTransform: 'uppercase' }}>Seeding Tips:</p>
+                <ul className="list-disc list-inside space-y-1" style={{ color: 'rgba(255, 255, 255, 0.7)', fontFamily: "'Barlow Condensed', sans-serif" }}>
                   <li>Seed #1 is the strongest player/team</li>
                   <li>Seeds are used to balance the bracket</li>
                   <li>Top seeds won't meet until later rounds</li>
@@ -214,20 +280,166 @@ const SeedingModal = ({ event, registrations, onClose, onSaved }) => {
           <div className="flex gap-3">
             <button
               onClick={onClose}
-              className="flex-1 px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-all"
+              style={{
+                flex: 1,
+                padding: '0.75rem 1rem',
+                background: 'transparent',
+                color: 'rgba(255, 255, 255, 0.7)',
+                fontFamily: "'Barlow Condensed', sans-serif",
+                fontWeight: '700',
+                textTransform: 'uppercase',
+                borderRadius: '50px',
+                border: '1px solid rgba(255, 255, 255, 0.3)',
+                cursor: 'pointer',
+                transition: 'all 0.3s'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = '#4fffb0'
+                e.currentTarget.style.color = '#4fffb0'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)'
+                e.currentTarget.style.color = 'rgba(255, 255, 255, 0.7)'
+              }}
             >
               Cancel
             </button>
             <button
               onClick={handleSave}
               disabled={saving}
-              className="flex-1 px-4 py-3 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{
+                flex: 1,
+                padding: '0.75rem 1rem',
+                background: '#4fffb0',
+                color: '#060d1f',
+                fontFamily: "'Barlow Condensed', sans-serif",
+                fontWeight: '700',
+                textTransform: 'uppercase',
+                borderRadius: '50px',
+                border: 'none',
+                cursor: saving ? 'not-allowed' : 'pointer',
+                transition: 'all 0.3s',
+                opacity: saving ? 0.5 : 1
+              }}
+              onMouseEnter={(e) => {
+                if (!saving) {
+                  e.currentTarget.style.transform = 'translateY(-2px)'
+                  e.currentTarget.style.boxShadow = '0 4px 15px rgba(79, 255, 176, 0.4)'
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)'
+                e.currentTarget.style.boxShadow = 'none'
+              }}
             >
               {saving ? 'Saving...' : 'Save Seed Numbers'}
             </button>
           </div>
         </div>
       </div>
+
+      {/* Clear All Confirmation Modal */}
+      {showClearConfirm && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0, 0, 0, 0.7)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(10, 22, 40, 0.98), rgba(6, 13, 31, 0.99))',
+            border: '1px solid rgba(236, 72, 153, 0.4)',
+            borderRadius: '16px',
+            padding: '2rem',
+            maxWidth: '400px',
+            width: '90%',
+            boxShadow: '0 0 40px rgba(236, 72, 153, 0.2)'
+          }}>
+            <h3 style={{
+              fontFamily: "'Barlow Condensed', sans-serif",
+              fontWeight: '900',
+              fontSize: '1.5rem',
+              color: '#ec4899',
+              textTransform: 'uppercase',
+              marginBottom: '1rem'
+            }}>
+              Clear All Seeding?
+            </h3>
+            <p style={{
+              fontFamily: "'Barlow Condensed', sans-serif",
+              color: 'rgba(255, 255, 255, 0.7)',
+              marginBottom: '1.5rem',
+              lineHeight: '1.5'
+            }}>
+              Are you sure you want to clear all seed numbers? This action cannot be undone.
+            </p>
+            <div style={{ display: 'flex', gap: '1rem' }}>
+              <button
+                onClick={() => setShowClearConfirm(false)}
+                style={{
+                  flex: 1,
+                  padding: '0.75rem 1rem',
+                  background: 'transparent',
+                  color: 'rgba(255, 255, 255, 0.7)',
+                  fontFamily: "'Barlow Condensed', sans-serif",
+                  fontWeight: '700',
+                  textTransform: 'uppercase',
+                  borderRadius: '50px',
+                  border: '1px solid rgba(255, 255, 255, 0.3)',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = '#4fffb0'
+                  e.currentTarget.style.color = '#4fffb0'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)'
+                  e.currentTarget.style.color = 'rgba(255, 255, 255, 0.7)'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  const cleared = {}
+                  registrations.forEach(reg => {
+                    cleared[reg.id] = null
+                  })
+                  setSeeds(cleared)
+                  setShowClearConfirm(false)
+                }}
+                style={{
+                  flex: 1,
+                  padding: '0.75rem 1rem',
+                  background: '#ec4899',
+                  color: '#000',
+                  fontFamily: "'Barlow Condensed', sans-serif",
+                  fontWeight: '700',
+                  textTransform: 'uppercase',
+                  borderRadius: '50px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-2px)'
+                  e.currentTarget.style.boxShadow = '0 4px 15px rgba(236, 72, 153, 0.4)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)'
+                  e.currentTarget.style.boxShadow = 'none'
+                }}
+              >
+                Clear All
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -11,8 +11,9 @@
         "bestOf": 3,
         "pointsPerSet": 21,
         "minimumLead": 2,
-        "maxPoints": 30,
-        "deuceStartsAt": 20
+        "deuceStartsAt": 20,
+        "hasScoreCap": true,
+        "scoreCap": 30
       }
     },
     {
@@ -26,8 +27,9 @@
         "bestOf": 5,
         "pointsPerSet": 11,
         "minimumLead": 2,
-        "maxPoints": null,
-        "deuceStartsAt": 10
+        "deuceStartsAt": 10,
+        "hasScoreCap": false,
+        "scoreCap": null
       }
     },
     {
@@ -41,8 +43,9 @@
         "bestOf": 5,
         "pointsPerSet": 11,
         "minimumLead": 2,
-        "maxPoints": null,
-        "deuceStartsAt": 10
+        "deuceStartsAt": 10,
+        "hasScoreCap": false,
+        "scoreCap": null
       }
     },
     {
@@ -56,8 +59,9 @@
         "bestOf": 3,
         "pointsPerSet": 11,
         "minimumLead": 2,
-        "maxPoints": 15,
-        "deuceStartsAt": 10
+        "deuceStartsAt": 10,
+        "hasScoreCap": false,
+        "scoreCap": null
       }
     },
     {

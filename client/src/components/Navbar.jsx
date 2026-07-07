@@ -127,13 +127,13 @@ const Navbar = () => {
   const exploreItems = [
     {
       label: 'Organizations',
-      description: 'Find and join sports organizations',
+      description: 'Find and join sports organizations.',
       path: '/discover',
       Icon: DiscoverIcon,
     },
     {
-      label: 'Players',
-      description: 'Browse and invite to your org',
+      label: 'People',
+      description: 'Browse players and organizers and invite to your organization',
       path: '/players',
       Icon: PlayersIcon,
     },
@@ -359,14 +359,14 @@ const Navbar = () => {
         }
 
         .user-name {
-          font-family: 'Barlow', sans-serif;
+          font-family: 'Barlow Condensed', sans-serif;
           font-size: 0.9rem;
           font-weight: 600;
           color: #fff;
         }
 
         .user-email {
-          font-family: 'Barlow', sans-serif;
+          font-family: 'Barlow Condensed', sans-serif;
           font-size: 0.75rem;
           color: rgba(255,255,255,0.5);
         }
@@ -385,7 +385,7 @@ const Navbar = () => {
         }
 
         .dropdown-item {
-          font-family: 'Barlow', sans-serif;
+          font-family: 'Barlow Condensed', sans-serif;
           font-size: 0.9rem;
           padding: 0.75rem 1rem;
           background: transparent;
@@ -404,11 +404,13 @@ const Navbar = () => {
         }
 
         .dropdown-item.danger {
-          color: #ef4444;
+          color: #000;
+          background: #ec4899;
         }
 
         .dropdown-item.danger:hover {
-          background: rgba(239, 68, 68, 0.1);
+          background: #ec4899;
+          opacity: 0.9;
         }
 
         .dropdown-divider {
@@ -484,7 +486,7 @@ const Navbar = () => {
         }
 
         .explore-description {
-          font-family: 'Barlow', sans-serif;
+          font-family: 'Barlow Condensed', sans-serif;
           font-size: 0.85rem;
           color: rgba(255,255,255,0.6);
           line-height: 1.4;

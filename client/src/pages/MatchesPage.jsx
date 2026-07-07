@@ -175,64 +175,160 @@ const MatchesPage = () => {
   const displayRegistrations = activeTab === 'upcoming' ? upcomingRegistrations : pastRegistrations
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-primary-50/20">
+    <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #060d1f 0%, #0a1628 50%, #071a2e 100%)' }}>
+      <style>{`
+        .matches-page *,
+        .matches-page input,
+        .matches-page select,
+        .matches-page button,
+        .matches-page h1,
+        .matches-page h2,
+        .matches-page h3,
+        .matches-page p,
+        .matches-page span,
+        .matches-page div {
+          font-family: 'Barlow Condensed', sans-serif !important;
+        }
+      `}</style>
       <Navbar />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="matches-page" style={{ maxWidth: '80rem', margin: '0 auto', padding: '8rem 1.5rem 2rem 1.5rem' }}>
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            My Matches
+        <div style={{ marginBottom: '2rem' }}>
+          <h1 style={{
+            fontSize: '3.5rem',
+            fontWeight: '900',
+            color: '#4fffb0',
+            marginBottom: '0.5rem',
+            textTransform: 'uppercase',
+            letterSpacing: '-0.02em',
+            lineHeight: 1
+          }}>
+            MY MATCHES
           </h1>
-          <p className="text-gray-600">
-            Track your tournament registrations and match schedule
+          <p style={{
+            fontSize: '2.5rem',
+            fontWeight: '700',
+            color: 'rgba(255, 255, 255, 0.8)',
+            textTransform: 'uppercase',
+            letterSpacing: '-0.02em'
+          }}>
+            TRACK YOUR TOURNAMENT REGISTRATIONS.
           </p>
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="flex flex-col items-center gap-4">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-              <p className="text-sm text-gray-500">Loading your matches...</p>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '5rem 0' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+              <div style={{ width: '3rem', height: '3rem', border: '3px solid rgba(79, 255, 176, 0.2)', borderTop: '3px solid #4fffb0', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+              <p style={{ fontSize: '0.875rem', color: 'rgba(255, 255, 255, 0.7)', fontWeight: '600' }}>Loading your matches...</p>
             </div>
+            <style>{`
+              @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+              }
+            `}</style>
           </div>
         ) : registrations.length === 0 ? (
-          <div className="glass-card rounded-2xl p-12">
-            <EmptyState
-              icon={TrophyIcon}
-              title="No tournament registrations"
-              description="You haven't registered for any tournaments yet. Browse tournaments to get started!"
-              action={() => navigate('/browse')}
-              actionText="Browse Tournaments"
-            />
+          <div style={{
+            background: 'rgba(10, 22, 40, 0.6)',
+            backdropFilter: 'blur(10px)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            borderRadius: '24px',
+            padding: '3rem',
+            textAlign: 'center'
+          }}>
+            <TrophyIcon style={{ width: '3rem', height: '3rem', color: '#4fffb0', margin: '0 auto 1rem' }} />
+            <h3 style={{ fontSize: '1.5rem', fontWeight: '900', color: '#4fffb0', marginBottom: '0.5rem', textTransform: 'uppercase' }}>No tournament registrations</h3>
+            <p style={{ color: 'rgba(255, 255, 255, 0.7)', marginBottom: '1.5rem' }}>You haven't registered for any tournaments yet. Browse tournaments to get started!</p>
+            <button
+              onClick={() => navigate('/browse')}
+              style={{
+                padding: '0.75rem 1.5rem',
+                background: 'linear-gradient(135deg, #4fffb0 0%, #00d4ff 100%)',
+                color: '#000',
+                fontWeight: '700',
+                borderRadius: '12px',
+                border: 'none',
+                cursor: 'pointer',
+                textTransform: 'uppercase',
+                boxShadow: '0 4px 15px rgba(79, 255, 176, 0.3)',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.boxShadow = '0 6px 20px rgba(79, 255, 176, 0.5)';
+                e.currentTarget.style.transform = 'translateY(-2px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.boxShadow = '0 4px 15px rgba(79, 255, 176, 0.3)';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
+            >
+              Browse Tournaments
+            </button>
           </div>
         ) : (
           <>
             {/* Error Message */}
             {error && (
-              <div className="mb-6 p-4 bg-danger-50 border border-danger-200 rounded-xl">
-                <p className="text-sm text-danger-700 font-medium">{error}</p>
+              <div style={{ marginBottom: '1.5rem', padding: '1rem', background: 'rgba(236, 72, 153, 0.15)', border: '1px solid rgba(236, 72, 153, 0.3)', borderRadius: '12px' }}>
+                <p style={{ fontSize: '0.875rem', color: '#ec4899', fontWeight: '700' }}>{error}</p>
               </div>
             )}
 
             {/* Tabs */}
-            <div className="mb-6 flex gap-2 border-b border-gray-200">
+            <div style={{ marginBottom: '1.5rem', display: 'flex', gap: '0.5rem', borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
               <button
                 onClick={() => setActiveTab('upcoming')}
-                className={`px-4 py-3 font-medium text-sm transition-colors border-b-2 ${
-                  activeTab === 'upcoming'
-                    ? 'border-primary-600 text-primary-600'
-                    : 'border-transparent text-gray-600 hover:text-gray-900'
-                }`}
+                style={{
+                  padding: '0.75rem 1rem',
+                  fontWeight: '700',
+                  fontSize: '0.875rem',
+                  transition: 'all 0.2s',
+                  borderBottom: activeTab === 'upcoming' ? '2px solid #4fffb0' : '2px solid transparent',
+                  color: activeTab === 'upcoming' ? '#4fffb0' : 'rgba(255, 255, 255, 0.6)',
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  textTransform: 'uppercase'
+                }}
+                onMouseEnter={(e) => {
+                  if (activeTab !== 'upcoming') {
+                    e.currentTarget.style.color = '#fff';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (activeTab !== 'upcoming') {
+                    e.currentTarget.style.color = 'rgba(255, 255, 255, 0.6)';
+                  }
+                }}
               >
                 Upcoming ({upcomingRegistrations.length})
               </button>
               <button
                 onClick={() => setActiveTab('past')}
-                className={`px-4 py-3 font-medium text-sm transition-colors border-b-2 ${
-                  activeTab === 'past'
-                    ? 'border-primary-600 text-primary-600'
-                    : 'border-transparent text-gray-600 hover:text-gray-900'
-                }`}
+                style={{
+                  padding: '0.75rem 1rem',
+                  fontWeight: '700',
+                  fontSize: '0.875rem',
+                  transition: 'all 0.2s',
+                  borderBottom: activeTab === 'past' ? '2px solid #4fffb0' : '2px solid transparent',
+                  color: activeTab === 'past' ? '#4fffb0' : 'rgba(255, 255, 255, 0.6)',
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  textTransform: 'uppercase'
+                }}
+                onMouseEnter={(e) => {
+                  if (activeTab !== 'past') {
+                    e.currentTarget.style.color = '#fff';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (activeTab !== 'past') {
+                    e.currentTarget.style.color = 'rgba(255, 255, 255, 0.6)';
+                  }
+                }}
               >
                 Past ({pastRegistrations.length})
               </button>
@@ -240,21 +336,53 @@ const MatchesPage = () => {
 
             {/* Registrations Grid */}
             {displayRegistrations.length === 0 ? (
-              <div className="glass-card rounded-2xl p-12">
-                <EmptyState
-                  icon={TrophyIcon}
-                  title={`No ${activeTab} registrations`}
-                  description={
-                    activeTab === 'upcoming'
-                      ? 'Your tournament registrations will appear here. Browse tournaments to get started!'
-                      : 'No past tournament registrations to show yet.'
-                  }
-                  action={activeTab === 'upcoming' ? () => navigate('/browse') : undefined}
-                  actionText={activeTab === 'upcoming' ? 'Browse Tournaments' : undefined}
-                />
+              <div style={{
+                background: 'rgba(10, 22, 40, 0.6)',
+                backdropFilter: 'blur(10px)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: '24px',
+                padding: '3rem',
+                textAlign: 'center'
+              }}>
+                <TrophyIcon style={{ width: '3rem', height: '3rem', color: '#4fffb0', margin: '0 auto 1rem' }} />
+                <h3 style={{ fontSize: '1.5rem', fontWeight: '900', color: '#4fffb0', marginBottom: '0.5rem', textTransform: 'uppercase' }}>
+                  No {activeTab} registrations
+                </h3>
+                <p style={{ color: 'rgba(255, 255, 255, 0.7)', marginBottom: '1.5rem' }}>
+                  {activeTab === 'upcoming'
+                    ? 'Your upcoming tournament registrations will appear here. Browse tournaments to register!'
+                    : 'No past tournament registrations to show yet.'}
+                </p>
+                {activeTab === 'upcoming' && (
+                  <button
+                    onClick={() => navigate('/browse')}
+                    style={{
+                      padding: '0.75rem 1.5rem',
+                      background: 'linear-gradient(135deg, #4fffb0 0%, #00d4ff 100%)',
+                      color: '#000',
+                      fontWeight: '700',
+                      borderRadius: '12px',
+                      border: 'none',
+                      cursor: 'pointer',
+                      textTransform: 'uppercase',
+                      boxShadow: '0 4px 15px rgba(79, 255, 176, 0.3)',
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.boxShadow = '0 6px 20px rgba(79, 255, 176, 0.5)';
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.boxShadow = '0 4px 15px rgba(79, 255, 176, 0.3)';
+                      e.currentTarget.style.transform = 'translateY(0)';
+                    }}
+                  >
+                    Browse Tournaments
+                  </button>
+                )}
               </div>
             ) : (
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
                 {displayRegistrations.map((reg) => (
                   <RegistrationCard
                     key={reg.id}
@@ -467,87 +595,150 @@ const RegistrationCard = ({ registration, navigate, isUpcoming, highlightedEvent
       <div
         id={`event-${registration.eventId}`}
         onClick={() => navigate(`/tournaments/${registration.event.tournament.id}`)}
-        className={`glass-card rounded-xl p-5 hover:shadow-glass-lg transition-all duration-300 cursor-pointer group ${
-          isHighlighted ? 'highlighted-card' : ''
-        }`}
+        style={{
+          background: isHighlighted ? 'rgba(79, 255, 176, 0.05)' : 'rgba(10, 22, 40, 0.6)',
+          backdropFilter: 'blur(10px)',
+          border: isHighlighted ? '1px solid rgba(79, 255, 176, 0.3)' : '1px solid rgba(255, 255, 255, 0.1)',
+          borderRadius: '16px',
+          padding: '1.25rem',
+          transition: 'all 0.3s',
+          cursor: 'pointer',
+          boxShadow: isHighlighted ? '0 0 15px rgba(79, 255, 176, 0.3), 0 0 30px rgba(79, 255, 176, 0.15)' : 'none'
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.borderColor = 'rgba(79, 255, 176, 0.3)';
+          e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+        }}
+        onMouseLeave={(e) => {
+          if (!isHighlighted) {
+            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+            e.currentTarget.style.background = 'rgba(10, 22, 40, 0.6)';
+          }
+        }}
       >
-        {isHighlighted && (
-          <style>{`
-            .highlighted-card {
-              box-shadow: 0 0 15px rgba(34, 197, 94, 0.3), 0 0 30px rgba(34, 197, 94, 0.15);
-              border: 1px solid rgba(34, 197, 94, 0.3);
-            }
-          `}</style>
-        )}
-        <div className="flex items-start justify-between mb-3">
-          <div className="flex-1">
-            <h3 className="font-semibold text-gray-900 mb-1 group-hover:text-primary-600 transition-colors">
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '0.75rem', gap: '0.75rem' }}>
+          <div style={{ flex: 1 }}>
+            <h3 style={{
+              fontWeight: '900',
+              color: '#4fffb0',
+              marginBottom: '0.25rem',
+              fontSize: '1.125rem',
+              textTransform: 'uppercase',
+              letterSpacing: '-0.02em'
+            }}>
               {registration.event.name}
             </h3>
-            <p className="text-sm text-gray-600">{registration.event.tournament.name}</p>
-            <span className="inline-block mt-1 px-2 py-0.5 bg-gray-100 text-gray-700 text-xs font-medium rounded">
+            <p style={{ fontSize: '0.875rem', color: 'rgba(255, 255, 255, 0.7)', fontWeight: '600' }}>{registration.event.tournament.name}</p>
+            <span style={{
+              display: 'inline-block',
+              marginTop: '0.25rem',
+              padding: '0.25rem 0.5rem',
+              background: 'rgba(0, 212, 255, 0.15)',
+              color: '#00d4ff',
+              fontSize: '0.75rem',
+              fontWeight: '700',
+              borderRadius: '6px',
+              textTransform: 'uppercase'
+            }}>
               {getFormatLabel(registration.event.format)}
             </span>
           </div>
-          <span className={`px-2 py-1 text-xs font-medium rounded-full border ${
-            registration.status === 'STANDBY'
-              ? 'bg-amber-50 text-amber-700 border-amber-200'
+          <span style={{
+            padding: '0.25rem 0.5rem',
+            fontSize: '0.75rem',
+            fontWeight: '700',
+            borderRadius: '9999px',
+            border: registration.status === 'STANDBY'
+              ? '1px solid rgba(251, 146, 60, 0.3)'
               : registration.status === 'WITHDRAWN'
-              ? 'bg-gray-50 text-gray-700 border-gray-200'
-              : 'bg-success-50 text-success-700 border-success-100'
-          }`}>
+              ? '1px solid rgba(255, 255, 255, 0.2)'
+              : '1px solid rgba(79, 255, 176, 0.3)',
+            background: registration.status === 'STANDBY'
+              ? 'rgba(251, 146, 60, 0.15)'
+              : registration.status === 'WITHDRAWN'
+              ? 'rgba(255, 255, 255, 0.05)'
+              : 'rgba(79, 255, 176, 0.15)',
+            color: registration.status === 'STANDBY'
+              ? '#fb923c'
+              : registration.status === 'WITHDRAWN'
+              ? 'rgba(255, 255, 255, 0.6)'
+              : '#4fffb0',
+            textTransform: 'uppercase'
+          }}>
             {registration.status === 'STANDBY' ? `Waitlist ${registration.standbyPosition ? `#${registration.standbyPosition}` : ''}` : registration.status}
           </span>
         </div>
 
-        <div className="space-y-1.5 mb-3">
-          <div className="flex items-center gap-2 text-xs text-gray-500">
-            <CalendarIcon className="w-4 h-4" />
-            <span>{formatDate(registration.event.tournament.startDate)}</span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem', marginBottom: '0.75rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: 'rgba(255, 255, 255, 0.7)' }}>
+            <CalendarIcon style={{ width: '1rem', height: '1rem', color: '#4fffb0' }} />
+            <span style={{ fontWeight: '600' }}>{formatDate(registration.event.tournament.startDate)}</span>
           </div>
-          <div className="flex items-center gap-2 text-xs text-gray-500">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: 'rgba(255, 255, 255, 0.7)' }}>
+            <svg style={{ width: '1rem', height: '1rem', color: '#4fffb0' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
-            <span>{registration.event.tournament.venueName}</span>
+            <span style={{ fontWeight: '600' }}>{registration.event.tournament.venueName}</span>
           </div>
           {registration.partner && (
-            <div className="flex items-center gap-2 text-xs text-gray-500">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: 'rgba(255, 255, 255, 0.7)' }}>
+              <svg style={{ width: '1rem', height: '1rem', color: '#4fffb0' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
               </svg>
-              <span>Partner: {registration.partner.firstName} {registration.partner.lastName}</span>
+              <span style={{ fontWeight: '600' }}>Partner: {registration.partner.firstName} {registration.partner.lastName}</span>
             </div>
           )}
         </div>
 
         {registration.status === 'STANDBY' && (
-          <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-            <p className="text-xs text-amber-800">
-              <span className="font-semibold">You're on the waitlist!</span> You'll be automatically confirmed if someone withdraws before the event.
+          <div style={{ marginTop: '0.75rem', padding: '0.75rem', background: 'rgba(251, 146, 60, 0.15)', border: '1px solid rgba(251, 146, 60, 0.3)', borderRadius: '12px' }}>
+            <p style={{ fontSize: '0.75rem', color: '#fb923c' }}>
+              <span style={{ fontWeight: '700' }}>You're on the waitlist!</span> You'll be automatically confirmed if someone withdraws before the event.
             </p>
           </div>
         )}
 
         {hasBracket && (
-          <div className="flex justify-center mt-3">
+          <div style={{ display: 'flex', justifyContent: 'center', marginTop: '0.75rem' }}>
             <button
               onClick={handleViewBracket}
-              className={`w-14 h-14 rounded-full bg-gradient-to-br from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white font-bold text-xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center ${
-                !hasViewedBracket ? 'view-bracket-pulse' : ''
-              }`}
+              style={{
+                width: '3.5rem',
+                height: '3.5rem',
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, #4fffb0 0%, #00d4ff 100%)',
+                color: '#000',
+                fontWeight: '700',
+                fontSize: '1.5rem',
+                boxShadow: !hasViewedBracket ? '0 0 10px rgba(79, 255, 176, 0.4), 0 0 20px rgba(79, 255, 176, 0.2)' : '0 4px 15px rgba(79, 255, 176, 0.3)',
+                transition: 'all 0.3s',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: 'none',
+                cursor: 'pointer',
+                animation: !hasViewedBracket ? 'glowPulse 2s ease-in-out infinite' : 'none'
+              }}
               title="View Bracket"
+              onMouseEnter={(e) => {
+                e.currentTarget.style.boxShadow = '0 0 20px rgba(79, 255, 176, 0.6), 0 0 40px rgba(79, 255, 176, 0.4)';
+                e.currentTarget.style.transform = 'scale(1.1)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.boxShadow = !hasViewedBracket ? '0 0 10px rgba(79, 255, 176, 0.4), 0 0 20px rgba(79, 255, 176, 0.2)' : '0 4px 15px rgba(79, 255, 176, 0.3)';
+                e.currentTarget.style.transform = 'scale(1)';
+              }}
             >
               🏆
             </button>
             <style>{`
               @keyframes glowPulse {
                 0%, 100% {
-                  box-shadow: 0 0 10px rgba(34, 197, 94, 0.4), 0 0 20px rgba(34, 197, 94, 0.2);
+                  box-shadow: 0 0 10px rgba(79, 255, 176, 0.4), 0 0 20px rgba(79, 255, 176, 0.2);
                 }
                 50% {
-                  box-shadow: 0 0 20px rgba(34, 197, 94, 0.6), 0 0 40px rgba(34, 197, 94, 0.4);
+                  box-shadow: 0 0 20px rgba(79, 255, 176, 0.6), 0 0 40px rgba(79, 255, 176, 0.4);
                 }
               }
               .view-bracket-pulse {

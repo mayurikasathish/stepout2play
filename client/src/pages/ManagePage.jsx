@@ -204,7 +204,7 @@ const ManagePage = () => {
         body {
           background: #060d1f;
           margin: 0;
-          font-family: 'Barlow', sans-serif;
+          font-family: 'Barlow Condensed', sans-serif;
         }
 
         .manage-container {
@@ -449,7 +449,7 @@ const ManagePage = () => {
         }
 
         .request-user-email {
-          font-family: 'Barlow', sans-serif;
+          font-family: 'Barlow Condensed', sans-serif;
           font-size: 0.9rem;
           color: rgba(255, 255, 255, 0.6);
         }
@@ -485,7 +485,7 @@ const ManagePage = () => {
         }
 
         .request-field-value {
-          font-family: 'Barlow', sans-serif;
+          font-family: 'Barlow Condensed', sans-serif;
           font-size: 0.95rem;
           color: rgba(255, 255, 255, 0.8);
           line-height: 1.6;
@@ -647,33 +647,33 @@ const ManagePage = () => {
 
         .profile-completion {
           position: absolute;
-          top: 1rem;
-          right: 1rem;
-          background: rgba(6, 13, 31, 0.9);
-          border: 1.5px solid;
-          border-radius: 20px;
-          padding: 0.35rem 0.9rem;
+          top: 0.5rem;
+          right: 0.5rem;
+          background: rgba(6, 13, 31, 0.6);
+          border: 1px solid;
+          border-radius: 8px;
+          padding: 0.15rem 0.4rem;
           font-family: 'Barlow Condensed', sans-serif;
-          font-weight: 700;
-          font-size: 0.8rem;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
+          font-weight: 400;
+          font-size: 0.55rem;
+          text-transform: none;
+          letter-spacing: 0.01em;
           z-index: 10;
+          opacity: 0.6;
         }
 
         .profile-completion.complete {
-          border-color: #4fffb0;
-          color: #4fffb0;
-          box-shadow: 0 0 15px rgba(79, 255, 176, 0.3);
+          border-color: rgba(79, 255, 176, 0.3);
+          color: rgba(79, 255, 176, 0.8);
         }
 
         .profile-completion.incomplete {
-          border-color: rgba(255, 255, 255, 0.3);
-          color: rgba(255, 255, 255, 0.6);
+          border-color: rgba(255, 255, 255, 0.2);
+          color: rgba(255, 255, 255, 0.5);
         }
 
         .org-description {
-          font-family: 'Barlow', sans-serif;
+          font-family: 'Barlow Condensed', sans-serif;
           font-size: 0.95rem;
           color: rgba(255, 255, 255, 0.65);
           line-height: 1.6;
@@ -708,7 +708,7 @@ const ManagePage = () => {
         .org-stats {
           display: flex;
           gap: 1.5rem;
-          font-family: 'Barlow', sans-serif;
+          font-family: 'Barlow Condensed', sans-serif;
           font-size: 1rem;
           color: rgba(255, 255, 255, 0.7);
         }
@@ -724,7 +724,7 @@ const ManagePage = () => {
           display: flex;
           flex-direction: column;
           gap: 0.6rem;
-          font-family: 'Barlow', sans-serif;
+          font-family: 'Barlow Condensed', sans-serif;
           font-size: 0.9rem;
           color: rgba(255, 255, 255, 0.55);
         }
@@ -842,7 +842,7 @@ const ManagePage = () => {
         .btn-tertiary {
           background: transparent;
           color: rgba(255, 255, 255, 0.6);
-          font-family: 'Barlow', sans-serif;
+          font-family: 'Barlow Condensed', sans-serif;
           font-size: 0.9rem;
           padding: 0.4rem 0.75rem;
           border: none;
@@ -856,7 +856,7 @@ const ManagePage = () => {
         .btn-delete {
           background: transparent;
           color: rgba(236, 72, 153, 0.7);
-          font-family: 'Barlow', sans-serif;
+          font-family: 'Barlow Condensed', sans-serif;
           font-size: 0.9rem;
           padding: 0.4rem 0.75rem;
           border: none;
@@ -917,7 +917,7 @@ const ManagePage = () => {
         }
 
         .delete-modal-text {
-          font-family: 'Barlow', sans-serif;
+          font-family: 'Barlow Condensed', sans-serif;
           font-size: 1rem;
           color: rgba(255, 255, 255, 0.7);
           margin-bottom: 0.5rem;
@@ -1092,10 +1092,12 @@ const ManagePage = () => {
                       style={{ '--role-color': getRoleColor(org.myRole) }}
                     >
                       <div className="org-card-body">
-                        {/* Profile Completion Badge */}
-                        <div className={`profile-completion ${calculateProfileCompletion(org) === 100 ? 'complete' : 'incomplete'}`}>
-                          {calculateProfileCompletion(org)}% Complete
-                        </div>
+                        {/* Profile Completion Badge - Only for OWNER/ADMIN */}
+                        {(org.myRole === 'OWNER' || org.myRole === 'ADMIN') && (
+                          <div className={`profile-completion ${calculateProfileCompletion(org) === 100 ? 'complete' : 'incomplete'}`}>
+                            Org profile {calculateProfileCompletion(org)}% complete
+                          </div>
+                        )}
 
                         <div className="org-card-content">
                           <div className="org-header">

@@ -178,7 +178,7 @@ const MatchCountdown = () => {
         }
 
         .detail-label {
-          font-family: 'Barlow', sans-serif;
+          font-family: 'Barlow Condensed', sans-serif;
           font-size: 0.65rem;
           text-transform: uppercase;
           letter-spacing: 0.1em;
@@ -208,7 +208,7 @@ const MatchCountdown = () => {
         }
 
         .countdown-label {
-          font-family: 'Barlow', sans-serif;
+          font-family: 'Barlow Condensed', sans-serif;
           font-size: 1rem;
           color: rgba(255, 255, 255, 0.6);
           text-transform: uppercase;

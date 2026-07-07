@@ -220,21 +220,6 @@ const RegistrationsView = ({ tournamentId }) => {
               <p className="text-sm text-gray-600 mb-1">Total Registrations</p>
               <p className="text-3xl font-bold text-gray-900">{totalRegistrations}</p>
             </div>
-            <div className="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center">
-              <CheckIcon className="w-6 h-6 text-primary-600" />
-            </div>
-          </div>
-        </div>
-
-        <div className="glass-card rounded-xl p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 mb-1">Total Participants</p>
-              <p className="text-3xl font-bold text-gray-900">{totalParticipants}</p>
-            </div>
-            <div className="w-12 h-12 bg-success-100 rounded-lg flex items-center justify-center">
-              <UsersIcon className="w-6 h-6 text-success-600" />
-            </div>
           </div>
         </div>
 
@@ -250,10 +235,17 @@ const RegistrationsView = ({ tournamentId }) => {
         <div className="glass-card rounded-xl p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600 mb-1">Doubles/Mixed</p>
-              <p className="text-3xl font-bold text-gray-900">
-                {formatBreakdown.DOUBLES + formatBreakdown.MIXED_DOUBLES}
-              </p>
+              <p className="text-sm text-gray-600 mb-1">Doubles</p>
+              <p className="text-3xl font-bold text-gray-900">{formatBreakdown.DOUBLES}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="glass-card rounded-xl p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600 mb-1">Mixed Doubles</p>
+              <p className="text-3xl font-bold text-gray-900">{formatBreakdown.MIXED_DOUBLES}</p>
             </div>
           </div>
         </div>
@@ -277,72 +269,48 @@ const RegistrationsView = ({ tournamentId }) => {
           </div>
 
           {/* Event Filter */}
-          <div className="relative">
-            <select
-              value={selectedEvent}
-              onChange={(e) => setSelectedEvent(e.target.value)}
-              className="appearance-none px-4 py-2.5 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all bg-white cursor-pointer"
-            >
-              <option value="all">All Events</option>
-              {events.map(event => (
-                <option key={event.id} value={event.id}>{event.name}</option>
-              ))}
-            </select>
-            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-              <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </div>
-          </div>
+          <select
+            value={selectedEvent}
+            onChange={(e) => setSelectedEvent(e.target.value)}
+            style={{
+              background: 'rgba(255, 255, 255, 0.05)',
+              border: 'none',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.2)',
+              borderRadius: '0',
+              color: '#fff',
+              padding: '0.65rem 3.5rem 0.65rem 1rem',
+              fontFamily: "'Barlow', sans-serif",
+              outline: 'none',
+              cursor: 'pointer'
+            }}
+          >
+            <option value="all" style={{ background: '#0a1628', color: '#fff' }}>All Events</option>
+            {events.map(event => (
+              <option key={event.id} value={event.id} style={{ background: '#0a1628', color: '#fff' }}>{event.name}</option>
+            ))}
+          </select>
 
           {/* Format Filter */}
-          <div className="relative">
-            <select
-              value={selectedFormat}
-              onChange={(e) => setSelectedFormat(e.target.value)}
-              className="appearance-none px-4 py-2.5 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all bg-white cursor-pointer"
-            >
-              <option value="all">All Formats</option>
-              <option value="SINGLES">Singles</option>
-              <option value="DOUBLES">Doubles</option>
-              <option value="MIXED_DOUBLES">Mixed Doubles</option>
-            </select>
-            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-              <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </div>
-          </div>
-
-          {/* Jump to Event */}
-          <div className="relative">
-            <select
-              onChange={(e) => {
-                const eventId = e.target.value
-                if (eventId && eventId !== 'jump') {
-                  const element = document.getElementById(`event-${eventId}`)
-                  if (element) {
-                    element.scrollIntoView({ behavior: 'smooth', block: 'start' })
-                  }
-                }
-                e.target.value = 'jump' // Reset dropdown
-              }}
-              defaultValue="jump"
-              className="appearance-none px-4 py-2.5 pr-10 border border-primary-300 bg-primary-50 text-primary-700 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all cursor-pointer font-medium"
-            >
-              <option value="jump" disabled>Jump to Event...</option>
-              {events.filter(event =>
-                filteredRegistrations.some(reg => reg.eventId === event.id)
-              ).map(event => (
-                <option key={event.id} value={event.id}>{event.name}</option>
-              ))}
-            </select>
-            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-              <svg className="w-4 h-4 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </div>
-          </div>
+          <select
+            value={selectedFormat}
+            onChange={(e) => setSelectedFormat(e.target.value)}
+            style={{
+              background: 'rgba(255, 255, 255, 0.05)',
+              border: 'none',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.2)',
+              borderRadius: '0',
+              color: '#fff',
+              padding: '0.65rem 3.5rem 0.65rem 1rem',
+              fontFamily: "'Barlow', sans-serif",
+              outline: 'none',
+              cursor: 'pointer'
+            }}
+          >
+            <option value="all" style={{ background: '#0a1628', color: '#fff' }}>All Formats</option>
+            <option value="SINGLES" style={{ background: '#0a1628', color: '#fff' }}>Singles</option>
+            <option value="DOUBLES" style={{ background: '#0a1628', color: '#fff' }}>Doubles</option>
+            <option value="MIXED_DOUBLES" style={{ background: '#0a1628', color: '#fff' }}>Mixed Doubles</option>
+          </select>
 
           {/* Export Button */}
           <button
@@ -372,12 +340,26 @@ const RegistrationsView = ({ tournamentId }) => {
             const group = groupedRegistrations[groupKey]
 
             return (
-              <div key={groupKey} id={`event-${group.event.id}`} className="glass-card rounded-xl overflow-hidden scroll-mt-6">
+              <div key={groupKey} id={`event-${group.event.id}`} className="glass-card scroll-mt-6" style={{
+                borderRadius: '12px',
+                overflow: 'hidden',
+                border: '1px solid rgba(255, 255, 255, 0.1)'
+              }}>
                 {/* Group Header */}
-                <div className="bg-gradient-to-r from-primary-50 to-primary-100/50 px-6 py-4 border-b border-primary-200">
+                <div className="px-6 py-4 border-b" style={{
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  borderBottomColor: 'rgba(255, 255, 255, 0.1)'
+                }}>
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
-                      <h3 className="text-lg font-bold text-gray-900">
+                      <h3 style={{
+                        fontSize: '1.125rem',
+                        fontWeight: 'bold',
+                        color: '#000',
+                        textTransform: 'uppercase',
+                        fontFamily: "'Barlow Condensed', sans-serif",
+                        letterSpacing: '-0.02em'
+                      }}>
                         {group.event.name}
                       </h3>
                       <p className="text-sm text-gray-600 mt-1">
@@ -407,7 +389,28 @@ const RegistrationsView = ({ tournamentId }) => {
                       {!group.event.bracketGenerated && (
                         <button
                           onClick={() => handleSetSeeding(group.event, group.registrations)}
-                          className="px-4 py-2 bg-warning-600 hover:bg-warning-700 text-white font-medium rounded-lg transition-all text-sm flex items-center gap-2"
+                          style={{
+                            padding: '0.5rem 1rem',
+                            background: '#00d4ff',
+                            color: '#000',
+                            fontWeight: '700',
+                            borderRadius: '8px',
+                            transition: 'all 0.2s',
+                            fontSize: '0.875rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            border: 'none',
+                            cursor: 'pointer',
+                            fontFamily: "'Barlow Condensed', sans-serif",
+                            textTransform: 'uppercase'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = 'rgba(0, 212, 255, 0.8)'
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = '#00d4ff'
+                          }}
                         >
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
@@ -452,9 +455,18 @@ const RegistrationsView = ({ tournamentId }) => {
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
+                    <tbody style={{ background: 'transparent' }}>
                       {group.registrations.map((reg, idx) => (
-                        <tr key={reg.id} className="hover:bg-gray-50 transition-colors">
+                        <tr
+                          key={reg.id}
+                          style={{
+                            opacity: (reg.status === 'CANCELLED' || reg.status === 'WITHDRAWN') ? 0.4 : 1,
+                            borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+                            transition: 'all 0.2s ease'
+                          }}
+                          onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.02)'}
+                          onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                        >
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             {idx + 1}
                           </td>
@@ -524,12 +536,19 @@ const RegistrationsView = ({ tournamentId }) => {
                             })}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                              reg.status === 'CONFIRMED'
-                                ? 'bg-green-100 text-green-700'
-                                : 'bg-gray-100 text-gray-700'
-                            }`}>
-                              {reg.status === 'CONFIRMED' ? 'Confirmed' : reg.status}
+                            <span style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              padding: '0.25rem 0.75rem',
+                              borderRadius: '20px',
+                              fontSize: '0.75rem',
+                              fontWeight: '600',
+                              textTransform: 'uppercase',
+                              fontFamily: "'Barlow Condensed', sans-serif",
+                              background: reg.status === 'CONFIRMED' ? 'rgba(79, 255, 176, 0.2)' : 'rgba(255, 255, 255, 0.1)',
+                              color: reg.status === 'CONFIRMED' ? '#4fffb0' : 'rgba(255, 255, 255, 0.7)'
+                            }}>
+                              {reg.status}
                             </span>
                           </td>
                         </tr>

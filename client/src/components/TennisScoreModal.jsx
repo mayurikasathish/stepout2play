@@ -330,20 +330,59 @@ const TennisScoreModal = ({ match, event, isRoundRobin, onClose, onSubmit }) => 
   return (
     <>
       <div className="fixed inset-0 z-50 overflow-y-auto">
-        <div className="fixed inset-0 bg-gray-900/70 backdrop-blur-md" onClick={onClose} />
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md" onClick={onClose} />
         <div className="flex min-h-full items-center justify-center p-4">
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white z-10 px-8 pt-8 pb-4 border-b border-gray-100">
-              <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div style={{
+            position: 'relative',
+            background: 'linear-gradient(135deg, rgba(10, 22, 40, 0.98), rgba(6, 13, 31, 0.99))',
+            border: '1px solid rgba(79, 255, 176, 0.3)',
+            borderRadius: '24px',
+            boxShadow: '0 25px 50px rgba(0, 0, 0, 0.5)',
+            width: '100%',
+            maxWidth: '48rem',
+            maxHeight: '90vh',
+            overflowY: 'auto'
+          }}>
+            <div style={{
+              position: 'sticky',
+              top: 0,
+              background: 'linear-gradient(135deg, rgba(10, 22, 40, 0.98), rgba(6, 13, 31, 0.99))',
+              zIndex: 10,
+              padding: '2rem 2rem 1rem 2rem',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
+            }}>
+              <button
+                onClick={onClose}
+                style={{
+                  position: 'absolute',
+                  top: '1rem',
+                  right: '1rem',
+                  padding: '0.5rem',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                }}
+              >
+                <svg style={{ width: '1.25rem', height: '1.25rem', color: '#fff' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
               <div className="flex items-start justify-between">
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900">Live Match Scoring</h2>
+                  <h2 style={{ fontSize: '1.5rem', fontWeight: '900', color: '#fff', fontFamily: "'Barlow Condensed', sans-serif", textTransform: 'uppercase', letterSpacing: '-0.02em' }}>Live Match Scoring</h2>
                   {event?.sportId && (
-                    <p className="text-sm text-gray-600 mt-1">
+                    <p style={{ fontSize: '0.875rem', color: 'rgba(255, 255, 255, 0.6)', marginTop: '0.25rem' }}>
                       {event.sportId === 'tennis' && '🎾 Tennis'}
                       {event.sportId === 'padel' && '🎾 Padel'}
                       {goldenPoint && ' • Golden Point Enabled'}
@@ -364,16 +403,16 @@ const TennisScoreModal = ({ match, event, isRoundRobin, onClose, onSubmit }) => 
               </div>
             </div>
 
-            <div className="px-8 pb-8 pt-6">
+            <div style={{ padding: '1.5rem 2rem 2rem 2rem' }}>
 
               {/* Match Info */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-                <div className="text-center">
-                  <p className="text-sm font-medium text-blue-900 mb-1">Match Format</p>
-                  <p className="text-base font-semibold text-blue-700">
+              <div style={{ background: 'rgba(79, 255, 176, 0.1)', border: '1px solid rgba(79, 255, 176, 0.3)', borderRadius: '12px', padding: '1rem', marginBottom: '1.5rem' }}>
+                <div style={{ textAlign: 'center' }}>
+                  <p style={{ fontSize: '0.875rem', fontWeight: '600', color: '#4fffb0', marginBottom: '0.25rem', fontFamily: "'Barlow Condensed', sans-serif", textTransform: 'uppercase' }}>Match Format</p>
+                  <p style={{ fontSize: '1rem', fontWeight: '700', color: '#fff' }}>
                     Best of {bestOf} Sets
                   </p>
-                  <p className="text-xs text-blue-600 mt-2">
+                  <p style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.6)', marginTop: '0.5rem' }}>
                     {isTiebreak ? '🔥 Tiebreak in progress' : '✨ Click point buttons to score'}
                   </p>
                 </div>

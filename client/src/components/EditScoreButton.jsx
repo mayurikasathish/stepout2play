@@ -21,42 +21,84 @@ const EditScoreButton = ({ onManualEntry, onCaptureScore }) => {
           className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
           onClick={(e) => { e.stopPropagation(); setShowModal(false) }}
         >
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" />
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-md" />
           <div
-            className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6"
+            style={{
+              position: 'relative',
+              background: 'linear-gradient(135deg, rgba(10, 22, 40, 0.98), rgba(6, 13, 31, 0.99))',
+              border: '1px solid rgba(79, 255, 176, 0.3)',
+              borderRadius: '24px',
+              boxShadow: '0 25px 50px rgba(0, 0, 0, 0.5)',
+              width: '100%',
+              maxWidth: '28rem',
+              padding: '2rem'
+            }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-bold text-gray-900">Edit Score</h3>
+              <h3 style={{ fontSize: '1.5rem', fontWeight: '900', color: '#fff', fontFamily: "'Barlow Condensed', sans-serif", textTransform: 'uppercase', letterSpacing: '-0.02em' }}>Edit Score</h3>
               <button
                 onClick={() => setShowModal(false)}
-                className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
+                style={{
+                  padding: '0.25rem',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                }}
               >
-                <svg className="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="w-5 h-5" style={{ color: '#fff' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
 
             {/* Options */}
-            <div className="space-y-3">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               {/* Manual Entry */}
               <button
                 onClick={handleManualEntry}
-                className="w-full p-4 border-2 border-gray-200 hover:border-blue-500 hover:bg-blue-50 rounded-xl transition-all group text-left"
+                style={{
+                  width: '100%',
+                  padding: '1rem',
+                  background: 'rgba(79, 255, 176, 0.1)',
+                  border: '2px solid rgba(79, 255, 176, 0.3)',
+                  borderRadius: '12px',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s',
+                  textAlign: 'left'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(79, 255, 176, 0.15)';
+                  e.currentTarget.style.borderColor = '#4fffb0';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(79, 255, 176, 0.1)';
+                  e.currentTarget.style.borderColor = 'rgba(79, 255, 176, 0.3)';
+                }}
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-blue-100 group-hover:bg-blue-200 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors">
-                    <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <div style={{ width: '2.5rem', height: '2.5rem', background: 'rgba(79, 255, 176, 0.2)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <svg style={{ width: '1.25rem', height: '1.25rem', color: '#4fffb0' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                     </svg>
                   </div>
-                  <div className="flex-1">
-                    <p className="font-semibold text-gray-900 text-sm">Manual Entry</p>
-                    <p className="text-xs text-gray-500">Enter score manually</p>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontWeight: '700', color: '#fff', fontSize: '0.875rem', fontFamily: "'Barlow Condensed', sans-serif", textTransform: 'uppercase' }}>Manual Entry</p>
+                    <p style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.6)' }}>Enter score manually</p>
                   </div>
-                  <svg className="w-5 h-5 text-gray-400 group-hover:text-blue-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg style={{ width: '1.25rem', height: '1.25rem', color: '#4fffb0', flexShrink: 0 }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
                 </div>
@@ -65,20 +107,37 @@ const EditScoreButton = ({ onManualEntry, onCaptureScore }) => {
               {/* Capture Score */}
               <button
                 onClick={handleCaptureScore}
-                className="w-full p-4 border-2 border-gray-200 hover:border-green-500 hover:bg-green-50 rounded-xl transition-all group text-left"
+                style={{
+                  width: '100%',
+                  padding: '1rem',
+                  background: 'rgba(0, 212, 255, 0.1)',
+                  border: '2px solid rgba(0, 212, 255, 0.3)',
+                  borderRadius: '12px',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s',
+                  textAlign: 'left'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(0, 212, 255, 0.15)';
+                  e.currentTarget.style.borderColor = '#00d4ff';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(0, 212, 255, 0.1)';
+                  e.currentTarget.style.borderColor = 'rgba(0, 212, 255, 0.3)';
+                }}
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-green-100 group-hover:bg-green-200 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors">
-                    <svg className="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <div style={{ width: '2.5rem', height: '2.5rem', background: 'rgba(0, 212, 255, 0.2)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <svg style={{ width: '1.25rem', height: '1.25rem', color: '#00d4ff' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
                   </div>
-                  <div className="flex-1">
-                    <p className="font-semibold text-gray-900 text-sm">Capture Score</p>
-                    <p className="text-xs text-gray-500">Upload scorecard image</p>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontWeight: '700', color: '#fff', fontSize: '0.875rem', fontFamily: "'Barlow Condensed', sans-serif", textTransform: 'uppercase' }}>Capture Score</p>
+                    <p style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.6)' }}>Upload scorecard image</p>
                   </div>
-                  <span className="text-[10px] bg-green-600 text-white px-2 py-0.5 rounded-full font-bold flex-shrink-0">OCR</span>
+                  <span style={{ fontSize: '0.625rem', background: '#00d4ff', color: '#000', padding: '0.125rem 0.5rem', borderRadius: '9999px', fontWeight: '700', flexShrink: 0, fontFamily: "'Barlow Condensed', sans-serif" }}>OCR</span>
                 </div>
               </button>
             </div>
@@ -95,10 +154,37 @@ const EditScoreButton = ({ onManualEntry, onCaptureScore }) => {
           e.stopPropagation()
           setShowModal(true)
         }}
-        className="w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg transition-all shadow-sm"
+        className="edit-score-btn"
+        style={{
+          width: '100%',
+          padding: '0.5rem 0.75rem',
+          background: '#000',
+          fontSize: '0.75rem',
+          fontWeight: '700',
+          borderRadius: '8px',
+          border: 'none',
+          cursor: 'pointer',
+          transition: 'all 0.3s',
+          fontFamily: "'Barlow Condensed', sans-serif",
+          textTransform: 'uppercase'
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = '#1a1a1a';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = '#000';
+        }}
       >
-        Edit Score
+        <span style={{ color: '#fff !important' }}>Edit Score</span>
       </button>
+      <style>{`
+        .edit-score-btn {
+          color: #fff !important;
+        }
+        .edit-score-btn * {
+          color: #fff !important;
+        }
+      `}</style>
       {modal}
     </>
   )

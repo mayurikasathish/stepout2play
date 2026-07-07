@@ -292,15 +292,26 @@ const TournamentDetailPage = () => {
 
   const getStatusBadge = (status) => {
     const badges = {
-      OPEN: { bg: 'bg-success-50', text: 'text-success-700', border: 'border-success-100', label: 'Registration Open' },
-      DRAFT: { bg: 'bg-gray-50', text: 'text-gray-700', border: 'border-gray-100', label: 'Draft' },
-      CLOSED: { bg: 'bg-danger-50', text: 'text-danger-700', border: 'border-danger-100', label: 'Registration Closed' },
-      ONGOING: { bg: 'bg-warning-50', text: 'text-warning-700', border: 'border-warning-100', label: 'Ongoing' },
-      COMPLETED: { bg: 'bg-gray-50', text: 'text-gray-700', border: 'border-gray-100', label: 'Completed' }
+      OPEN: { bg: 'rgba(79, 255, 176, 0.15)', text: '#4fffb0', border: 'rgba(79, 255, 176, 0.3)', label: 'Registration Open' },
+      DRAFT: { bg: 'rgba(255, 255, 255, 0.05)', text: 'rgba(255, 255, 255, 0.6)', border: 'rgba(255, 255, 255, 0.1)', label: 'Draft' },
+      CLOSED: { bg: 'rgba(236, 72, 153, 0.15)', text: '#ec4899', border: 'rgba(236, 72, 153, 0.3)', label: 'Registration Closed' },
+      ONGOING: { bg: 'rgba(127, 255, 212, 0.15)', text: '#7fffd4', border: 'rgba(127, 255, 212, 0.3)', label: 'Ongoing' },
+      COMPLETED: { bg: 'rgba(255, 255, 255, 0.05)', text: 'rgba(255, 255, 255, 0.6)', border: 'rgba(255, 255, 255, 0.1)', label: 'Completed' }
     }
     const badge = badges[status] || badges.DRAFT
     return (
-      <span className={`inline-flex items-center px-4 py-2 ${badge.bg} ${badge.text} text-sm font-medium rounded-lg border ${badge.border}`}>
+      <span style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        padding: '0.5rem 1rem',
+        background: badge.bg,
+        color: badge.text,
+        fontSize: '0.875rem',
+        fontWeight: '700',
+        borderRadius: '12px',
+        border: `1px solid ${badge.border}`,
+        textTransform: 'uppercase'
+      }}>
         {badge.label}
       </span>
     )
@@ -308,13 +319,33 @@ const TournamentDetailPage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-primary-50/20">
+      <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #060d1f 0%, #0a1628 50%, #071a2e 100%)' }}>
+        <style>{`
+          .tournament-detail *,
+          .tournament-detail input,
+          .tournament-detail select,
+          .tournament-detail button,
+          .tournament-detail h1,
+          .tournament-detail h2,
+          .tournament-detail h3,
+          .tournament-detail p,
+          .tournament-detail span,
+          .tournament-detail div {
+            font-family: 'Barlow Condensed', sans-serif !important;
+          }
+        `}</style>
         <Navbar />
-        <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
-          <div className="flex flex-col items-center gap-4">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-            <p className="text-sm text-gray-500">Loading tournament...</p>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 4rem)' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+            <div style={{ width: '3rem', height: '3rem', border: '3px solid rgba(79, 255, 176, 0.2)', borderTop: '3px solid #4fffb0', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+            <p style={{ fontSize: '0.875rem', color: 'rgba(255, 255, 255, 0.7)', fontWeight: '600', fontFamily: "'Barlow Condensed', sans-serif" }}>Loading tournament...</p>
           </div>
+          <style>{`
+            @keyframes spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+          `}</style>
         </div>
       </div>
     )
@@ -322,16 +353,60 @@ const TournamentDetailPage = () => {
 
   if (error || !tournament) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-primary-50/20">
+      <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #060d1f 0%, #0a1628 50%, #071a2e 100%)' }}>
+        <style>{`
+          .tournament-detail *,
+          .tournament-detail input,
+          .tournament-detail select,
+          .tournament-detail button,
+          .tournament-detail h1,
+          .tournament-detail h2,
+          .tournament-detail h3,
+          .tournament-detail p,
+          .tournament-detail span,
+          .tournament-detail div {
+            font-family: 'Barlow Condensed', sans-serif !important;
+          }
+        `}</style>
         <Navbar />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="glass-card rounded-2xl p-12 text-center">
-            <p className="text-danger-600 mb-4">{error || 'Tournament not found'}</p>
+        <div className="tournament-detail" style={{ maxWidth: '80rem', margin: '0 auto', padding: '8rem 1.5rem 2rem 1.5rem' }}>
+          <div style={{
+            background: 'rgba(10, 22, 40, 0.6)',
+            backdropFilter: 'blur(10px)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            borderRadius: '24px',
+            padding: '3rem',
+            textAlign: 'center'
+          }}>
+            <p style={{ color: '#ec4899', marginBottom: '1rem', fontSize: '1.125rem', fontWeight: '700', fontFamily: "'Barlow Condensed', sans-serif" }}>{error || 'Tournament not found'}</p>
             <button
               onClick={() => navigate('/browse')}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-all"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                padding: '0.75rem 1.5rem',
+                background: 'linear-gradient(135deg, #4fffb0 0%, #00d4ff 100%)',
+                color: '#000',
+                fontWeight: '700',
+                borderRadius: '12px',
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                textTransform: 'uppercase',
+                fontFamily: "'Barlow Condensed', sans-serif",
+                boxShadow: '0 4px 15px rgba(79, 255, 176, 0.3)'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.boxShadow = '0 6px 20px rgba(79, 255, 176, 0.5)';
+                e.currentTarget.style.transform = 'translateY(-2px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.boxShadow = '0 4px 15px rgba(79, 255, 176, 0.3)';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
             >
-              <ArrowLeftIcon className="w-4 h-4" />
+              <ArrowLeftIcon style={{ width: '1rem', height: '1rem' }} />
               Back to Browse
             </button>
           </div>
@@ -345,85 +420,139 @@ const TournamentDetailPage = () => {
   const canRegister = (tournament.status === 'OPEN' || tournament.status === 'ONGOING') && !registrationDeadlinePassed
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-primary-50/20">
+    <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #060d1f 0%, #0a1628 50%, #071a2e 100%)' }}>
+      <style>{`
+        .tournament-detail *,
+        .tournament-detail input,
+        .tournament-detail select,
+        .tournament-detail button,
+        .tournament-detail h1,
+        .tournament-detail h2,
+        .tournament-detail h3,
+        .tournament-detail p,
+        .tournament-detail span,
+        .tournament-detail div {
+          font-family: 'Barlow Condensed', sans-serif !important;
+        }
+      `}</style>
       <Navbar />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="tournament-detail" style={{ maxWidth: '80rem', margin: '0 auto', padding: '8rem 1.5rem 2rem 1.5rem' }}>
         {/* Back Button */}
         <button
           onClick={() => navigate('/browse')}
-          className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 transition-colors"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            background: 'rgba(255, 255, 255, 0.05)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            color: '#fff',
+            padding: '0.5rem 1rem',
+            borderRadius: '12px',
+            marginBottom: '1.5rem',
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+            fontWeight: '600',
+            textTransform: 'uppercase',
+            fontSize: '0.875rem'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'rgba(79, 255, 176, 0.1)';
+            e.currentTarget.style.borderColor = 'rgba(79, 255, 176, 0.3)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+          }}
         >
           <ArrowLeftIcon className="w-4 h-4" />
           Back to Browse
         </button>
 
         {/* Header */}
-        <div className="glass-card rounded-2xl p-8 mb-6">
-          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-6">
-            <div className="flex-1">
-              <h1 className="text-4xl font-bold text-gray-900 mb-2">
-                {tournament.name}
-              </h1>
-              <p className="text-lg text-gray-600">
-                Organized by {tournament.organization?.name}
-              </p>
-            </div>
-            <div>
-              {getStatusBadge(tournament.status)}
+        <div style={{
+          background: 'rgba(10, 22, 40, 0.6)',
+          backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          borderRadius: '24px',
+          padding: '2rem',
+          marginBottom: '1.5rem'
+        }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', flexWrap: 'wrap' }}>
+              <div style={{ flex: 1 }}>
+                <h1 style={{
+                  fontSize: '2.5rem',
+                  fontWeight: '900',
+                  color: '#4fffb0',
+                  marginBottom: '0.5rem',
+                  textTransform: 'uppercase',
+                  letterSpacing: '-0.02em',
+                  lineHeight: 1.2
+                }}>
+                  {tournament.name}
+                </h1>
+                <p style={{ fontSize: '1.125rem', color: 'rgba(255, 255, 255, 0.7)', fontWeight: '600', textTransform: 'uppercase' }}>
+                  Organized by {tournament.organization?.name}
+                </p>
+              </div>
+              <div>
+                {getStatusBadge(tournament.status)}
+              </div>
             </div>
           </div>
 
           {/* Tournament Details Grid */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-lg bg-primary-50 flex items-center justify-center flex-shrink-0">
-                <CalendarIcon className="w-5 h-5 text-primary-600" />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginTop: '1.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
+              <div style={{ width: '2.5rem', height: '2.5rem', borderRadius: '12px', background: 'rgba(79, 255, 176, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <CalendarIcon style={{ width: '1.25rem', height: '1.25rem', color: '#4fffb0' }} />
               </div>
               <div>
-                <p className="text-sm text-gray-500 mb-1">Tournament Dates</p>
-                <p className="font-semibold text-gray-900">{formatDate(tournament.startDate)}</p>
-                <p className="text-sm text-gray-600">to {formatDate(tournament.endDate)}</p>
+                <p style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.5)', marginBottom: '0.25rem', textTransform: 'uppercase', fontWeight: '600' }}>Tournament Dates</p>
+                <p style={{ fontWeight: '700', color: '#fff', fontSize: '1rem' }}>{formatDate(tournament.startDate)}</p>
+                <p style={{ fontSize: '0.875rem', color: 'rgba(255, 255, 255, 0.7)' }}>to {formatDate(tournament.endDate)}</p>
               </div>
             </div>
 
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-lg bg-primary-50 flex items-center justify-center flex-shrink-0">
-                <LocationIcon className="w-5 h-5 text-primary-600" />
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
+              <div style={{ width: '2.5rem', height: '2.5rem', borderRadius: '12px', background: 'rgba(0, 212, 255, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <LocationIcon style={{ width: '1.25rem', height: '1.25rem', color: '#00d4ff' }} />
               </div>
               <div>
-                <p className="text-sm text-gray-500 mb-1">Venue</p>
-                <p className="font-semibold text-gray-900">{tournament.venueName}</p>
-                <p className="text-sm text-gray-600">{tournament.city}</p>
+                <p style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.5)', marginBottom: '0.25rem', textTransform: 'uppercase', fontWeight: '600' }}>Venue</p>
+                <p style={{ fontWeight: '700', color: '#fff', fontSize: '1rem' }}>{tournament.venueName}</p>
+                <p style={{ fontSize: '0.875rem', color: 'rgba(255, 255, 255, 0.7)' }}>{tournament.city}</p>
               </div>
             </div>
 
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-lg bg-primary-50 flex items-center justify-center flex-shrink-0">
-                <ClockIcon className="w-5 h-5 text-primary-600" />
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
+              <div style={{ width: '2.5rem', height: '2.5rem', borderRadius: '12px', background: 'rgba(236, 72, 153, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <ClockIcon style={{ width: '1.25rem', height: '1.25rem', color: '#ec4899' }} />
               </div>
               <div>
-                <p className="text-sm text-gray-500 mb-1">Registration Deadline</p>
-                <p className="font-semibold text-gray-900">{formatDateTime(tournament.registrationDeadline)}</p>
+                <p style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.5)', marginBottom: '0.25rem', textTransform: 'uppercase', fontWeight: '600' }}>Registration Deadline</p>
+                <p style={{ fontWeight: '700', color: '#fff', fontSize: '1rem' }}>{formatDateTime(tournament.registrationDeadline)}</p>
                 {registrationDeadlinePassed && (
-                  <p className="text-sm text-danger-600">Deadline passed</p>
+                  <p style={{ fontSize: '0.875rem', color: '#ec4899' }}>Deadline passed</p>
                 )}
               </div>
             </div>
 
             {/* Contact Info */}
             {(tournament.organization?.contactEmail || tournament.organization?.contactPhone) && (
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-lg bg-primary-50 flex items-center justify-center flex-shrink-0">
-                  <svg className="w-5 h-5 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
+                <div style={{ width: '2.5rem', height: '2.5rem', borderRadius: '12px', background: 'rgba(127, 255, 212, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <svg style={{ width: '1.25rem', height: '1.25rem', color: '#7fffd4' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                   </svg>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500 mb-1">Contact</p>
+                  <p style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.5)', marginBottom: '0.25rem', textTransform: 'uppercase', fontWeight: '600' }}>Contact</p>
                   {tournament.organization?.contactEmail && (
                     <a
                       href={`mailto:${tournament.organization.contactEmail}`}
-                      className="block text-sm text-primary-600 hover:text-primary-700 font-medium"
+                      style={{ display: 'block', fontSize: '0.875rem', color: '#00d4ff', fontWeight: '600', textDecoration: 'none' }}
                     >
                       {tournament.organization.contactEmail}
                     </a>
@@ -431,7 +560,7 @@ const TournamentDetailPage = () => {
                   {tournament.organization?.contactPhone && (
                     <a
                       href={`tel:${tournament.organization.contactPhone}`}
-                      className="block text-sm text-gray-900 font-semibold hover:text-primary-600"
+                      style={{ display: 'block', fontSize: '0.875rem', color: '#fff', fontWeight: '700', textDecoration: 'none' }}
                     >
                       {tournament.organization.contactPhone}
                     </a>
@@ -444,24 +573,37 @@ const TournamentDetailPage = () => {
 
           {/* Description */}
           {tournament.description && (
-            <div className="mt-6 pt-6 border-t border-gray-200">
-              <h3 className="font-semibold text-gray-900 mb-2">About This Tournament</h3>
-              <p className="text-gray-600 leading-relaxed">{tournament.description}</p>
+            <div style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
+              <h3 style={{ fontWeight: '700', color: '#4fffb0', marginBottom: '0.5rem', textTransform: 'uppercase', fontSize: '1rem' }}>About This Tournament</h3>
+              <p style={{ color: 'rgba(255, 255, 255, 0.8)', lineHeight: '1.6' }}>{tournament.description}</p>
             </div>
           )}
 
           {/* Entry Fee */}
           {tournament.entryFee && (
-            <div className="mt-6 pt-6 border-t border-gray-200">
-              <h3 className="font-semibold text-gray-900 mb-2">Entry Fee</h3>
-              <p className="text-2xl font-bold text-gray-900">₹{tournament.entryFee}</p>
+            <div style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
+              <h3 style={{ fontWeight: '700', color: '#4fffb0', marginBottom: '0.5rem', textTransform: 'uppercase', fontSize: '1rem' }}>Entry Fee</h3>
+              <p style={{ fontSize: '2rem', fontWeight: '900', color: '#fff' }}>₹{tournament.entryFee}</p>
             </div>
           )}
         </div>
 
         {/* Events Section */}
-        <div className="glass-card rounded-2xl p-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">Events</h2>
+        <div style={{
+          background: 'rgba(10, 22, 40, 0.6)',
+          backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          borderRadius: '24px',
+          padding: '2rem'
+        }}>
+          <h2 style={{
+            fontSize: '2rem',
+            fontWeight: '900',
+            color: '#4fffb0',
+            marginBottom: '1.5rem',
+            textTransform: 'uppercase',
+            letterSpacing: '-0.02em'
+          }}>Events</h2>
 
           {tournament.events && tournament.events.length > 0 ? (
             <div className="space-y-4">
@@ -593,106 +735,145 @@ const EventCard = ({ event, tournament, canRegister, onRegister, onCancelRegistr
   const hasDetails = event.rules || tournament?.rules
 
   return (
-    <div className="border border-gray-200 rounded-xl p-6 hover:border-primary-300 transition-all">
-      <div className="flex flex-col gap-4">
+    <div style={{
+      background: 'rgba(255, 255, 255, 0.03)',
+      border: '1px solid rgba(255, 255, 255, 0.1)',
+      borderRadius: '16px',
+      padding: '1.5rem',
+      transition: 'all 0.2s'
+    }}
+    onMouseEnter={(e) => {
+      e.currentTarget.style.borderColor = 'rgba(79, 255, 176, 0.3)';
+      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+    }}
+    onMouseLeave={(e) => {
+      e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)';
+    }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         {/* Header with Event Name and Format */}
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex-1">
-            <div className="flex items-center gap-3 mb-3">
-              <h3 className="text-lg font-semibold text-gray-900">{event.name}</h3>
-              <span className="px-3 py-1 bg-primary-100 text-primary-700 text-xs font-medium rounded-full">
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: '900', color: '#4fffb0', textTransform: 'uppercase', letterSpacing: '-0.02em' }}>{event.name}</h3>
+              <span style={{
+                padding: '0.25rem 0.75rem',
+                background: 'rgba(0, 212, 255, 0.15)',
+                color: '#00d4ff',
+                fontSize: '0.75rem',
+                fontWeight: '700',
+                borderRadius: '9999px',
+                border: '1px solid rgba(0, 212, 255, 0.3)',
+                textTransform: 'uppercase'
+              }}>
                 {getFormatLabel(event.format)}
               </span>
             </div>
 
             {/* Event Details Grid - ALWAYS show these fields */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '0.75rem', marginBottom: '0.75rem' }}>
               {/* Age Category - Always show */}
-              <div className="flex items-center gap-2 text-sm">
-                <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem' }}>
+                <svg style={{ width: '1rem', height: '1rem', color: '#4fffb0' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
-                <span className="text-gray-600">
-                  Age: <span className="font-semibold text-gray-900">{event.category || 'Open'}</span>
+                <span style={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                  Age: <span style={{ fontWeight: '700', color: '#4fffb0' }}>{event.category || 'Open'}</span>
                 </span>
               </div>
 
               {/* Gender - Always show */}
-              <div className="flex items-center gap-2 text-sm">
-                <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem' }}>
+                <svg style={{ width: '1rem', height: '1rem', color: '#4fffb0' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
-                <span className="text-gray-600">
-                  Gender: <span className="font-semibold text-gray-900">{event.gender || 'Any'}</span>
+                <span style={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                  Gender: <span style={{ fontWeight: '700', color: '#4fffb0' }}>{event.gender || 'Any'}</span>
                 </span>
               </div>
 
               {/* Max Participants - Only show if set */}
               {event.maxParticipants ? (
-                <div className="flex items-center gap-2 text-sm">
-                  <UsersIcon className="w-4 h-4 text-gray-400" />
-                  <span className="text-gray-600">
-                    Limit: <span className="font-semibold text-gray-900">{event.maxParticipants} players</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem' }}>
+                  <UsersIcon style={{ width: '1rem', height: '1rem', color: '#4fffb0' }} />
+                  <span style={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                    Limit: <span style={{ fontWeight: '700', color: '#4fffb0' }}>{event.maxParticipants} players</span>
                   </span>
                 </div>
               ) : (
-                <div className="flex items-center gap-2 text-sm">
-                  <UsersIcon className="w-4 h-4 text-gray-400" />
-                  <span className="text-gray-600">
-                    Limit: <span className="font-semibold text-gray-900">Unlimited</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem' }}>
+                  <UsersIcon style={{ width: '1rem', height: '1rem', color: '#4fffb0' }} />
+                  <span style={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                    Limit: <span style={{ fontWeight: '700', color: '#4fffb0' }}>Unlimited</span>
                   </span>
                 </div>
               )}
             </div>
 
             {/* Registration Info Row */}
-            <div className="flex flex-wrap items-center gap-4 text-sm">
-              <div className="flex items-center gap-2 text-gray-600">
-                <UsersIcon className="w-4 h-4" />
+            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '1rem', fontSize: '0.875rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'rgba(255, 255, 255, 0.7)' }}>
+                <UsersIcon style={{ width: '1rem', height: '1rem' }} />
                 {event.maxParticipants ? (
                   <span>
-                    <span className="font-semibold text-gray-900">{event.confirmedCount || 0}/{event.maxParticipants}</span> full
+                    <span style={{ fontWeight: '700', color: '#4fffb0' }}>{event.confirmedCount || 0}/{event.maxParticipants}</span> full
                     {event.standbyCount > 0 && (
-                      <span className="ml-2 text-amber-700">
-                        and <span className="font-semibold">{event.standbyCount}</span> on stand-by
+                      <span style={{ marginLeft: '0.5rem', color: '#fb923c' }}>
+                        and <span style={{ fontWeight: '700' }}>{event.standbyCount}</span> on stand-by
                       </span>
                     )}
                   </span>
                 ) : (
                   <span>
-                    <span className="font-semibold text-gray-900">{event.confirmedCount || 0}</span> registered
+                    <span style={{ fontWeight: '700', color: '#4fffb0' }}>{event.confirmedCount || 0}</span> registered
                   </span>
                 )}
               </div>
 
               {event.spotsRemaining > 0 && !isFull && (
-                <span className="px-2 py-1 bg-success-50 text-success-700 text-xs font-medium rounded-md border border-success-200">
+                <span style={{
+                  padding: '0.25rem 0.5rem',
+                  background: 'rgba(79, 255, 176, 0.15)',
+                  color: '#4fffb0',
+                  fontSize: '0.75rem',
+                  fontWeight: '700',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(79, 255, 176, 0.3)'
+                }}>
                   {event.spotsRemaining} spots left
                 </span>
               )}
 
               {isFull && (
-                <span className="px-2 py-1 bg-danger-50 text-danger-700 text-xs font-medium rounded-md border border-danger-200">
+                <span style={{
+                  padding: '0.25rem 0.5rem',
+                  background: 'rgba(236, 72, 153, 0.15)',
+                  color: '#ec4899',
+                  fontSize: '0.75rem',
+                  fontWeight: '700',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(236, 72, 153, 0.3)'
+                }}>
                   Event Full
                 </span>
               )}
 
               {event.registrationFee && (
-                <div className="flex items-center gap-1 text-gray-600">
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'rgba(255, 255, 255, 0.7)' }}>
+                  <svg style={{ width: '1rem', height: '1rem' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
                   </svg>
-                  <span>Fee: <span className="font-semibold text-gray-900">₹{event.registrationFee}</span></span>
+                  <span>Fee: <span style={{ fontWeight: '700', color: '#4fffb0' }}>₹{event.registrationFee}</span></span>
                 </div>
               )}
             </div>
 
             {/* Warning for deadline passed */}
             {isRegistered && isDeadlinePassed && (
-              <div className="mt-3 inline-block">
-                <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg">
-                  <p className="text-xs text-orange-700 flex items-center gap-1.5">
-                    <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div style={{ marginTop: '0.75rem', display: 'inline-block' }}>
+                <div style={{ padding: '0.75rem', background: 'rgba(251, 146, 60, 0.15)', border: '1px solid rgba(251, 146, 60, 0.3)', borderRadius: '12px' }}>
+                  <p style={{ fontSize: '0.75rem', color: '#fb923c', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                    <svg style={{ width: '1rem', height: '1rem', flexShrink: 0 }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                     </svg>
                     <span>Registration deadline passed - Contact organizer if you want to cancel the registration.</span>
@@ -703,11 +884,23 @@ const EventCard = ({ event, tournament, canRegister, onRegister, onCancelRegistr
           </div>
 
           {/* Action Buttons */}
-          <div className="flex-shrink-0">
+          <div style={{ flexShrink: 0 }}>
             {isRegistered ? (
-              <div className="flex flex-col gap-2">
-                <div className="px-6 py-3 bg-success-50 text-success-700 font-medium rounded-lg border border-success-200 flex items-center gap-2 justify-center">
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <div style={{
+                  padding: '0.75rem 1.5rem',
+                  background: 'rgba(79, 255, 176, 0.15)',
+                  color: '#4fffb0',
+                  fontWeight: '700',
+                  borderRadius: '12px',
+                  border: '1px solid rgba(79, 255, 176, 0.3)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  justifyContent: 'center',
+                  textTransform: 'uppercase'
+                }}>
+                  <svg style={{ width: '1.25rem', height: '1.25rem' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                   Registered
@@ -715,29 +908,77 @@ const EventCard = ({ event, tournament, canRegister, onRegister, onCancelRegistr
                 <button
                   onClick={() => !isDeadlinePassed && onCancelRegistration(event.id)}
                   disabled={isDeadlinePassed}
-                  className={`px-4 py-2 font-medium rounded-lg transition-all text-sm ${
-                    isDeadlinePassed
-                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                      : 'bg-white hover:bg-red-50 text-red-600 hover:text-red-700 border border-red-300'
-                  }`}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    background: isDeadlinePassed ? 'rgba(255, 255, 255, 0.05)' : 'rgba(236, 72, 153, 0.1)',
+                    color: isDeadlinePassed ? 'rgba(255, 255, 255, 0.3)' : '#ec4899',
+                    fontWeight: '700',
+                    borderRadius: '12px',
+                    border: isDeadlinePassed ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid rgba(236, 72, 153, 0.3)',
+                    cursor: isDeadlinePassed ? 'not-allowed' : 'pointer',
+                    transition: 'all 0.2s',
+                    fontSize: '0.875rem',
+                    textTransform: 'uppercase'
+                  }}
                   title={isDeadlinePassed ? 'Registration deadline has passed' : 'Cancel registration'}
+                  onMouseEnter={(e) => {
+                    if (!isDeadlinePassed) {
+                      e.currentTarget.style.background = 'rgba(236, 72, 153, 0.2)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isDeadlinePassed) {
+                      e.currentTarget.style.background = 'rgba(236, 72, 153, 0.1)';
+                    }
+                  }}
                 >
                   Cancel
                 </button>
               </div>
             ) : isFull ? (
-              <div className="flex flex-col gap-2">
-                <div className="px-4 py-2 bg-danger-50 text-danger-700 font-medium rounded-lg border border-danger-200 text-center text-sm">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <div style={{
+                  padding: '0.5rem 1rem',
+                  background: 'rgba(236, 72, 153, 0.15)',
+                  color: '#ec4899',
+                  fontWeight: '700',
+                  borderRadius: '12px',
+                  border: '1px solid rgba(236, 72, 153, 0.3)',
+                  textAlign: 'center',
+                  fontSize: '0.875rem',
+                  textTransform: 'uppercase'
+                }}>
                   Event Full
                 </div>
                 <button
                   onClick={() => onRegister(event.id, event.name)}
                   disabled={!canRegister || registering}
-                  className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-medium rounded-lg transition-all shadow-sm hover:shadow-md text-sm whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{
+                    padding: '0.5rem 1rem',
+                    background: '#fb923c',
+                    color: '#000',
+                    fontWeight: '700',
+                    borderRadius: '12px',
+                    transition: 'all 0.2s',
+                    fontSize: '0.875rem',
+                    whiteSpace: 'nowrap',
+                    opacity: (!canRegister || registering) ? 0.5 : 1,
+                    cursor: (!canRegister || registering) ? 'not-allowed' : 'pointer',
+                    border: 'none',
+                    textTransform: 'uppercase'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (canRegister && !registering) {
+                      e.currentTarget.style.boxShadow = '0 4px 15px rgba(251, 146, 60, 0.4)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
                 >
                   {registering ? 'Joining...' : 'Join Waitlist'}
                 </button>
-                <p className="text-xs text-gray-500 text-center">
+                <p style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.5)', textAlign: 'center' }}>
                   You'll be notified if a spot opens up
                 </p>
               </div>
@@ -745,11 +986,31 @@ const EventCard = ({ event, tournament, canRegister, onRegister, onCancelRegistr
               <button
                 onClick={() => onRegister(event.id, event.name)}
                 disabled={!canRegister || registering}
-                className={`px-6 py-3 font-medium rounded-lg transition-all shadow-sm hover:shadow-md whitespace-nowrap ${
-                  !canRegister
-                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                    : 'bg-primary-600 hover:bg-primary-700 text-white'
-                }`}
+                style={{
+                  padding: '0.75rem 1.5rem',
+                  background: !canRegister ? 'rgba(255, 255, 255, 0.05)' : 'linear-gradient(135deg, #4fffb0 0%, #00d4ff 100%)',
+                  color: !canRegister ? 'rgba(255, 255, 255, 0.3)' : '#000',
+                  fontWeight: '700',
+                  borderRadius: '12px',
+                  transition: 'all 0.2s',
+                  whiteSpace: 'nowrap',
+                  cursor: !canRegister ? 'not-allowed' : 'pointer',
+                  border: 'none',
+                  textTransform: 'uppercase',
+                  boxShadow: !canRegister ? 'none' : '0 4px 15px rgba(79, 255, 176, 0.3)'
+                }}
+                onMouseEnter={(e) => {
+                  if (canRegister && !registering) {
+                    e.currentTarget.style.boxShadow = '0 6px 20px rgba(79, 255, 176, 0.5)';
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (canRegister) {
+                    e.currentTarget.style.boxShadow = '0 4px 15px rgba(79, 255, 176, 0.3)';
+                    e.currentTarget.style.transform = 'translateY(0)';
+                  }
+                }}
               >
                 {registering ? 'Registering...' : 'Register'}
               </button>
@@ -759,7 +1020,7 @@ const EventCard = ({ event, tournament, canRegister, onRegister, onCancelRegistr
 
         {/* View Details Button and Expandable Section */}
         {hasDetails && (
-          <div className="mt-4 border-t border-gray-200 pt-4">
+          <div style={{ marginTop: '1rem', borderTop: '1px solid rgba(255, 255, 255, 0.1)', paddingTop: '1rem' }}>
             <button
               onClick={() => setShowDetails(!showDetails)}
               className="flex items-center gap-2 text-sm font-medium text-primary-600 hover:text-primary-700 transition-colors"

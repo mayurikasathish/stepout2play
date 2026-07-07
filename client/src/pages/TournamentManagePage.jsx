@@ -183,30 +183,374 @@ const TournamentManagePage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-primary-50/20">
-        <Navbar />
-        <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      <>
+        <style>{`
+          .tournament-bg {
+            min-height: 100vh;
+            background: linear-gradient(180deg, #060d1f 0%, #0a1628 50%, #071a2e 100%);
+            position: relative;
+            overflow-x: hidden;
+          }
+        `}</style>
+        <div className="tournament-bg">
+          <Navbar />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 'calc(100vh - 4rem)' }}>
+            <div style={{
+              width: '48px',
+              height: '48px',
+              border: '3px solid transparent',
+              borderTopColor: '#4fffb0',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite'
+            }}></div>
+          </div>
         </div>
-      </div>
+      </>
     )
   }
 
   if (!tournament) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-primary-50/20">
-        <Navbar />
-        <div className="text-center py-20">
-          <p className="text-danger-600">Tournament not found</p>
+      <>
+        <style>{`
+          .tournament-bg {
+            min-height: 100vh;
+            background: linear-gradient(180deg, #060d1f 0%, #0a1628 50%, #071a2e 100%);
+            position: relative;
+            overflow-x: hidden;
+          }
+        `}</style>
+        <div className="tournament-bg">
+          <Navbar />
+          <div style={{ textAlign: 'center', padding: '5rem 0', color: '#ec4899', fontFamily: 'Barlow Condensed, sans-serif' }}>
+            Tournament not found
+          </div>
         </div>
-      </div>
+      </>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-primary-50/20">
-      <Navbar />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <>
+      <style>{`
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+        .tournament-container {
+          min-height: 100vh;
+          background: linear-gradient(180deg, #060d1f 0%, #0a1628 50%, #071a2e 100%);
+          position: relative;
+        }
+
+        .content-wrapper {
+          position: relative;
+          z-index: 1;
+          max-width: 1400px;
+          margin: 0 auto;
+          padding: 3rem 2rem;
+        }
+
+        /* Scrollbar styling */
+        .tournament-container ::-webkit-scrollbar {
+          width: 10px;
+        }
+
+        .tournament-container ::-webkit-scrollbar-track {
+          background: rgba(255, 255, 255, 0.05);
+        }
+
+        .tournament-container ::-webkit-scrollbar-thumb {
+          background: #4fffb0;
+          border-radius: 5px;
+        }
+
+        .tournament-container ::-webkit-scrollbar-thumb:hover {
+          background: #6fffbf;
+        }
+
+        html {
+          scroll-behavior: auto !important;
+        }
+
+        /* Dark Theme Overrides */
+        .glass-card {
+          background: transparent !important;
+          border: none !important;
+          border-radius: 0 !important;
+          padding: 2rem 0 !important;
+          margin-bottom: 2rem !important;
+        }
+
+        .tournament-container h1 {
+          font-family: 'Barlow Condensed', sans-serif !important;
+          font-weight: 900 !important;
+          font-size: 2.5rem !important;
+          letter-spacing: -0.03em !important;
+          text-transform: uppercase !important;
+          color: #fff !important;
+        }
+
+        .tournament-container *,
+        .tournament-container p,
+        .tournament-container label,
+        .tournament-container div,
+        .tournament-container span,
+        .tournament-container .text-gray-600,
+        .tournament-container .text-gray-900,
+        .tournament-container .text-sm,
+        .tournament-container .font-semibold,
+        .tournament-container .font-bold,
+        .tournament-container h1,
+        .tournament-container h2,
+        .tournament-container h3 {
+          font-family: 'Barlow Condensed', sans-serif !important;
+        }
+
+        .tournament-container p,
+        .tournament-container .text-gray-600,
+        .tournament-container .text-sm {
+          color: rgba(255, 255, 255, 0.7) !important;
+        }
+
+        .tournament-container .text-gray-900,
+        .tournament-container .font-bold {
+          color: #fff !important;
+        }
+
+        .tournament-container .text-primary-600 {
+          color: #4fffb0 !important;
+        }
+
+        .tournament-container .text-danger-600,
+        .tournament-container .text-red-600 {
+          color: #ec4899 !important;
+        }
+
+        /* Event names in neon green */
+        .tournament-container h3,
+        .tournament-container .text-lg.font-bold,
+        .tournament-container .text-xl.font-bold {
+          color: #4fffb0 !important;
+        }
+
+        /* Pink backgrounds get black text */
+        .tournament-container .bg-gradient-to-r,
+        .tournament-container .bg-gradient-to-r *,
+        .tournament-container [class*="bg-red"],
+        .tournament-container [class*="bg-pink"],
+        .tournament-container button[class*="danger"],
+        .tournament-container button[class*="red"] {
+          color: #000 !important;
+        }
+
+        .tournament-container .text-white {
+          color: rgba(255, 255, 255, 0.9) !important;
+        }
+
+        .tournament-container button[class*="bg-gradient"] .text-white {
+          color: #000 !important;
+        }
+
+        /* Checkmark/tick colors */
+        .tournament-container .text-green-600 {
+          color: rgba(79, 255, 176, 0.6) !important;
+        }
+
+        .tournament-container .text-warning-600 {
+          color: #ffc800 !important;
+        }
+
+        .tournament-container button {
+          font-family: 'Barlow Condensed', sans-serif !important;
+          font-weight: 700 !important;
+          text-transform: uppercase !important;
+          transition: all 0.2s ease !important;
+        }
+
+        .tournament-container .bg-primary-600 {
+          background: #4fffb0 !important;
+          color: #060d1f !important;
+          border-radius: 50px !important;
+        }
+
+        .tournament-container .bg-primary-600:hover {
+          transform: translateY(-2px) !important;
+          box-shadow: 0 8px 25px rgba(79, 255, 176, 0.4) !important;
+        }
+
+        .tournament-container .bg-white {
+          background: transparent !important;
+          border: none !important;
+          color: rgba(255, 255, 255, 0.8) !important;
+        }
+
+        .tournament-container .bg-white:hover {
+          color: #4fffb0 !important;
+          background: transparent !important;
+        }
+
+        .tournament-container .hover\\:bg-red-50,
+        .tournament-container [class*="red"],
+        .tournament-container [class*="danger"],
+        .tournament-container button[class*="delete"] {
+          background: #ec4899 !important;
+          color: #000 !important;
+          border: none !important;
+        }
+
+        .tournament-container .hover\\:bg-red-50:hover,
+        .tournament-container [class*="red"]:hover,
+        .tournament-container [class*="danger"]:hover,
+        .tournament-container button[class*="delete"]:hover {
+          background: #f472b6 !important;
+        }
+
+        .tournament-container .border-b {
+          border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+        }
+
+        .tournament-container .border-gray-200,
+        .tournament-container .border-gray-300 {
+          border-color: transparent !important;
+        }
+
+        .tournament-container .border-primary-600 {
+          border-color: #4fffb0 !important;
+        }
+
+        .tournament-container .border-b-2.border-primary-600 {
+          border-bottom: 3px solid #4fffb0 !important;
+        }
+
+        .tournament-container input,
+        .tournament-container select,
+        .tournament-container textarea {
+          background: rgba(255, 255, 255, 0.03) !important;
+          border: none !important;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.2) !important;
+          color: #fff !important;
+          border-radius: 0 !important;
+          font-family: 'Barlow Condensed', sans-serif !important;
+        }
+
+        .tournament-container input:focus,
+        .tournament-container select:focus,
+        .tournament-container textarea:focus {
+          border-bottom-color: #4fffb0 !important;
+          outline: none !important;
+          background: rgba(255, 255, 255, 0.05) !important;
+        }
+
+        .tournament-container input::placeholder,
+        .tournament-container textarea::placeholder {
+          color: rgba(255, 255, 255, 0.4) !important;
+        }
+
+        .tournament-container label {
+          color: rgba(255, 255, 255, 0.8) !important;
+          font-family: 'Barlow Condensed', sans-serif !important;
+          font-weight: 600 !important;
+          text-transform: uppercase !important;
+          font-size: 0.85rem !important;
+        }
+
+        .tournament-container .bg-gray-50,
+        .tournament-container .bg-gray-100 {
+          background: transparent !important;
+        }
+
+        .tournament-container .bg-gray-100:hover,
+        .tournament-container .bg-gray-200 {
+          background: transparent !important;
+        }
+
+        /* Modal overrides */
+        .tournament-container .bg-black\\/50 {
+          background: rgba(6, 13, 31, 0.95) !important;
+        }
+
+        .tournament-container .bg-gradient-to-r {
+          background: #ec4899 !important;
+          color: #000 !important;
+        }
+
+        .tournament-container .bg-gradient-to-r:hover {
+          background: #f472b6 !important;
+          color: #000 !important;
+        }
+
+        /* Status badges */
+        .tournament-container .bg-green-100 {
+          background: transparent !important;
+          color: #4fffb0 !important;
+        }
+
+        .tournament-container .bg-yellow-100 {
+          background: transparent !important;
+          color: #ffc800 !important;
+        }
+
+        .tournament-container .bg-blue-100 {
+          background: transparent !important;
+          color: #00d4ff !important;
+        }
+
+        .tournament-container .rounded-lg,
+        .tournament-container .rounded-xl,
+        .tournament-container .rounded-2xl {
+          border-radius: 8px !important;
+        }
+
+        /* Grid and list items */
+        .tournament-container .grid > div {
+          border: none !important;
+          border-radius: 0 !important;
+          background: transparent !important;
+          padding-bottom: 1.5rem !important;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+        }
+
+        .tournament-container .grid > div:hover {
+          background: transparent !important;
+        }
+
+        /* Modal content styling */
+        .tournament-container .bg-green-50 {
+          background: rgba(79, 255, 176, 0.1) !important;
+          border-color: rgba(79, 255, 176, 0.3) !important;
+        }
+
+        .tournament-container .bg-green-50 *,
+        .tournament-container .text-green-900,
+        .tournament-container .text-green-800 {
+          color: #4fffb0 !important;
+        }
+
+        .tournament-container .disabled\\:bg-gray-100:disabled {
+          background: rgba(255, 255, 255, 0.05) !important;
+          opacity: 0.6 !important;
+        }
+
+        /* Custom scoring config colors */
+        .tournament-container .bg-orange-50 {
+          background: rgba(255, 165, 0, 0.1) !important;
+          border-color: rgba(255, 165, 0, 0.3) !important;
+        }
+
+        .tournament-container .text-orange-900,
+        .tournament-container .text-orange-700,
+        .tournament-container .bg-orange-50 * {
+          color: #ffa500 !important;
+        }
+
+        .tournament-container .text-red-500 {
+          color: #ec4899 !important;
+        }
+      `}</style>
+
+      <div className="tournament-container">
+        <Navbar />
+        <main className="content-wrapper">
         {/* Header */}
         <div className="glass-card rounded-2xl p-8 mb-6">
           <div className="flex justify-between items-start mb-6">
@@ -233,7 +577,7 @@ const TournamentManagePage = () => {
                 onClick={() => navigate(`/tournaments/${id}`)}
                 className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg"
               >
-                View Public Page
+                Share
               </button>
             </div>
           </div>
@@ -259,43 +603,43 @@ const TournamentManagePage = () => {
         <div className="mb-6 flex gap-2 border-b border-gray-200">
           <button
             onClick={() => setActiveTab('overview')}
-            className={`px-4 py-3 font-medium text-sm transition-colors border-b-2 ${
+            className={`px-4 py-3 transition-colors border-b-2 ${
               activeTab === 'overview' ? 'border-primary-600 text-primary-600' : 'border-transparent text-gray-600'
             }`}
           >
-            Overview
+            OVERVIEW
           </button>
           <button
             onClick={() => setActiveTab('events')}
-            className={`px-4 py-3 font-medium text-sm transition-colors border-b-2 ${
+            className={`px-4 py-3 transition-colors border-b-2 ${
               activeTab === 'events' ? 'border-primary-600 text-primary-600' : 'border-transparent text-gray-600'
             }`}
           >
-            Events
+            EVENTS
           </button>
           <button
             onClick={() => setActiveTab('registrations')}
-            className={`px-4 py-3 font-medium text-sm transition-colors border-b-2 ${
+            className={`px-4 py-3 transition-colors border-b-2 ${
               activeTab === 'registrations' ? 'border-primary-600 text-primary-600' : 'border-transparent text-gray-600'
             }`}
           >
-            Registrations
+            REGISTRATIONS
           </button>
           <button
             onClick={() => setActiveTab('brackets')}
-            className={`px-4 py-3 font-medium text-sm transition-colors border-b-2 ${
-              activeTab === 'brackets' ? 'border-primary-600 text-primary-600 font-bold' : 'border-transparent text-gray-600'
+            className={`px-4 py-3 transition-colors border-b-2 ${
+              activeTab === 'brackets' ? 'border-primary-600 text-primary-600' : 'border-transparent text-gray-600'
             }`}
           >
-            Brackets
+            BRACKETS
           </button>
           <button
             onClick={() => setActiveTab('schedule')}
-            className={`px-4 py-3 font-medium text-sm transition-colors border-b-2 ${
+            className={`px-4 py-3 transition-colors border-b-2 ${
               activeTab === 'schedule' ? 'border-primary-600 text-primary-600' : 'border-transparent text-gray-600'
             }`}
           >
-            📅 Schedule
+            📅 SCHEDULE
           </button>
         </div>
 
@@ -303,14 +647,10 @@ const TournamentManagePage = () => {
         {activeTab === 'overview' && (
           <div className="glass-card rounded-2xl p-8">
             <h2 className="text-2xl font-bold mb-6">Tournament Details</h2>
-            <div className="grid md:grid-cols-2 gap-6">
+            <div className="grid md:grid-cols-3 gap-x-8 gap-y-4">
               <div>
                 <label className="text-sm text-gray-600">Sport</label>
                 <p className="font-semibold capitalize">{tournament.sport}</p>
-              </div>
-              <div>
-                <label className="text-sm text-gray-600">Format</label>
-                <p className="font-semibold capitalize">{tournament.format?.replace('_', ' ')}</p>
               </div>
               <div>
                 <label className="text-sm text-gray-600">Venue</label>
@@ -320,7 +660,7 @@ const TournamentManagePage = () => {
                 <label className="text-sm text-gray-600">City</label>
                 <p className="font-semibold">{tournament.city}</p>
               </div>
-              <div>
+              <div className="md:col-span-2">
                 <label className="text-sm text-gray-600">Registration Deadline</label>
                 <p className="font-semibold">{new Date(tournament.registrationDeadline).toLocaleString()}</p>
               </div>
@@ -473,7 +813,14 @@ const TournamentManagePage = () => {
           <div className="space-y-6">
             {/* Event Selection */}
             <div className="glass-card rounded-xl p-6">
-              <label className="block text-sm font-medium text-gray-900 mb-3">
+              <label className="block mb-3" style={{
+                fontFamily: "'Barlow Condensed', sans-serif",
+                fontSize: '3rem',
+                fontWeight: '1000',
+                textTransform: 'uppercase',
+                color: '#fff',
+                letterSpacing: '-0.02em'
+              }}>
                 Select Event to Generate Bracket
               </label>
               {events.length === 0 ? (
@@ -585,6 +932,7 @@ const TournamentManagePage = () => {
         )}
       </main>
     </div>
+    </>
   )
 }
 
@@ -711,9 +1059,29 @@ const CreateEventModal = ({ tournament, onClose, onSubmit }) => {
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="flex min-h-full items-center justify-center p-4">
-        <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl p-8">
-          <h2 className="text-2xl font-bold mb-6">Create Event</h2>
+      <div className="flex min-h-full items-center justify-center p-4" style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '6rem 2rem 2rem 2rem'
+      }}>
+        <div className="relative rounded-xl w-full max-w-2xl p-8" style={{
+          background: 'rgba(10, 22, 40, 0.95)',
+          border: '1px solid rgba(79, 255, 176, 0.3)',
+          maxHeight: '90vh',
+          overflowY: 'auto'
+        }}>
+          <h2 className="text-2xl font-bold mb-6" style={{
+            fontFamily: "'Barlow Condensed', sans-serif",
+            textTransform: 'uppercase',
+            color: '#4fffb0',
+            letterSpacing: '-0.02em'
+          }}>Create Event</h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-2">Event Name *</label>
@@ -1097,9 +1465,29 @@ const EditTournamentModal = ({ tournament, onClose, onSubmit }) => {
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="flex min-h-full items-center justify-center p-4">
-        <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-3xl p-8 max-h-[90vh] overflow-y-auto">
-          <h2 className="text-2xl font-bold mb-6">Edit Tournament</h2>
+      <div className="flex min-h-full items-center justify-center p-4" style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '6rem 2rem 2rem 2rem'
+      }}>
+        <div className="relative rounded-xl w-full max-w-3xl p-8" style={{
+          background: 'rgba(10, 22, 40, 0.95)',
+          border: '1px solid rgba(79, 255, 176, 0.3)',
+          maxHeight: '90vh',
+          overflowY: 'auto'
+        }}>
+          <h2 className="text-2xl font-bold mb-6" style={{
+            fontFamily: "'Barlow Condensed', sans-serif",
+            textTransform: 'uppercase',
+            color: '#4fffb0',
+            letterSpacing: '-0.02em'
+          }}>Edit Tournament</h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-2">Tournament Name *</label>
@@ -1524,9 +1912,29 @@ const EditEventModal = ({ event, tournament, onClose, onSubmit }) => {
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="flex min-h-full items-center justify-center p-4">
-        <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl p-8">
-          <h2 className="text-2xl font-bold mb-6">Edit Event</h2>
+      <div className="flex min-h-full items-center justify-center p-4" style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '6rem 2rem 2rem 2rem'
+      }}>
+        <div className="relative rounded-xl w-full max-w-2xl p-8" style={{
+          background: 'rgba(10, 22, 40, 0.95)',
+          border: '1px solid rgba(79, 255, 176, 0.3)',
+          maxHeight: '90vh',
+          overflowY: 'auto'
+        }}>
+          <h2 className="text-2xl font-bold mb-6" style={{
+            fontFamily: "'Barlow Condensed', sans-serif",
+            textTransform: 'uppercase',
+            color: '#4fffb0',
+            letterSpacing: '-0.02em'
+          }}>Edit Event</h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-2">Event Name *</label>

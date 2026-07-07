@@ -58,7 +58,7 @@ export default function OnboardingPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-900 mb-2">Date of Birth *</label>
-                  <input type="date" value={profile.dob} onChange={setP('dob')} className={inputCls} />
+                  <input type="date" value={profile.dob} onChange={setP('dob')} max={new Date().toISOString().split('T')[0]} className={inputCls} />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-900 mb-2">Gender *</label>

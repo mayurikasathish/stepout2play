@@ -306,7 +306,7 @@ export default function LandingPage() {
 
         body {
           background: #ffffff;
-          font-family: 'Barlow', sans-serif;
+          font-family: 'Barlow Condensed', sans-serif;
           overflow-x: hidden;
         }
         body.intro-done {
@@ -560,7 +560,7 @@ export default function LandingPage() {
         }
 
         .hero-sub {
-          font-family: 'Barlow', sans-serif;
+          font-family: 'Barlow Condensed', sans-serif;
           font-size: clamp(1rem, 2vw, 1.25rem);
           font-weight: 400;
           color: rgba(255,255,255,0.45);
@@ -744,7 +744,7 @@ export default function LandingPage() {
         }
 
         .features-subhead {
-          font-family: 'Barlow', sans-serif;
+          font-family: 'Barlow Condensed', sans-serif;
           font-size: clamp(1rem, 2vw, 1.2rem);
           color: rgba(255,255,255,0.5);
           max-width: 700px;
@@ -902,7 +902,7 @@ export default function LandingPage() {
         }
 
         .cube-desc {
-          font-family: 'Barlow', sans-serif;
+          font-family: 'Barlow Condensed', sans-serif;
           font-size: 0.9rem;
           line-height: 1.5;
           color: rgba(255,255,255,0.7);
@@ -1057,7 +1057,7 @@ export default function LandingPage() {
         }
 
         .modal-subtitle {
-          font-family: 'Barlow', sans-serif;
+          font-family: 'Barlow Condensed', sans-serif;
           font-size: 0.95rem;
           color: rgba(255,255,255,0.45);
           margin-bottom: 2.5rem;
@@ -1093,7 +1093,7 @@ export default function LandingPage() {
           border: 1px solid rgba(255,255,255,0.1);
           border-radius: 6px;
           color: #fff;
-          font-family: 'Barlow', sans-serif;
+          font-family: 'Barlow Condensed', sans-serif;
           font-size: 1rem;
           transition: all 0.2s ease;
         }
@@ -1154,7 +1154,7 @@ export default function LandingPage() {
         .modal-footer {
           margin-top: 2rem;
           text-align: center;
-          font-family: 'Barlow', sans-serif;
+          font-family: 'Barlow Condensed', sans-serif;
           font-size: 0.9rem;
           color: rgba(255,255,255,0.45);
         }
@@ -1177,7 +1177,7 @@ export default function LandingPage() {
           border-radius: 8px;
           padding: 0.75rem 1rem;
           margin-bottom: 1rem;
-          font-family: 'Barlow', sans-serif;
+          font-family: 'Barlow Condensed', sans-serif;
           font-size: 0.9rem;
           color: #4fffb0;
           box-shadow: 0 4px 20px rgba(0,0,0,0.4);

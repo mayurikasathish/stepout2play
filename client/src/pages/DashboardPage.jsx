@@ -31,7 +31,7 @@ const DashboardPage = () => {
         body {
           background: #060d1f;
           margin: 0;
-          font-family: 'Barlow', sans-serif;
+          font-family: 'Barlow Condensed', sans-serif;
         }
 
         .dashboard-container {

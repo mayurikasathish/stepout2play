@@ -90,7 +90,7 @@ const PlayerCard = ({ player, onClick, onInvite, playerOrgInfo }) => {
               {fullName}
             </h3>
             <p style={{
-              fontFamily: "'Barlow', sans-serif",
+              fontFamily: "'Barlow Condensed', sans-serif",
               fontSize: '0.85rem',
               color: 'rgba(255, 255, 255, 0.5)',
               marginBottom: '0.25rem'
@@ -99,7 +99,7 @@ const PlayerCard = ({ player, onClick, onInvite, playerOrgInfo }) => {
             </p>
             {player.city && (
               <p style={{
-                fontFamily: "'Barlow', sans-serif",
+                fontFamily: "'Barlow Condensed', sans-serif",
                 fontSize: '0.85rem',
                 color: 'rgba(255, 255, 255, 0.5)'
               }}>
@@ -131,7 +131,7 @@ const PlayerCard = ({ player, onClick, onInvite, playerOrgInfo }) => {
 
         {/* Bio or placeholder */}
         <p style={{
-          fontFamily: "'Barlow', sans-serif",
+          fontFamily: "'Barlow Condensed', sans-serif",
           fontSize: '0.9rem',
           color: 'rgba(255, 255, 255, 0.65)',
           lineHeight: 1.5,
@@ -146,7 +146,7 @@ const PlayerCard = ({ player, onClick, onInvite, playerOrgInfo }) => {
           gap: '1.5rem',
           paddingTop: '1rem',
           borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-          fontFamily: "'Barlow', sans-serif",
+          fontFamily: "'Barlow Condensed', sans-serif",
           fontSize: '0.85rem',
           color: 'rgba(255, 255, 255, 0.6)',
           marginBottom: '1rem'
@@ -406,7 +406,7 @@ const PlayersPage = () => {
         body {
           background: #060d1f;
           margin: 0;
-          font-family: 'Barlow', sans-serif;
+          font-family: 'Barlow Condensed', sans-serif;
           overflow-x: hidden;
         }
 
@@ -488,7 +488,7 @@ const PlayersPage = () => {
         }
 
         .page-subtitle {
-          font-family: 'Barlow', sans-serif;
+          font-family: 'Barlow Condensed', sans-serif;
           font-size: 1rem;
           color: rgba(255, 255, 255, 0.65);
         }
@@ -504,7 +504,7 @@ const PlayersPage = () => {
           border: 1px solid rgba(255, 255, 255, 0.1);
           border-radius: 8px;
           padding: 0.75rem 1rem 0.75rem 2.75rem;
-          font-family: 'Barlow', sans-serif;
+          font-family: 'Barlow Condensed', sans-serif;
           font-size: 0.95rem;
           color: #fff;
           outline: none;
@@ -531,7 +531,7 @@ const PlayersPage = () => {
         }
 
         .results-count {
-          font-family: 'Barlow', sans-serif;
+          font-family: 'Barlow Condensed', sans-serif;
           font-size: 0.9rem;
           color: rgba(255, 255, 255, 0.5);
           margin-bottom: 1.5rem;
@@ -647,7 +647,7 @@ const PlayersPage = () => {
                 No players found
               </div>
               <div style={{
-                fontFamily: "'Barlow', sans-serif",
+                fontFamily: "'Barlow Condensed', sans-serif",
                 fontSize: '1rem',
                 color: 'rgba(255, 255, 255, 0.5)'
               }}>
@@ -842,7 +842,7 @@ const PlayersPage = () => {
               RECRUIT THIS PLAYER?
             </div>
             <div style={{
-              fontFamily: "'Barlow', sans-serif",
+              fontFamily: "'Barlow Condensed', sans-serif",
               fontSize: '1rem',
               color: 'rgba(255, 255, 255, 0.7)',
               marginBottom: '2rem',

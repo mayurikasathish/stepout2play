@@ -309,7 +309,7 @@ const DiscoverPage = () => {
         body {
           background: #060d1f;
           margin: 0;
-          font-family: 'Barlow', sans-serif;
+          font-family: 'Barlow Condensed', sans-serif;
           overflow-x: hidden;
         }
 
@@ -391,7 +391,7 @@ const DiscoverPage = () => {
         }
 
         .page-subtitle {
-          font-family: 'Barlow', sans-serif;
+          font-family: 'Barlow Condensed', sans-serif;
           font-size: 1rem;
           color: rgba(255, 255, 255, 0.65);
         }
@@ -415,7 +415,7 @@ const DiscoverPage = () => {
           border: 1px solid rgba(255, 255, 255, 0.1);
           border-radius: 8px;
           padding: 0.75rem 1rem 0.75rem 2.75rem;
-          font-family: 'Barlow', sans-serif;
+          font-family: 'Barlow Condensed', sans-serif;
           font-size: 0.95rem;
           color: #fff;
           outline: none;
@@ -472,7 +472,7 @@ const DiscoverPage = () => {
         }
 
         .results-count {
-          font-family: 'Barlow', sans-serif;
+          font-family: 'Barlow Condensed', sans-serif;
           font-size: 0.9rem;
           color: rgba(255, 255, 255, 0.5);
           margin-bottom: 1.5rem;
@@ -576,7 +576,7 @@ const DiscoverPage = () => {
         }
 
         .org-owners {
-          font-family: 'Barlow', sans-serif;
+          font-family: 'Barlow Condensed', sans-serif;
           font-size: 0.9rem;
           color: rgba(255, 255, 255, 0.5);
           margin-bottom: 0.75rem;
@@ -616,14 +616,14 @@ const DiscoverPage = () => {
         }
 
         .org-description {
-          font-family: 'Barlow', sans-serif;
+          font-family: 'Barlow Condensed', sans-serif;
           font-size: 0.95rem;
           color: rgba(255, 255, 255, 0.65);
           line-height: 1.6;
         }
 
         .org-description {
-          font-family: 'Barlow', sans-serif;
+          font-family: 'Barlow Condensed', sans-serif;
           font-size: 0.9rem;
           color: rgba(255, 255, 255, 0.65);
           line-height: 1.5;
@@ -637,7 +637,7 @@ const DiscoverPage = () => {
         .org-stats {
           display: flex;
           gap: 1.5rem;
-          font-family: 'Barlow', sans-serif;
+          font-family: 'Barlow Condensed', sans-serif;
           font-size: 1rem;
           color: rgba(255, 255, 255, 0.7);
         }
@@ -653,7 +653,7 @@ const DiscoverPage = () => {
           display: flex;
           flex-direction: column;
           gap: 0.6rem;
-          font-family: 'Barlow', sans-serif;
+          font-family: 'Barlow Condensed', sans-serif;
           font-size: 0.9rem;
           color: rgba(255, 255, 255, 0.55);
         }
@@ -793,7 +793,7 @@ const DiscoverPage = () => {
         .btn-tertiary {
           background: transparent;
           color: rgba(255, 255, 255, 0.6);
-          font-family: 'Barlow', sans-serif;
+          font-family: 'Barlow Condensed', sans-serif;
           font-size: 0.9rem;
           padding: 0.4rem 0.75rem;
           border: none;
@@ -829,7 +829,7 @@ const DiscoverPage = () => {
         }
 
         .empty-text {
-          font-family: 'Barlow', sans-serif;
+          font-family: 'Barlow Condensed', sans-serif;
           font-size: 1rem;
           color: rgba(255, 255, 255, 0.5);
         }
@@ -885,7 +885,7 @@ const DiscoverPage = () => {
         }
 
         .delete-modal-text {
-          font-family: 'Barlow', sans-serif;
+          font-family: 'Barlow Condensed', sans-serif;
           font-size: 1rem;
           color: rgba(255, 255, 255, 0.7);
           margin-bottom: 0.5rem;
@@ -960,7 +960,7 @@ const DiscoverPage = () => {
         }
 
         .join-modal-text {
-          font-family: 'Barlow', sans-serif;
+          font-family: 'Barlow Condensed', sans-serif;
           font-size: 0.9rem;
           color: rgba(255, 255, 255, 0.7);
           margin-bottom: 1.25rem;
@@ -991,7 +991,7 @@ const DiscoverPage = () => {
         }
 
         .form-input {
-          font-family: 'Barlow', sans-serif;
+          font-family: 'Barlow Condensed', sans-serif;
           font-size: 0.9rem;
           padding: 0.65rem;
           background: rgba(255, 255, 255, 0.05);

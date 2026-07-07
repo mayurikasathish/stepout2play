@@ -11,7 +11,10 @@
  * @returns {object} { valid: boolean, error: string | null }
  */
 function validateGameScore(p1Score, p2Score, rules) {
-  const { pointsPerSet, minimumLead, maxPoints } = rules
+  const { pointsPerSet, minimumLead, hasScoreCap, scoreCap } = rules
+
+  // Backward compatibility: support both old 'maxPoints' and new 'hasScoreCap/scoreCap'
+  const maxPoints = hasScoreCap ? scoreCap : (rules.maxPoints || null)
 
   // Default deuceStartsAt to pointsPerSet - 1 if not provided (e.g., 20 for badminton/21)
   const deuceStartsAt = rules.deuceStartsAt ?? (pointsPerSet - 1)
@@ -34,6 +37,14 @@ function validateGameScore(p1Score, p2Score, rules) {
     return {
       valid: false,
       error: `At least one player must reach ${pointsPerSet} points`
+    }
+  }
+
+  // Special case: If maxPoints exists and winner reached it, allow 1 point lead
+  // Example: Badminton 30-29 is valid (maxPoints=30 reached, 1 point lead)
+  if (maxPoints !== null && maxPoints !== undefined && maxScore === maxPoints) {
+    if (scoreDiff >= 1) {
+      return { valid: true, error: null }
     }
   }
 

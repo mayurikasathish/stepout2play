@@ -218,7 +218,7 @@ const LiveArena = () => {
         }
 
         .card-subtitle {
-          font-family: 'Barlow', sans-serif;
+          font-family: 'Barlow Condensed', sans-serif;
           font-size: 0.85rem;
           color: rgba(255, 255, 255, 0.6);
         }
@@ -246,7 +246,7 @@ const LiveArena = () => {
           text-align: center;
           padding: 3rem 1rem;
           color: rgba(255, 255, 255, 0.4);
-          font-family: 'Barlow', sans-serif;
+          font-family: 'Barlow Condensed', sans-serif;
           font-size: 0.9rem;
         }
       `}</style>

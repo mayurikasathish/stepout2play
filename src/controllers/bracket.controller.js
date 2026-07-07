@@ -173,6 +173,197 @@ class BracketController {
       next(error);
     }
   }
+
+  /**
+   * POST /matches/:matchId/start
+   * Manually start a match - set status to IN_PROGRESS
+   */
+  async startMatch(req, res, next) {
+    try {
+      const { matchId } = req.params;
+
+      // Get match with event details to check permissions
+      const match = await prisma.match.findUnique({
+        where: { id: matchId },
+        include: {
+          event: {
+            include: {
+              tournament: {
+                include: { organization: true }
+              }
+            }
+          }
+        }
+      });
+
+      if (!match) {
+        return res.status(404).json({ success: false, error: 'Match not found' });
+      }
+
+      // Check if user has permission (org owner/admin)
+      const userOrgMembership = await prisma.orgMember.findUnique({
+        where: {
+          userId_orgId: {
+            userId: req.user.id,
+            orgId: match.event.tournament.organizationId
+          }
+        }
+      });
+
+      if (!userOrgMembership || !['OWNER', 'ADMIN'].includes(userOrgMembership.role)) {
+        return res.status(403).json({ success: false, error: 'Only tournament organizers can start matches' });
+      }
+
+      // Update match status
+      const updatedMatch = await prisma.match.update({
+        where: { id: matchId },
+        data: {
+          status: 'IN_PROGRESS',
+          actualStartTime: new Date()
+        },
+        include: {
+          event: true,
+          participant1: { include: { user: true, partner: true } },
+          participant2: { include: { user: true, partner: true } }
+        }
+      });
+
+      res.status(200).json({
+        success: true,
+        message: 'Match started successfully',
+        match: updatedMatch
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * POST /matches/:matchId/complete
+   * Manually complete a match - set status to COMPLETED
+   */
+  async completeMatch(req, res, next) {
+    try {
+      const { matchId } = req.params;
+
+      // Get match with event details
+      const match = await prisma.match.findUnique({
+        where: { id: matchId },
+        include: {
+          event: {
+            include: {
+              tournament: {
+                include: { organization: true }
+              }
+            }
+          }
+        }
+      });
+
+      if (!match) {
+        return res.status(404).json({ success: false, error: 'Match not found' });
+      }
+
+      // Check permissions
+      const userOrgMembership = await prisma.orgMember.findUnique({
+        where: {
+          userId_orgId: {
+            userId: req.user.id,
+            orgId: match.event.tournament.organizationId
+          }
+        }
+      });
+
+      if (!userOrgMembership || !['OWNER', 'ADMIN'].includes(userOrgMembership.role)) {
+        return res.status(403).json({ success: false, error: 'Only tournament organizers can complete matches' });
+      }
+
+      // Update match status
+      const updatedMatch = await prisma.match.update({
+        where: { id: matchId },
+        data: {
+          status: 'COMPLETED',
+          completedAt: new Date()
+        },
+        include: {
+          event: true,
+          participant1: { include: { user: true, partner: true } },
+          participant2: { include: { user: true, partner: true } }
+        }
+      });
+
+      res.status(200).json({
+        success: true,
+        message: 'Match completed successfully',
+        match: updatedMatch
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * POST /matches/:matchId/cancel
+   * Cancel a match - set status to CANCELLED
+   */
+  async cancelMatch(req, res, next) {
+    try {
+      const { matchId } = req.params;
+
+      // Get match with event details
+      const match = await prisma.match.findUnique({
+        where: { id: matchId },
+        include: {
+          event: {
+            include: {
+              tournament: {
+                include: { organization: true }
+              }
+            }
+          }
+        }
+      });
+
+      if (!match) {
+        return res.status(404).json({ success: false, error: 'Match not found' });
+      }
+
+      // Check permissions
+      const userOrgMembership = await prisma.orgMember.findUnique({
+        where: {
+          userId_orgId: {
+            userId: req.user.id,
+            orgId: match.event.tournament.organizationId
+          }
+        }
+      });
+
+      if (!userOrgMembership || !['OWNER', 'ADMIN'].includes(userOrgMembership.role)) {
+        return res.status(403).json({ success: false, error: 'Only tournament organizers can cancel matches' });
+      }
+
+      // Update match status
+      const updatedMatch = await prisma.match.update({
+        where: { id: matchId },
+        data: {
+          status: 'CANCELLED'
+        },
+        include: {
+          event: true,
+          participant1: { include: { user: true, partner: true } },
+          participant2: { include: { user: true, partner: true } }
+        }
+      });
+
+      res.status(200).json({
+        success: true,
+        message: 'Match cancelled successfully',
+        match: updatedMatch
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = new BracketController();

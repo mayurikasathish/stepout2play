@@ -225,30 +225,85 @@ const BracketGenerator = ({ eventId, eventName, eventFormat, registrationCount, 
   }
 
   return (
-    <div className="glass-card rounded-2xl p-8">
-      {/* Header */}
-      <div className="text-center mb-8">
-        <div className="w-20 h-20 bg-gradient-to-br from-warning-500 to-warning-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
-          <TrophyIcon className="w-12 h-12 text-white" />
-        </div>
-        <h2 className="text-3xl font-bold text-gray-900 mb-3">Generate Tournament Bracket</h2>
-        <p className="text-gray-600 max-w-2xl mx-auto">
-          Automatically create your bracket from registered {entityLabelPlural}. Choose a format and seeding method.
-        </p>
-      </div>
-
+    <>
+      <style>{`
+        .bracket-generator * {
+          font-family: 'Barlow', sans-serif !important;
+          color: rgba(255, 255, 255, 0.9) !important;
+        }
+        .bracket-generator .stats-card *,
+        .bracket-generator .light-blue-section *,
+        .bracket-generator .light-blue-section label,
+        .bracket-generator .light-blue-section span,
+        .bracket-generator .light-blue-section p,
+        .bracket-generator .light-blue-section h3 {
+          color: #000 !important;
+        }
+        .bracket-generator h2, .bracket-generator label, .bracket-generator .font-semibold, .bracket-generator .font-bold {
+          font-family: 'Barlow Condensed', sans-serif !important;
+          font-weight: 700 !important;
+          text-transform: uppercase !important;
+          color: #fff !important;
+        }
+        .bracket-generator .text-gray-900, .bracket-generator .text-gray-800 {
+          color: #fff !important;
+        }
+        .bracket-generator .text-gray-600, .bracket-generator .text-gray-700 {
+          color: rgba(255, 255, 255, 0.7) !important;
+        }
+        .bracket-generator .bg-primary-50, .bracket-generator .bg-primary-100 {
+          background: rgba(0, 212, 255, 0.1) !important;
+        }
+        .bracket-generator .border-primary-500, .bracket-generator .border-primary-600 {
+          border-color: #00d4ff !important;
+        }
+        .bracket-generator .text-primary-600 {
+          color: #00d4ff !important;
+        }
+        .bracket-generator .bg-primary-600 {
+          background: #00d4ff !important;
+          color: #000 !important;
+        }
+        .bracket-generator button {
+          font-family: 'Barlow Condensed', sans-serif !important;
+          text-transform: uppercase !important;
+        }
+        .bracket-generator button[style*="background: rgb(0, 212, 255)"],
+        .bracket-generator button[style*="background: #00d4ff"] {
+          color: #000 !important;
+        }
+        .bracket-generator button[style*="background: rgb(0, 212, 255)"] *,
+        .bracket-generator button[style*="background: #00d4ff"] * {
+          color: #000 !important;
+        }
+        .bracket-generator .bg-white {
+          background: transparent !important;
+          border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        }
+        .bracket-generator .border-gray-200, .bracket-generator .border-gray-300 {
+          border-color: rgba(255, 255, 255, 0.1) !important;
+        }
+      `}</style>
+      <div className="bracket-generator glass-card" style={{
+        borderRadius: '12px',
+        padding: '2rem',
+        border: '1px solid rgba(255, 255, 255, 0.1)'
+      }}>
       {/* Stats */}
-      <div className="mb-8 p-6 bg-gradient-to-br from-primary-50 to-primary-100/50 rounded-xl border border-primary-200">
+      <div className="mb-8 p-6 stats-card" style={{
+        background: '#fda4c8',
+        borderRadius: '12px',
+        border: '1px solid rgba(255, 255, 255, 0.1)'
+      }}>
         <div className="grid grid-cols-2 gap-6">
           <div>
-            <p className="text-sm text-gray-600 mb-1">Event</p>
-            <p className="text-lg font-semibold text-gray-900">{eventName}</p>
-            <p className="text-sm text-gray-600">{eventFormat}</p>
+            <p style={{ fontSize: '0.875rem', color: '#000', marginBottom: '0.25rem', fontWeight: '600', textTransform: 'uppercase' }}>Event</p>
+            <p style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#000', textTransform: 'uppercase' }}>{eventName}</p>
+            <p style={{ fontSize: '0.875rem', color: '#000', textTransform: 'uppercase' }}>{eventFormat}</p>
           </div>
           <div>
-            <p className="text-sm text-gray-600 mb-1">{isTeamEvent ? 'Teams' : 'Participants'}</p>
-            <p className="text-3xl font-bold text-primary-600">{registrationCount}</p>
-            <p className="text-sm text-gray-600">{entityLabelPlural} registered</p>
+            <p style={{ fontSize: '0.875rem', color: '#000', marginBottom: '0.25rem', fontWeight: '600', textTransform: 'uppercase' }}>{isTeamEvent ? 'Teams' : 'Participants'}</p>
+            <p style={{ fontSize: '2rem', fontWeight: 'bold', color: '#000' }}>{registrationCount}</p>
           </div>
         </div>
       </div>
@@ -267,22 +322,22 @@ const BracketGenerator = ({ eventId, eventName, eventFormat, registrationCount, 
           </label>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {FORMATS.map((fmt) => (
-              <label
+              <div
                 key={fmt.value}
-                className={`relative flex items-start p-6 cursor-pointer rounded-xl border-2 transition-all ${
-                  bracketFormat === fmt.value
-                    ? 'border-primary-500 bg-primary-50'
-                    : 'border-gray-200 hover:border-gray-300 bg-white'
-                }`}
+                onClick={() => handleFormatChange(fmt.value)}
+                style={{
+                  position: 'relative',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  padding: '1.5rem',
+                  cursor: 'pointer',
+                  borderRadius: '12px',
+                  border: bracketFormat === fmt.value ? '3px solid #4fffb0' : '1px solid rgba(255, 255, 255, 0.1)',
+                  background: bracketFormat === fmt.value ? 'rgba(79, 255, 176, 0.1)' : 'transparent',
+                  boxShadow: bracketFormat === fmt.value ? '0 0 20px rgba(79, 255, 176, 0.3)' : 'none',
+                  transition: 'all 0.3s'
+                }}
               >
-                <input
-                  type="radio"
-                  name="bracketFormat"
-                  value={fmt.value}
-                  checked={bracketFormat === fmt.value}
-                  onChange={() => handleFormatChange(fmt.value)}
-                  className="mt-1 mr-4"
-                />
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-xl">{fmt.icon}</span>
@@ -290,130 +345,241 @@ const BracketGenerator = ({ eventId, eventName, eventFormat, registrationCount, 
                   </div>
                   <p className="text-sm text-gray-600">{fmt.description}</p>
                 </div>
-              </label>
+              </div>
             ))}
           </div>
         </div>
 
         {/* ── Step 2A: Group Size (Round Robin only) ── */}
         {isRoundRobin && (
-          <div className="p-6 bg-amber-50 border border-amber-200 rounded-xl">
-            <label className="block text-sm font-semibold text-gray-900 mb-3">
+          <div className="p-8 rounded-xl" style={{
+            background: 'rgba(10, 22, 40, 0.6)',
+            border: '2px solid rgba(79, 255, 176, 0.3)',
+            backdropFilter: 'blur(10px)'
+          }}>
+            <label className="block mb-4" style={{
+              color: '#fff',
+              fontFamily: "'Barlow Condensed', sans-serif",
+              textTransform: 'uppercase',
+              fontSize: '1.25rem',
+              fontWeight: '700'
+            }}>
               Participants per Group
             </label>
-            <div className="flex flex-wrap gap-3 mb-4">
-              {GROUP_SIZE_OPTIONS.map((size) => (
-                <button
-                  key={size}
-                  onClick={() => setGroupSize(size)}
-                  className={`px-5 py-2 rounded-lg font-semibold border-2 transition-all text-sm ${
-                    groupSize === size
-                      ? 'bg-primary-600 border-primary-600 text-white'
-                      : 'bg-white border-gray-300 text-gray-700 hover:border-primary-400'
-                  }`}
-                >
-                  {size} per group
-                </button>
-              ))}
+            <div className="flex items-center gap-6 mb-4">
+              <input
+                type="number"
+                min="2"
+                max="16"
+                value={groupSize}
+                onChange={(e) => setGroupSize(Math.max(2, Math.min(16, parseInt(e.target.value) || 2)))}
+                style={{
+                  width: '8rem',
+                  padding: '1.5rem 2rem',
+                  background: 'rgba(6, 13, 31, 0.8)',
+                  border: '3px solid #4fffb0',
+                  borderRadius: '12px',
+                  color: '#fff',
+                  fontWeight: '900',
+                  fontSize: '4rem',
+                  textAlign: 'center',
+                  fontFamily: "'Barlow Condensed', sans-serif",
+                  outline: 'none'
+                }}
+                onFocus={(e) => {
+                  e.target.style.boxShadow = '0 0 30px rgba(79, 255, 176, 0.5)'
+                }}
+                onBlur={(e) => {
+                  e.target.style.boxShadow = 'none'
+                }}
+              />
+              <span style={{
+                color: 'rgba(255, 255, 255, 0.7)',
+                fontFamily: "'Barlow Condensed', sans-serif",
+                fontSize: '1.5rem',
+                fontWeight: '600',
+                textTransform: 'uppercase'
+              }}>per group</span>
             </div>
-            <p className="text-sm text-amber-800">
-              With <strong>{registrationCount}</strong> {entityLabelPlural} and groups of <strong>{groupSize}</strong>:{' '}
-              <strong>{estimatedGroups} group{estimatedGroups !== 1 ? 's' : ''}</strong> will be created.
+            <p className="text-sm" style={{
+              color: 'rgba(255, 255, 255, 0.7)',
+              fontFamily: "'Barlow Condensed', sans-serif",
+              fontSize: '1rem'
+            }}>
+              With <strong style={{ color: '#4fffb0' }}>{registrationCount}</strong> {entityLabelPlural} and groups of <strong style={{ color: '#4fffb0' }}>{groupSize}</strong>:{' '}
+              <strong style={{ color: '#4fffb0' }}>{estimatedGroups} group{estimatedGroups !== 1 ? 's' : ''}</strong> will be created.
             </p>
           </div>
         )}
 
         {/* ── Step 2B: Hybrid Configuration (League-cum-Knockout only) ── */}
         {isHybrid && (
-          <div className="p-6 bg-gradient-to-br from-purple-50 to-indigo-50 border-2 border-purple-200 rounded-xl space-y-6">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                <span className="text-xl">🏆</span>
-              </div>
-              <div>
-                <h3 className="font-bold text-gray-900 mb-1">League-cum-Knockout Configuration</h3>
-                <p className="text-sm text-gray-600">
-                  Group stage winners advance to single-elimination knockout rounds
-                </p>
-              </div>
+          <div className="p-8 rounded-xl space-y-8" style={{
+            background: 'rgba(10, 22, 40, 0.6)',
+            border: '2px solid rgba(79, 255, 176, 0.3)',
+            backdropFilter: 'blur(10px)'
+          }}>
+            <div>
+              <h3 className="mb-2" style={{
+                color: '#4fffb0',
+                fontFamily: "'Barlow Condensed', sans-serif",
+                textTransform: 'uppercase',
+                fontSize: '1.75rem',
+                fontWeight: '900',
+                letterSpacing: '-0.02em'
+              }}>League-cum-Knockout Configuration</h3>
+              <p className="text-sm" style={{
+                color: 'rgba(255, 255, 255, 0.7)',
+                fontFamily: "'Barlow Condensed', sans-serif",
+                fontSize: '1rem'
+              }}>
+                Group stage winners advance to single-elimination knockout rounds
+              </p>
             </div>
 
             {/* Number of Groups */}
             <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-2">
+              <label className="block mb-4" style={{
+                color: '#fff',
+                fontFamily: "'Barlow Condensed', sans-serif",
+                textTransform: 'uppercase',
+                fontSize: '1.25rem',
+                fontWeight: '700'
+              }}>
                 Number of Groups
               </label>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-6">
                 <input
                   type="number"
                   min="2"
                   max="16"
                   value={groupCount}
                   onChange={(e) => setGroupCount(Math.max(2, Math.min(16, parseInt(e.target.value) || 2)))}
-                  className="w-24 px-4 py-2 border-2 border-gray-300 rounded-lg font-semibold focus:border-primary-500 focus:outline-none"
+                  style={{
+                    width: '8rem',
+                    padding: '1.5rem 2rem',
+                    background: 'rgba(6, 13, 31, 0.8)',
+                    border: '3px solid #4fffb0',
+                    borderRadius: '12px',
+                    color: '#fff',
+                    fontWeight: '900',
+                    fontSize: '4rem',
+                    textAlign: 'center',
+                    fontFamily: "'Barlow Condensed', sans-serif",
+                    outline: 'none'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.boxShadow = '0 0 30px rgba(79, 255, 176, 0.5)'
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.boxShadow = 'none'
+                  }}
                 />
-                <span className="text-sm text-gray-600">groups</span>
+                <span style={{
+                  color: 'rgba(255, 255, 255, 0.7)',
+                  fontFamily: "'Barlow Condensed', sans-serif",
+                  fontSize: '1.5rem',
+                  fontWeight: '600',
+                  textTransform: 'uppercase'
+                }}>groups</span>
               </div>
             </div>
 
             {/* Qualifiers per Group */}
             <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-2">
+              <label className="block mb-4" style={{
+                color: '#fff',
+                fontFamily: "'Barlow Condensed', sans-serif",
+                textTransform: 'uppercase',
+                fontSize: '1.25rem',
+                fontWeight: '700'
+              }}>
                 Qualifiers per Group
               </label>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-6">
                 <input
                   type="number"
                   min="1"
                   max="4"
                   value={advanceCount}
                   onChange={(e) => setAdvanceCount(Math.max(1, Math.min(4, parseInt(e.target.value) || 2)))}
-                  className="w-24 px-4 py-2 border-2 border-gray-300 rounded-lg font-semibold focus:border-primary-500 focus:outline-none"
+                  style={{
+                    width: '8rem',
+                    padding: '1.5rem 2rem',
+                    background: 'rgba(6, 13, 31, 0.8)',
+                    border: '3px solid #4fffb0',
+                    borderRadius: '12px',
+                    color: '#fff',
+                    fontWeight: '900',
+                    fontSize: '4rem',
+                    textAlign: 'center',
+                    fontFamily: "'Barlow Condensed', sans-serif",
+                    outline: 'none'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.boxShadow = '0 0 30px rgba(79, 255, 176, 0.5)'
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.boxShadow = 'none'
+                  }}
                 />
-                <span className="text-sm text-gray-600">advance from each group</span>
+                <span style={{
+                  color: 'rgba(255, 255, 255, 0.7)',
+                  fontFamily: "'Barlow Condensed', sans-serif",
+                  fontSize: '1.5rem',
+                  fontWeight: '600',
+                  textTransform: 'uppercase'
+                }}>advance from each group</span>
               </div>
             </div>
 
             {/* Bronze Match Toggle */}
             <div>
-              <label className="flex items-center gap-3 cursor-pointer">
+              <label className="flex items-center gap-4 cursor-pointer p-4 rounded-xl" style={{
+                background: 'rgba(6, 13, 31, 0.6)',
+                border: hasBronzeMatch ? '2px solid #4fffb0' : '2px solid rgba(255, 255, 255, 0.2)',
+                transition: 'all 0.3s'
+              }}>
                 <input
                   type="checkbox"
                   checked={hasBronzeMatch}
                   onChange={(e) => setHasBronzeMatch(e.target.checked)}
-                  className="w-5 h-5 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                  className="w-6 h-6 accent-primary-600 border-gray-300 rounded focus:ring-primary-500"
                 />
                 <div>
-                  <span className="font-semibold text-gray-900">Include Bronze Match (3rd Place)</span>
-                  <p className="text-sm text-gray-600">
+                  <span className="font-semibold" style={{
+                    color: hasBronzeMatch ? '#4fffb0' : '#fff',
+                    fontFamily: "'Barlow Condensed', sans-serif",
+                    textTransform: 'uppercase',
+                    fontSize: '1.125rem',
+                    fontWeight: '700'
+                  }}>Include Bronze Match (3rd Place)</span>
+                  <p className="text-sm" style={{
+                    color: 'rgba(255, 255, 255, 0.6)',
+                    fontFamily: "'Barlow Condensed', sans-serif"
+                  }}>
                     Losing semifinalists play for 3rd place
                   </p>
                 </div>
               </label>
             </div>
 
-            {/* Summary */}
-            <div className="pt-4 border-t border-purple-200">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div className="bg-white/70 p-3 rounded-lg">
-                  <p className="text-gray-600 mb-1">Group Stage</p>
-                  <p className="font-bold text-gray-900">
-                    {groupCount} groups × ~{estimatedGroupSize} {entityLabelPlural}
-                  </p>
-                </div>
-                <div className="bg-white/70 p-3 rounded-lg">
-                  <p className="text-gray-600 mb-1">Knockout Stage</p>
-                  <p className="font-bold text-gray-900">
-                    {knockoutParticipants} {entityLabelPlural} advance
-                  </p>
-                </div>
-              </div>
-              {knockoutParticipants && !Number.isInteger(Math.log2(knockoutParticipants)) && (
-                <p className="text-sm text-orange-700 font-medium mt-3 bg-orange-50 p-2 rounded">
-                  ⚠️ Knockout size must be power of 2 (4, 8, 16, 32...). Current: {knockoutParticipants}
-                </p>
-              )}
-            </div>
+            {knockoutParticipants && !Number.isInteger(Math.log2(knockoutParticipants)) && (
+              <p style={{
+                color: '#ff6b6b',
+                fontFamily: "'Barlow Condensed', sans-serif",
+                fontWeight: '700',
+                textTransform: 'uppercase',
+                fontSize: '1rem',
+                padding: '1rem',
+                background: 'rgba(255, 107, 107, 0.1)',
+                border: '2px solid rgba(255, 107, 107, 0.3)',
+                borderRadius: '12px',
+                marginTop: '1.5rem'
+              }}>
+                ⚠️ Knockout size must be power of 2 (4, 8, 16, 32...). Current: {knockoutParticipants}
+              </p>
+            )}
           </div>
         )}
 
@@ -424,22 +590,22 @@ const BracketGenerator = ({ eventId, eventName, eventFormat, registrationCount, 
           </label>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {availableSeedingMethods.map((method) => (
-              <label
+              <div
                 key={method.value}
-                className={`relative flex items-start p-5 cursor-pointer rounded-xl border-2 transition-all ${
-                  seedingMethod === method.value
-                    ? 'border-primary-500 bg-primary-50'
-                    : 'border-gray-200 hover:border-gray-300 bg-white'
-                }`}
+                onClick={() => setSeedingMethod(method.value)}
+                style={{
+                  position: 'relative',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  padding: '1.25rem',
+                  cursor: 'pointer',
+                  borderRadius: '12px',
+                  border: seedingMethod === method.value ? '3px solid #4fffb0' : '1px solid rgba(255, 255, 255, 0.1)',
+                  background: seedingMethod === method.value ? 'rgba(79, 255, 176, 0.1)' : 'transparent',
+                  boxShadow: seedingMethod === method.value ? '0 0 20px rgba(79, 255, 176, 0.3)' : 'none',
+                  transition: 'all 0.3s'
+                }}
               >
-                <input
-                  type="radio"
-                  name="seedingMethod"
-                  value={method.value}
-                  checked={seedingMethod === method.value}
-                  onChange={(e) => setSeedingMethod(e.target.value)}
-                  className="mt-1 mr-4"
-                />
                 <div className="flex-1">
                   <div className="font-semibold text-gray-900 mb-1">
                     {method.label}
@@ -454,7 +620,7 @@ const BracketGenerator = ({ eventId, eventName, eventFormat, registrationCount, 
                     <p className="text-xs text-orange-600 mt-2 font-medium">{method.warning}</p>
                   )}
                 </div>
-              </label>
+              </div>
             ))}
           </div>
         </div>
@@ -464,7 +630,34 @@ const BracketGenerator = ({ eventId, eventName, eventFormat, registrationCount, 
       <button
         onClick={handleGenerate}
         disabled={generating || registrationCount < 2}
-        className="w-full px-8 py-4 bg-gradient-to-r from-warning-500 to-warning-600 hover:from-warning-600 hover:to-warning-700 text-white font-bold rounded-xl text-lg shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+        style={{
+          width: '100%',
+          padding: '1rem 2rem',
+          background: '#00d4ff',
+          color: '#000',
+          fontWeight: '700',
+          borderRadius: '12px',
+          fontSize: '1.125rem',
+          boxShadow: '0 10px 25px rgba(0, 212, 255, 0.3)',
+          transition: 'all 0.3s',
+          border: 'none',
+          cursor: generating || registrationCount < 2 ? 'not-allowed' : 'pointer',
+          opacity: generating || registrationCount < 2 ? 0.5 : 1,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '0.75rem'
+        }}
+        onMouseEnter={(e) => {
+          if (!generating && registrationCount >= 2) {
+            e.currentTarget.style.background = 'rgba(0, 212, 255, 0.8)';
+            e.currentTarget.style.boxShadow = '0 15px 30px rgba(0, 212, 255, 0.4)';
+          }
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = '#00d4ff';
+          e.currentTarget.style.boxShadow = '0 10px 25px rgba(0, 212, 255, 0.3)';
+        }}
       >
         {generating ? (
           <>
@@ -550,6 +743,7 @@ const BracketGenerator = ({ eventId, eventName, eventFormat, registrationCount, 
         </div>
       )}
     </div>
+    </>
   )
 }
 

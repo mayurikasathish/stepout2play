@@ -186,7 +186,7 @@ const PlayerRadarCard = () => {
         }
 
         .metric-label {
-          font-family: 'Barlow', sans-serif;
+          font-family: 'Barlow Condensed', sans-serif;
           font-size: 0.7rem;
           fill: rgba(255,255,255,0.6);
           text-anchor: middle;
@@ -212,7 +212,7 @@ const PlayerRadarCard = () => {
         }
 
         .center-label {
-          font-family: 'Barlow', sans-serif;
+          font-family: 'Barlow Condensed', sans-serif;
           font-size: 0.65rem;
           fill: rgba(255,255,255,0.3);
           text-anchor: middle;

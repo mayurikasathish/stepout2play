@@ -167,7 +167,7 @@ const OrganizationDetailPage = () => {
           body {
             background: #060d1f;
             margin: 0;
-            font-family: 'Barlow', sans-serif;
+            font-family: 'Barlow Condensed', sans-serif;
           }
         `}</style>
         <div style={{
@@ -209,7 +209,7 @@ const OrganizationDetailPage = () => {
           body {
             background: #060d1f;
             margin: 0;
-            font-family: 'Barlow', sans-serif;
+            font-family: 'Barlow Condensed', sans-serif;
           }
         `}</style>
         <div style={{
@@ -269,7 +269,7 @@ const OrganizationDetailPage = () => {
         body {
           background: #060d1f;
           margin: 0;
-          font-family: 'Barlow', sans-serif;
+          font-family: 'Barlow Condensed', sans-serif;
           overflow-x: hidden;
         }
 
@@ -414,7 +414,7 @@ const OrganizationDetailPage = () => {
           display: flex;
           align-items: center;
           gap: 1.5rem;
-          font-family: 'Barlow', sans-serif;
+          font-family: 'Barlow Condensed', sans-serif;
           font-size: 1rem;
           color: rgba(255, 255, 255, 0.7);
         }
@@ -496,7 +496,7 @@ const OrganizationDetailPage = () => {
         .btn-tertiary {
           background: transparent;
           color: rgba(255, 255, 255, 0.6);
-          font-family: 'Barlow', sans-serif;
+          font-family: 'Barlow Condensed', sans-serif;
           font-size: 0.9rem;
           padding: 0.4rem 0.75rem;
           border: none;
@@ -514,7 +514,7 @@ const OrganizationDetailPage = () => {
         .btn-delete {
           background: transparent;
           color: rgba(236, 72, 153, 0.7);
-          font-family: 'Barlow', sans-serif;
+          font-family: 'Barlow Condensed', sans-serif;
           font-size: 0.9rem;
           padding: 0.4rem 0.75rem;
           border: none;
@@ -572,7 +572,7 @@ const OrganizationDetailPage = () => {
         }
 
         .delete-modal-text {
-          font-family: 'Barlow', sans-serif;
+          font-family: 'Barlow Condensed', sans-serif;
           font-size: 1rem;
           color: rgba(255, 255, 255, 0.7);
           margin-bottom: 0.5rem;
@@ -687,7 +687,7 @@ const OrganizationDetailPage = () => {
         }
 
         .empty-text {
-          font-family: 'Barlow', sans-serif;
+          font-family: 'Barlow Condensed', sans-serif;
           font-size: 1rem;
           color: rgba(255, 255, 255, 0.5);
         }
@@ -741,7 +741,7 @@ const OrganizationDetailPage = () => {
           display: flex;
           flex-direction: column;
           gap: 0.5rem;
-          font-family: 'Barlow', sans-serif;
+          font-family: 'Barlow Condensed', sans-serif;
           font-size: 0.95rem;
           color: rgba(255, 255, 255, 0.65);
         }
@@ -1009,7 +1009,7 @@ const ValidationErrorModal = ({ message, onClose }) => {
         }
 
         .error-message {
-          font-family: 'Barlow', sans-serif;
+          font-family: 'Barlow Condensed', sans-serif;
           font-size: 1rem;
           color: rgba(255, 255, 255, 0.7);
           margin-bottom: 2rem;
@@ -1058,6 +1058,7 @@ const CreateTournamentModal = ({ onClose, onSubmit }) => {
   const [sportType, setSportType] = useState('single') // 'single' or 'multi'
   const [selectedSports, setSelectedSports] = useState(['badminton'])
   const [validationError, setValidationError] = useState(null)
+  const [isOneDayTournament, setIsOneDayTournament] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
     sport: 'badminton', // Legacy field
@@ -1148,62 +1149,223 @@ const CreateTournamentModal = ({ onClose, onSubmit }) => {
 
   return (
     <>
+      <style>{`
+        .tournament-modal-overlay {
+          position: fixed;
+          inset: 0;
+          z-index: 999;
+          background: rgba(6, 13, 31, 0.8);
+          backdrop-filter: blur(8px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 6rem 2rem 2rem 2rem;
+          overflow-y: auto;
+        }
+
+        .tournament-modal-content {
+          background: linear-gradient(135deg, rgba(10, 22, 40, 0.95), rgba(6, 13, 31, 0.98));
+          backdrop-filter: blur(20px);
+          border: 1px solid rgba(79, 255, 176, 0.2);
+          border-radius: 16px;
+          padding: 2rem;
+          max-width: 800px;
+          width: 100%;
+          max-height: 85vh;
+          overflow-y: auto;
+          box-shadow: 0 0 40px rgba(79, 255, 176, 0.15);
+          margin: auto;
+        }
+
+        .tournament-modal-title {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 900;
+          font-size: 2rem;
+          letter-spacing: -0.02em;
+          text-transform: uppercase;
+          color: #4fffb0;
+          margin-bottom: 1.5rem;
+        }
+
+        .tournament-form-label {
+          display: block;
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 700;
+          font-size: 0.85rem;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          color: rgba(255, 255, 255, 0.8);
+          margin-bottom: 0.5rem;
+        }
+
+        .tournament-form-input {
+          width: 100%;
+          background: rgba(6, 13, 31, 0.6);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 8px;
+          padding: 0.75rem 1rem;
+          font-family: 'Barlow Condensed', sans-serif;
+          font-size: 0.95rem;
+          color: #fff;
+          outline: none;
+          transition: all 0.2s ease;
+        }
+
+        .tournament-form-input:focus {
+          border-color: #4fffb0;
+          box-shadow: 0 0 0 3px rgba(79, 255, 176, 0.1);
+        }
+
+        .tournament-form-input::placeholder {
+          color: rgba(255, 255, 255, 0.3);
+        }
+
+        .tournament-form-input:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        textarea.tournament-form-input {
+          resize: vertical;
+          min-height: 80px;
+        }
+
+        .tournament-btn {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          padding: 0.75rem 1.5rem;
+          border-radius: 50px;
+          border: none;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          font-size: 0.95rem;
+        }
+
+        .tournament-btn-primary {
+          background: #4fffb0;
+          color: #060d1f;
+        }
+
+        .tournament-btn-primary:hover:not(:disabled) {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 15px rgba(79, 255, 176, 0.4);
+        }
+
+        .tournament-btn-secondary {
+          background: transparent;
+          color: rgba(255, 255, 255, 0.7);
+          border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .tournament-btn-secondary:hover:not(:disabled) {
+          border-color: #4fffb0;
+          color: #4fffb0;
+        }
+
+        .tournament-btn:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        .tournament-type-btn {
+          padding: 0.75rem 1.25rem;
+          border-radius: 12px;
+          background: rgba(6, 13, 31, 0.6);
+          border: 2px solid rgba(255, 255, 255, 0.1);
+          color: rgba(255, 255, 255, 0.7);
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 600;
+          font-size: 0.95rem;
+          text-transform: uppercase;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .tournament-type-btn:hover {
+          border-color: rgba(79, 255, 176, 0.4);
+          color: #fff;
+        }
+
+        .tournament-type-btn.selected {
+          background: rgba(79, 255, 176, 0.15);
+          border-color: #4fffb0;
+          color: #4fffb0;
+        }
+
+        .sport-btn {
+          padding: 0.75rem 1rem;
+          border-radius: 12px;
+          background: rgba(6, 13, 31, 0.6);
+          border: 2px solid rgba(255, 255, 255, 0.1);
+          color: rgba(255, 255, 255, 0.7);
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 600;
+          font-size: 0.9rem;
+          text-transform: uppercase;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          text-align: center;
+        }
+
+        .sport-btn:hover {
+          border-color: rgba(79, 255, 176, 0.4);
+          color: #fff;
+        }
+
+        .sport-btn.selected {
+          background: rgba(79, 255, 176, 0.15);
+          border-color: #4fffb0;
+          color: #4fffb0;
+        }
+      `}</style>
       {validationError && (
         <ValidationErrorModal
           message={validationError}
           onClose={() => setValidationError(null)}
         />
       )}
-      <div className="fixed inset-0 z-50 overflow-y-auto">
-        <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm" onClick={onClose} />
-        <div className="flex min-h-full items-center justify-center p-4">
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-3xl p-8 max-h-[90vh] overflow-y-auto" style={{ fontFamily: "'Talina', 'Inter', 'Segoe UI', system-ui, sans-serif" }}>
-            <h2 className="text-3xl font-bold mb-8 text-gray-900" style={{ fontFamily: "'Talina', sans-serif" }}>Create Tournament</h2>
+      <div className="tournament-modal-overlay" onClick={onClose}>
+        <div className="tournament-modal-content" onClick={(e) => e.stopPropagation()}>
+          <h2 className="tournament-modal-title">Create Tournament</h2>
             <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label className="block text-sm font-semibold mb-2 text-gray-700">Tournament Name *</label>
+              <label className="tournament-form-label">Tournament Name *</label>
               <input
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 placeholder="e.g., Summer Championship 2024"
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
+                className="tournament-form-input"
                 required
               />
             </div>
 
             {/* Sport Type Selection */}
             <div>
-              <label className="block text-sm font-semibold mb-3 text-gray-700">Tournament Type *</label>
+              <label className="tournament-form-label">Tournament Type *</label>
               <div className="grid grid-cols-2 gap-4">
                 <button
                   type="button"
                   onClick={() => handleSportTypeChange('single')}
-                  className={`px-5 py-4 rounded-xl border-2 font-semibold transition-all ${
-                    sportType === 'single'
-                      ? 'border-primary-500 bg-primary-50 text-primary-700 shadow-sm'
-                      : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:shadow-sm'
-                  }`}
+                  className={`tournament-type-btn ${sportType === 'single' ? 'selected' : ''}`}
                 >
-                  Single Sport
+                  🏆 Single Sport
                 </button>
                 <button
                   type="button"
                   onClick={() => handleSportTypeChange('multi')}
-                  className={`px-5 py-4 rounded-xl border-2 font-semibold transition-all ${
-                    sportType === 'multi'
-                      ? 'border-primary-500 bg-primary-50 text-primary-700 shadow-sm'
-                      : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:shadow-sm'
-                  }`}
+                  className={`tournament-type-btn ${sportType === 'multi' ? 'selected' : ''}`}
                 >
-                  Multi Sport
+                  🎯 Multi Sport
                 </button>
               </div>
             </div>
 
             {/* Sports Selection */}
             <div>
-              <label className="block text-sm font-semibold mb-3 text-gray-700">
+              <label className="tournament-form-label">
                 Select Sport{sportType === 'multi' ? 's' : ''} *
               </label>
               <div className="grid grid-cols-2 gap-3">
@@ -1212,15 +1374,11 @@ const CreateTournamentModal = ({ onClose, onSubmit }) => {
                     key={sport.id}
                     type="button"
                     onClick={() => toggleSport(sport.id)}
-                    className={`px-4 py-3 rounded-xl border-2 font-semibold transition-all text-left ${
-                      selectedSports.includes(sport.id)
-                        ? 'border-green-500 bg-green-50 text-green-700 shadow-sm'
-                        : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
-                    }`}
+                    className={`sport-btn ${selectedSports.includes(sport.id) ? 'selected' : ''}`}
                   >
                     {sport.name}
                     {selectedSports.includes(sport.id) && (
-                      <span className="ml-2 text-green-600 float-right">✓</span>
+                      <span style={{ marginLeft: '0.5rem', float: 'right' }}>✓</span>
                     )}
                   </button>
                 ))}
@@ -1237,25 +1395,50 @@ const CreateTournamentModal = ({ onClose, onSubmit }) => {
               )}
             </div>
 
+            <div className="mb-3">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={isOneDayTournament}
+                  onChange={(e) => {
+                    const checked = e.target.checked
+                    setIsOneDayTournament(checked)
+                    if (checked && formData.startDate) {
+                      setFormData({ ...formData, endDate: formData.startDate })
+                    }
+                  }}
+                  className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                />
+                <span className="text-sm text-gray-700 font-medium">1-Day Tournament</span>
+              </label>
+            </div>
+
             <div className="grid md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-semibold mb-2 text-gray-700">Start Date *</label>
+                <label className="tournament-form-label">Start Date *</label>
                 <input
                   type="date"
                   value={formData.startDate}
-                  onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
+                  onChange={(e) => {
+                    const newStartDate = e.target.value
+                    setFormData({
+                      ...formData,
+                      startDate: newStartDate,
+                      endDate: isOneDayTournament ? newStartDate : formData.endDate
+                    })
+                  }}
+                  className="tournament-form-input"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-semibold mb-2 text-gray-700">Start Time *</label>
+                <label className="tournament-form-label">Start Time *</label>
                 <input
                   type="time"
                   value={formData.startTime}
                   onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
+                  className="tournament-form-input"
                   required
                 />
               </div>
@@ -1263,60 +1446,62 @@ const CreateTournamentModal = ({ onClose, onSubmit }) => {
 
             <div className="grid md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-semibold mb-2 text-gray-700">End Date *</label>
+                <label className="tournament-form-label">End Date *</label>
                 <input
                   type="date"
                   value={formData.endDate}
                   onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
+                  className="tournament-form-input"
                   required
+                  disabled={isOneDayTournament}
+                  style={isOneDayTournament ? { background: 'rgba(0,0,0,0.05)', cursor: 'not-allowed' } : {}}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-semibold mb-2 text-gray-700">End Time *</label>
+                <label className="tournament-form-label">End Time *</label>
                 <input
                   type="time"
                   value={formData.endTime}
                   onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
+                  className="tournament-form-input"
                   required
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-semibold mb-2 text-gray-700">Venue Name *</label>
+              <label className="tournament-form-label">Venue Name *</label>
               <input
                 type="text"
                 value={formData.venueName}
                 onChange={(e) => setFormData({ ...formData, venueName: e.target.value })}
                 placeholder="e.g., Sports Complex Arena"
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
+                className="tournament-form-input"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-sm font-semibold mb-2 text-gray-700">Venue Address</label>
+              <label className="tournament-form-label">Venue Address</label>
               <input
                 type="text"
                 value={formData.venueAddress}
                 onChange={(e) => setFormData({ ...formData, venueAddress: e.target.value })}
                 placeholder="Street address"
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
+                className="tournament-form-input"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-semibold mb-2 text-gray-700">City *</label>
+              <label className="tournament-form-label">City *</label>
               <input
                 type="text"
                 list="cities"
                 value={formData.city}
                 onChange={(e) => setFormData({ ...formData, city: e.target.value })}
                 placeholder="e.g., Mumbai"
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
+                className="tournament-form-input"
                 required
               />
               <datalist id="cities">
@@ -1327,12 +1512,12 @@ const CreateTournamentModal = ({ onClose, onSubmit }) => {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold mb-2 text-gray-700">Registration Deadline *</label>
+              <label className="tournament-form-label">Registration Deadline *</label>
               <input
                 type="datetime-local"
                 value={formData.registrationDeadline}
                 onChange={(e) => setFormData({ ...formData, registrationDeadline: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
+                className="tournament-form-input"
                 required
               />
               <p className="mt-2 text-xs text-gray-600">
@@ -1356,7 +1541,7 @@ const CreateTournamentModal = ({ onClose, onSubmit }) => {
 
               {formData.allowReplacement && (
                 <div>
-                  <label className="block text-sm font-semibold mb-2 text-gray-700">
+                  <label className="tournament-form-label">
                     Replacement Deadline (hours before tournament start) *
                   </label>
                   <input
@@ -1365,7 +1550,7 @@ const CreateTournamentModal = ({ onClose, onSubmit }) => {
                     max="168"
                     value={formData.replacementWindowHours}
                     onChange={(e) => setFormData({ ...formData, replacementWindowHours: parseInt(e.target.value) || 24 })}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
+                    className="tournament-form-input"
                     required
                   />
                   <p className="mt-2 text-xs text-gray-600 leading-relaxed">
@@ -1385,11 +1570,11 @@ const CreateTournamentModal = ({ onClose, onSubmit }) => {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold mb-2 text-gray-700">Status</label>
+              <label className="tournament-form-label">Status</label>
               <select
                 value={formData.status}
                 onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
+                className="tournament-form-input"
               >
                 <option value="DRAFT">Draft</option>
                 <option value="OPEN">Open</option>
@@ -1400,38 +1585,40 @@ const CreateTournamentModal = ({ onClose, onSubmit }) => {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold mb-2 text-gray-700">Description</label>
+              <label className="tournament-form-label">Description</label>
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={3}
                 placeholder="Tournament details..."
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all resize-none"
+                className="tournament-form-input"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-semibold mb-2 text-gray-700">Tournament Rules</label>
+              <label className="tournament-form-label">Tournament Rules</label>
               <textarea
                 value={formData.rules}
                 onChange={(e) => setFormData({ ...formData, rules: e.target.value })}
                 rows={6}
                 placeholder="Enter tournament rules, regulations, and guidelines..."
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all resize-none"
+                className="tournament-form-input"
               />
             </div>
 
-            <div className="flex gap-4 pt-6">
+            <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 px-6 py-3 bg-white hover:bg-gray-50 text-gray-700 font-semibold rounded-xl border border-gray-300 transition-colors"
+                className="tournament-btn tournament-btn-secondary"
+                style={{ flex: 1 }}
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="flex-1 px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-xl transition-colors shadow-sm hover:shadow-md"
+                className="tournament-btn tournament-btn-primary"
+                style={{ flex: 1 }}
               >
                 Create Tournament
               </button>
@@ -1439,7 +1626,6 @@ const CreateTournamentModal = ({ onClose, onSubmit }) => {
           </form>
         </div>
       </div>
-    </div>
     </>
   )
 }

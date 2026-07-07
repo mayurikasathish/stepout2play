@@ -164,7 +164,7 @@ const MatchScheduler = ({ eventId, tournament }) => {
       if (response.data.success) {
         setSuccessData({
           title: '✅ Schedule Saved!',
-          message: 'Your match schedule has been successfully saved to the database.',
+          message: 'Your match schedule has been successfully saved.',
           details: [
             `${response.data.updatedMatches} matches scheduled`,
             'View schedule in Brackets tab',
@@ -279,43 +279,79 @@ const MatchScheduler = ({ eventId, tournament }) => {
         <div className="grid grid-cols-2 gap-6">
           {/* Tournament Dates */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
+            <label className="block text-sm font-medium mb-2" style={{ color: '#fff', fontFamily: "'Barlow Condensed', sans-serif", textTransform: 'uppercase' }}>Start Date</label>
             <input
               type="date"
               value={settings.startDate}
               onChange={(e) => setSettings({ ...settings, startDate: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              style={{
+                width: '100%',
+                padding: '0.5rem 1rem',
+                background: 'rgba(255, 255, 255, 0.1)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                borderRadius: '12px',
+                color: '#fff',
+                fontFamily: "'Barlow Condensed', sans-serif",
+                colorScheme: 'dark'
+              }}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">End Date</label>
+            <label className="block text-sm font-medium mb-2" style={{ color: '#fff', fontFamily: "'Barlow Condensed', sans-serif", textTransform: 'uppercase' }}>End Date</label>
             <input
               type="date"
               value={settings.endDate}
               onChange={(e) => setSettings({ ...settings, endDate: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              style={{
+                width: '100%',
+                padding: '0.5rem 1rem',
+                background: 'rgba(255, 255, 255, 0.1)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                borderRadius: '12px',
+                color: '#fff',
+                fontFamily: "'Barlow Condensed', sans-serif",
+                colorScheme: 'dark'
+              }}
             />
           </div>
 
           {/* Daily Time Window */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Daily Start Time</label>
+            <label className="block text-sm font-medium mb-2" style={{ color: '#fff', fontFamily: "'Barlow Condensed', sans-serif", textTransform: 'uppercase' }}>Daily Start Time</label>
             <input
               type="time"
               value={settings.dailyStartTime}
               onChange={(e) => setSettings({ ...settings, dailyStartTime: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              style={{
+                width: '100%',
+                padding: '0.5rem 1rem',
+                background: 'rgba(255, 255, 255, 0.1)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                borderRadius: '12px',
+                color: '#fff',
+                fontFamily: "'Barlow Condensed', sans-serif",
+                colorScheme: 'dark'
+              }}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Daily End Time</label>
+            <label className="block text-sm font-medium mb-2" style={{ color: '#fff', fontFamily: "'Barlow Condensed', sans-serif", textTransform: 'uppercase' }}>Daily End Time</label>
             <input
               type="time"
               value={settings.dailyEndTime}
               onChange={(e) => setSettings({ ...settings, dailyEndTime: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              style={{
+                width: '100%',
+                padding: '0.5rem 1rem',
+                background: 'rgba(255, 255, 255, 0.1)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                borderRadius: '12px',
+                color: '#fff',
+                fontFamily: "'Barlow Condensed', sans-serif",
+                colorScheme: 'dark'
+              }}
             />
           </div>
 
@@ -608,9 +644,20 @@ const MatchScheduler = ({ eventId, tournament }) => {
                   const isLocked = match.isLocked || match.status === 'COMPLETED' || match.status === 'BYE'
 
                   return (
-                  <tr key={idx} className={`border-b border-gray-100 hover:bg-gray-50 ${
-                    isLocked ? 'bg-green-50' : isEditing ? 'bg-amber-50' : ''
-                  }`}>
+                  <tr key={idx} style={{
+                    borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+                    background: isLocked ? 'rgba(79, 255, 176, 0.1)' : (isEditing ? 'rgba(251, 146, 60, 0.1)' : 'transparent'),
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isLocked) {
+                      e.currentTarget.style.background = isEditing ? 'rgba(251, 146, 60, 0.15)' : 'rgba(255, 255, 255, 0.05)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = isLocked ? 'rgba(79, 255, 176, 0.1)' : (isEditing ? 'rgba(251, 146, 60, 0.1)' : 'transparent');
+                  }}
+                  >
                     <td className="py-3 px-4 text-sm font-medium text-gray-900 flex items-center gap-2">
                       {isLocked && (
                         <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
@@ -623,44 +670,70 @@ const MatchScheduler = ({ eventId, tournament }) => {
                     <td className="py-3 px-4 text-sm text-gray-900">
                       {match.participant1} <span className="text-gray-400">vs</span> {match.participant2}
                     </td>
-                    <td className="py-3 px-4 text-sm text-gray-600">
+                    <td className="py-3 px-4 text-sm" style={{ color: 'rgba(255, 255, 255, 0.8)' }}>
                       {isEditing && !isLocked ? (
                         <input
                           type="date"
                           value={match.date}
                           onChange={(e) => updateMatchSchedule(match.matchId, 'date', e.target.value)}
-                          className="w-full px-2 py-1 border border-amber-300 rounded focus:ring-2 focus:ring-amber-500 bg-white"
+                          style={{
+                            width: '100%',
+                            padding: '0.25rem 0.5rem',
+                            background: 'rgba(255, 255, 255, 0.1)',
+                            border: '1px solid rgba(251, 146, 60, 0.5)',
+                            borderRadius: '8px',
+                            color: '#fff',
+                            fontFamily: "'Barlow Condensed', sans-serif",
+                            colorScheme: 'dark'
+                          }}
                         />
                       ) : (
-                        <span className={isLocked ? 'text-green-700 font-medium' : ''}>
+                        <span style={{ color: isLocked ? '#4fffb0' : 'rgba(255, 255, 255, 0.8)', fontWeight: isLocked ? '600' : '400' }}>
                           {new Date(match.date).toLocaleDateString()}
                         </span>
                       )}
                     </td>
-                    <td className="py-3 px-4 text-sm font-medium text-gray-900">
+                    <td className="py-3 px-4 text-sm font-medium" style={{ color: 'rgba(255, 255, 255, 0.9)' }}>
                       {isEditing && !isLocked ? (
                         <input
                           type="time"
                           value={match.time}
                           onChange={(e) => updateMatchSchedule(match.matchId, 'time', e.target.value)}
-                          className="w-full px-2 py-1 border border-amber-300 rounded focus:ring-2 focus:ring-amber-500 bg-white"
+                          style={{
+                            width: '100%',
+                            padding: '0.25rem 0.5rem',
+                            background: 'rgba(255, 255, 255, 0.1)',
+                            border: '1px solid rgba(251, 146, 60, 0.5)',
+                            borderRadius: '8px',
+                            color: '#fff',
+                            fontFamily: "'Barlow Condensed', sans-serif",
+                            colorScheme: 'dark'
+                          }}
                         />
                       ) : (
-                        <span className={isLocked ? 'text-green-700 font-medium' : ''}>
+                        <span style={{ color: isLocked ? '#4fffb0' : 'rgba(255, 255, 255, 0.9)', fontWeight: isLocked ? '600' : '500' }}>
                           {match.time}
                         </span>
                       )}
                     </td>
-                    <td className="py-3 px-4 text-sm font-medium text-blue-600">
+                    <td className="py-3 px-4 text-sm font-medium" style={{ color: '#00d4ff' }}>
                       {isEditing && !isLocked ? (
                         <input
                           type="text"
                           value={match.court}
                           onChange={(e) => updateMatchSchedule(match.matchId, 'court', e.target.value)}
-                          className="w-full px-2 py-1 border border-amber-300 rounded focus:ring-2 focus:ring-amber-500 bg-white"
+                          style={{
+                            width: '100%',
+                            padding: '0.25rem 0.5rem',
+                            background: 'rgba(255, 255, 255, 0.1)',
+                            border: '1px solid rgba(251, 146, 60, 0.5)',
+                            borderRadius: '8px',
+                            color: '#fff',
+                            fontFamily: "'Barlow Condensed', sans-serif"
+                          }}
                         />
                       ) : (
-                        <span className={isLocked ? 'text-green-700 font-medium' : ''}>
+                        <span style={{ color: isLocked ? '#4fffb0' : '#00d4ff', fontWeight: isLocked ? '600' : '500' }}>
                           {match.court}
                         </span>
                       )}
@@ -719,8 +792,8 @@ const MatchScheduler = ({ eventId, tournament }) => {
         onConfirm={confirmSave}
         title="✅ Schedule is Valid!"
         message={isEditing
-          ? "Your edited schedule has been validated successfully. No conflicts found! Ready to save to the database?"
-          : "The generated schedule has been validated successfully. No conflicts found! Ready to save to the database?"}
+          ? "Your edited schedule has been validated successfully. No conflicts found! Ready to save?"
+          : "The generated schedule has been validated successfully. No conflicts found! Ready to save?"}
         confirmText="Yes, Save Now"
         cancelText="Cancel"
         type="success"

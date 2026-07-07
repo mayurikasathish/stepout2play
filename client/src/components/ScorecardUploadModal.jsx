@@ -229,51 +229,90 @@ const ScorecardUploadModal = ({ isOpen, onClose, match, onScoreExtracted }) => {
     <div className="fixed inset-0 z-50 overflow-y-auto">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black bg-opacity-50 transition-opacity backdrop-blur-sm"
+        className="fixed inset-0 bg-black/80 backdrop-blur-md"
         onClick={handleClose}
       ></div>
 
       {/* Modal */}
       <div className="flex min-h-full items-center justify-center p-4">
-        <div className="relative bg-white rounded-2xl shadow-2xl max-w-3xl w-full transform transition-all">
+        <div style={{
+          position: 'relative',
+          background: 'linear-gradient(135deg, rgba(10, 22, 40, 0.98), rgba(6, 13, 31, 0.99))',
+          border: '1px solid rgba(0, 212, 255, 0.3)',
+          borderRadius: '24px',
+          boxShadow: '0 25px 50px rgba(0, 0, 0, 0.5)',
+          maxWidth: '48rem',
+          width: '100%'
+        }}>
           {/* Header */}
-          <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+          <div style={{ padding: '1.5rem', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div>
-              <h3 className="text-xl font-bold text-gray-900">
+              <h3 style={{ fontSize: '1.5rem', fontWeight: '900', color: '#fff', fontFamily: "'Barlow Condensed', sans-serif", textTransform: 'uppercase', letterSpacing: '-0.02em' }}>
                 📸 Upload Scorecard
               </h3>
-              <p className="text-sm text-gray-600 mt-1">
+              <p style={{ fontSize: '0.875rem', color: 'rgba(255, 255, 255, 0.6)', marginTop: '0.25rem' }}>
                 Match {match?.matchNumber} - Upload a photo of the filled scorecard
               </p>
             </div>
             <button
               onClick={handleClose}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              style={{
+                padding: '0.5rem',
+                background: 'rgba(255, 255, 255, 0.1)',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+              }}
             >
-              <svg className="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg style={{ width: '1.25rem', height: '1.25rem', color: '#fff' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
 
           {/* Content */}
-          <div className="p-6">
+          <div style={{ padding: '1.5rem' }}>
             {/* Upload Section */}
             {!previewUrl && (
-              <div className="border-2 border-dashed border-gray-300 rounded-xl p-12 text-center hover:border-blue-500 transition-all">
+              <div style={{
+                border: '2px dashed rgba(0, 212, 255, 0.3)',
+                borderRadius: '12px',
+                padding: '3rem',
+                textAlign: 'center',
+                transition: 'all 0.3s',
+                cursor: 'pointer'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = '#00d4ff';
+                e.currentTarget.style.background = 'rgba(0, 212, 255, 0.05)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = 'rgba(0, 212, 255, 0.3)';
+                e.currentTarget.style.background = 'transparent';
+              }}>
                 <input
                   type="file"
                   accept="image/jpeg,image/jpg,image/png,image/webp"
                   onChange={handleImageSelect}
-                  className="hidden"
+                  style={{ display: 'none' }}
                   id="scorecardUpload"
                 />
                 <label
                   htmlFor="scorecardUpload"
-                  className="cursor-pointer flex flex-col items-center"
+                  style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center' }}
                 >
                   <svg
-                    className="w-16 h-16 text-gray-400 mb-4"
+                    style={{ width: '4rem', height: '4rem', color: '#00d4ff', marginBottom: '1rem' }}
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -291,10 +330,10 @@ const ScorecardUploadModal = ({ isOpen, onClose, match, onScoreExtracted }) => {
                       d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
                     />
                   </svg>
-                  <span className="text-lg font-semibold text-gray-700 mb-2">
+                  <span style={{ fontSize: '1.125rem', fontWeight: '700', color: '#fff', marginBottom: '0.5rem', fontFamily: "'Barlow Condensed', sans-serif", textTransform: 'uppercase' }}>
                     Click to upload scorecard photo
                   </span>
-                  <span className="text-sm text-gray-500">
+                  <span style={{ fontSize: '0.875rem', color: 'rgba(255, 255, 255, 0.6)' }}>
                     JPG, PNG, WEBP (Max 10MB)
                   </span>
                 </label>
@@ -304,15 +343,15 @@ const ScorecardUploadModal = ({ isOpen, onClose, match, onScoreExtracted }) => {
             {/* Preview & Extract */}
             {previewUrl && (
               <div>
-                <div className="mb-4">
+                <div style={{ marginBottom: '1rem' }}>
                   <img
                     src={previewUrl}
                     alt="Scorecard preview"
-                    className="max-w-full max-h-96 mx-auto rounded-lg border-2 border-gray-200"
+                    style={{ maxWidth: '100%', maxHeight: '24rem', margin: '0 auto', borderRadius: '12px', border: '2px solid rgba(0, 212, 255, 0.3)' }}
                   />
                 </div>
 
-                <div className="flex gap-3">
+                <div style={{ display: 'flex', gap: '0.75rem' }}>
                   <button
                     onClick={() => {
                       setPreviewUrl(null)
@@ -320,18 +359,67 @@ const ScorecardUploadModal = ({ isOpen, onClose, match, onScoreExtracted }) => {
                       setResult(null)
                       setError(null)
                     }}
-                    className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg transition-all"
+                    style={{
+                      padding: '0.5rem 1rem',
+                      background: 'rgba(255, 255, 255, 0.1)',
+                      border: '1px solid rgba(255, 255, 255, 0.2)',
+                      color: '#fff',
+                      fontWeight: '600',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      transition: 'all 0.3s',
+                      fontFamily: "'Barlow Condensed', sans-serif",
+                      textTransform: 'uppercase'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                    }}
                   >
                     Change Photo
                   </button>
                   <button
                     onClick={handleExtract}
                     disabled={extracting}
-                    className="flex-1 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold rounded-lg transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{
+                      flex: 1,
+                      padding: '0.75rem 1.5rem',
+                      background: 'linear-gradient(135deg, #4fffb0 0%, #00d4ff 100%)',
+                      border: 'none',
+                      color: '#000',
+                      fontWeight: '700',
+                      borderRadius: '8px',
+                      cursor: extracting ? 'not-allowed' : 'pointer',
+                      transition: 'all 0.3s',
+                      opacity: extracting ? 0.5 : 1,
+                      boxShadow: '0 4px 15px rgba(79, 255, 176, 0.3)',
+                      fontFamily: "'Barlow Condensed', sans-serif",
+                      textTransform: 'uppercase',
+                      fontSize: '0.875rem'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!extracting) {
+                        e.currentTarget.style.boxShadow = '0 6px 20px rgba(79, 255, 176, 0.5)';
+                        e.currentTarget.style.transform = 'translateY(-2px)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.boxShadow = '0 4px 15px rgba(79, 255, 176, 0.3)';
+                      e.currentTarget.style.transform = 'translateY(0)';
+                    }}
                   >
                     {extracting ? (
-                      <div className="flex items-center justify-center gap-2">
-                        <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></div>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                        <div style={{
+                          animation: 'spin 1s linear infinite',
+                          height: '1.25rem',
+                          width: '1.25rem',
+                          border: '2px solid #000',
+                          borderTopColor: 'transparent',
+                          borderRadius: '50%'
+                        }}></div>
                         Extracting...
                       </div>
                     ) : (
@@ -344,8 +432,8 @@ const ScorecardUploadModal = ({ isOpen, onClose, match, onScoreExtracted }) => {
 
             {/* Error */}
             {error && (
-              <div className="mt-4 bg-red-50 border-2 border-red-200 rounded-lg p-4">
-                <p className="text-red-700 font-semibold">❌ {error}</p>
+              <div style={{ marginTop: '1rem', background: 'rgba(239, 68, 68, 0.1)', border: '2px solid rgba(239, 68, 68, 0.3)', borderRadius: '12px', padding: '1rem' }}>
+                <p style={{ color: '#ef4444', fontWeight: '700', fontFamily: "'Barlow Condensed', sans-serif" }}>❌ {error}</p>
               </div>
             )}
 

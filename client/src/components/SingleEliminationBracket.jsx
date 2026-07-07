@@ -188,20 +188,20 @@ const SingleEliminationBracket = ({ matches, onMatchClick, onCaptureScorecard, e
   }
 
   const getStatusColor = (match) => {
-    if (match.status === 'COMPLETED') return 'border-green-500 bg-green-50'
-    if (match.status === 'IN_PROGRESS') return 'border-blue-500 bg-blue-50'
-    if (match.status === 'BYE') return 'border-green-400 bg-green-50/50'
-    if (match.status === 'READY') return 'border-amber-500 bg-amber-50'
-    if (!match.participant1 || !match.participant2) return 'border-yellow-400 bg-yellow-50/50'
-    return 'border-gray-300 bg-white'
+    if (match.status === 'COMPLETED') return 'completed-match-card'
+    if (match.status === 'IN_PROGRESS') return 'ready-match-card'
+    if (match.status === 'BYE') return 'bye-match-card'
+    if (match.status === 'READY') return 'ready-match-card'
+    if (!match.participant1 || !match.participant2) return 'wait-match-card'
+    return 'wait-match-card'
   }
 
   const getStatusIndicator = (match) => {
     const indicators = {
-      COMPLETED: { dot: 'bg-green-500', text: 'Done', textColor: 'text-green-700' },
-      BYE: { dot: 'bg-green-400', text: 'Auto', textColor: 'text-green-700' },
-      READY: { dot: 'bg-amber-500', text: 'Ready', textColor: 'text-amber-700' },
-      PENDING: { dot: 'bg-gray-400', text: 'Wait', textColor: 'text-gray-600' }
+      COMPLETED: { dot: 'bg-black', text: 'Done', textColor: 'text-black' },
+      BYE: { dot: 'bg-black', text: 'Auto', textColor: 'text-black' },
+      READY: { dot: 'bg-black', text: 'Ready', textColor: 'text-black' },
+      PENDING: { dot: 'bg-black', text: 'Wait', textColor: 'text-black' }
     }
 
     const status = match.status || 'PENDING'
@@ -253,33 +253,33 @@ const SingleEliminationBracket = ({ matches, onMatchClick, onCaptureScorecard, e
         style={{ width: '260px', minHeight: '280px' }}
       >
         {/* Schedule strip */}
-        <div className="bg-blue-50 border-b border-blue-100 px-3 py-1.5 text-center flex-shrink-0">
+        <div className="border-b px-3 py-1.5 text-center flex-shrink-0" style={{ borderColor: 'rgba(0,0,0,0.1)' }}>
           {match.scheduledAt ? (
-            <span className="text-[10px] font-semibold text-blue-700">
+            <span className="text-[10px] font-semibold">
               {new Date(match.scheduledAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
               {' • '}
               {new Date(match.scheduledAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
               {match.courtName && <> • {match.courtName}</>}
             </span>
           ) : (
-            <span className="text-[10px] font-medium text-gray-400">Not Scheduled</span>
+            <span className="text-[10px] font-medium opacity-60">Not Scheduled</span>
           )}
         </div>
 
         {/* Header */}
-        <div className="flex items-center justify-between px-3 py-2 flex-shrink-0 bg-gray-50 border-b border-gray-100">
-          <span className="text-xs font-bold text-gray-800">M{match.matchNumber} {getRoundLabel(match.roundNumber)}</span>
+        <div className="flex items-center justify-between px-3 py-2 flex-shrink-0 border-b" style={{ borderColor: 'rgba(0,0,0,0.1)' }}>
+          <span className="text-xs font-bold">M{match.matchNumber} {getRoundLabel(match.roundNumber)}</span>
           {getStatusIndicator(match)}
         </div>
 
         {/* Auto-Advanced player */}
         <div className="px-3 py-3 flex-shrink-0" data-participants-container>
-          <div className="bg-white border border-green-400 rounded-lg px-3 py-2.5">
+          <div className="rounded-lg px-3 py-2.5" style={{ background: 'rgba(0,0,0,0.05)', border: '1px solid rgba(0,0,0,0.1)' }}>
             <div className="flex items-center gap-2 mb-1.5">
-              <div className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0"></div>
-              <span className="text-[10px] font-bold text-green-700 uppercase tracking-wide">Auto Advanced</span>
+              <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: 'currentColor' }}></div>
+              <span className="text-[10px] font-bold uppercase tracking-wide">Auto Advanced</span>
             </div>
-            <div className="text-xs font-medium text-gray-900 truncate">
+            <div className="text-xs font-medium truncate">
               {participant ? (
                 participant.partner
                   ? <>{participant.user.firstName} {participant.user.lastName} / {participant.partner.firstName} {participant.partner.lastName}</>
@@ -309,74 +309,86 @@ const SingleEliminationBracket = ({ matches, onMatchClick, onCaptureScorecard, e
         style={{ width: '260px', minHeight: '280px' }}
       >
         {/* Schedule strip */}
-        <div className="bg-blue-50 border-b border-blue-100 px-3 py-1.5 text-center flex-shrink-0">
+        <div className="border-b px-3 py-1.5 text-center flex-shrink-0" style={{ borderColor: 'rgba(0,0,0,0.1)' }}>
           {match.scheduledAt ? (
-            <span className="text-[10px] font-semibold text-blue-700">
+            <span className="text-[10px] font-semibold">
               {new Date(match.scheduledAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
               {' • '}
               {new Date(match.scheduledAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
               {match.courtName && <> • {match.courtName}</>}
             </span>
           ) : (
-            <span className="text-[10px] font-medium text-gray-400">Not Scheduled</span>
+            <span className="text-[10px] font-medium opacity-60">Not Scheduled</span>
           )}
         </div>
 
         {/* Match number + status */}
-        <div className="flex items-center justify-between px-3 py-2 flex-shrink-0 bg-gray-50 border-b border-gray-100">
-          <span className="text-xs font-bold text-gray-800">M{match.matchNumber} {getRoundLabel(match.roundNumber)}</span>
+        <div className="flex items-center justify-between px-3 py-2 flex-shrink-0 border-b" style={{ borderColor: 'rgba(0,0,0,0.1)' }}>
+          <span className="text-xs font-bold">M{match.matchNumber} {getRoundLabel(match.roundNumber)}</span>
           {getStatusIndicator(match)}
         </div>
 
         {/* Players */}
         <div className="px-3 pt-3 pb-2 space-y-2 flex-shrink-0" data-participants-container>
-          <div className={`rounded-lg px-3 py-2.5 flex items-center justify-between min-h-[38px] ${
-            isP1Winner && match.status === 'COMPLETED'
-              ? 'bg-gradient-to-r from-amber-100 to-yellow-100 border border-amber-400'
-              : 'bg-white border border-gray-200'
-          }`}>
+          <div
+            className="rounded-lg px-3 py-2.5 flex items-center justify-between min-h-[38px]"
+            style={{
+              background: isP1Winner && match.status === 'COMPLETED'
+                ? 'rgba(0,0,0,0.15)'
+                : 'rgba(0,0,0,0.05)',
+              border: isP1Winner && match.status === 'COMPLETED'
+                ? '2px solid rgba(0,0,0,0.3)'
+                : '1px solid rgba(0,0,0,0.1)'
+            }}
+          >
             <div className="flex flex-col flex-1 min-w-0">
               <span className={`text-xs truncate ${
-                match.participant1 ? 'font-medium text-gray-900' : 'italic text-gray-400'
+                match.participant1 ? 'font-medium' : 'italic opacity-60'
               }`}>{p1Name}</span>
               {match.status === 'COMPLETED' && match.participant1 && (() => {
                 const ratingChange = getRatingChange(match, match.participant1)
                 if (!ratingChange) return null
                 const isPositive = ratingChange.delta > 0
                 return (
-                  <span className={`text-[9px] font-medium ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
+                  <span style={{ fontSize: '9px', fontWeight: '500', color: isPositive ? '#16a34a' : '#be185d' }}>
                     {isPositive ? '+' : ''}{ratingChange.delta} ({ratingChange.newRating})
                   </span>
                 )
               })()}
             </div>
             {isP1Winner && match.status === 'COMPLETED' && (
-              <span className="text-[9px] px-2 py-0.5 bg-amber-500 text-white rounded font-bold ml-2 flex-shrink-0">W</span>
+              <span className="text-[9px] px-2 py-0.5 rounded font-bold ml-2 flex-shrink-0" style={{ background: 'rgba(0,0,0,0.2)' }}>W</span>
             )}
           </div>
 
-          <div className={`rounded-lg px-3 py-2.5 flex items-center justify-between min-h-[38px] ${
-            isP2Winner && match.status === 'COMPLETED'
-              ? 'bg-gradient-to-r from-amber-100 to-yellow-100 border border-amber-400'
-              : 'bg-white border border-gray-200'
-          }`}>
+          <div
+            className="rounded-lg px-3 py-2.5 flex items-center justify-between min-h-[38px]"
+            style={{
+              background: isP2Winner && match.status === 'COMPLETED'
+                ? 'rgba(0,0,0,0.15)'
+                : 'rgba(0,0,0,0.05)',
+              border: isP2Winner && match.status === 'COMPLETED'
+                ? '2px solid rgba(0,0,0,0.3)'
+                : '1px solid rgba(0,0,0,0.1)'
+            }}
+          >
             <div className="flex flex-col flex-1 min-w-0">
               <span className={`text-xs truncate ${
-                match.participant2 ? 'font-medium text-gray-900' : 'italic text-gray-400'
+                match.participant2 ? 'font-medium' : 'italic opacity-60'
               }`}>{p2Name}</span>
               {match.status === 'COMPLETED' && match.participant2 && (() => {
                 const ratingChange = getRatingChange(match, match.participant2)
                 if (!ratingChange) return null
                 const isPositive = ratingChange.delta > 0
                 return (
-                  <span className={`text-[9px] font-medium ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
+                  <span style={{ fontSize: '9px', fontWeight: '500', color: isPositive ? '#16a34a' : '#be185d' }}>
                     {isPositive ? '+' : ''}{ratingChange.delta} ({ratingChange.newRating})
                   </span>
                 )
               })()}
             </div>
             {isP2Winner && match.status === 'COMPLETED' && (
-              <span className="text-[9px] px-2 py-0.5 bg-amber-500 text-white rounded font-bold ml-2 flex-shrink-0">W</span>
+              <span className="text-[9px] px-2 py-0.5 rounded font-bold ml-2 flex-shrink-0" style={{ background: 'rgba(0,0,0,0.2)' }}>W</span>
             )}
           </div>
         </div>
@@ -405,26 +417,86 @@ const SingleEliminationBracket = ({ matches, onMatchClick, onCaptureScorecard, e
     <div className="bracket-container relative">
       {/* Zoom Controls - Hidden in print */}
       <div className="no-print sticky top-4 right-4 z-20 flex justify-end mb-4">
-        <div className="flex items-center gap-2 bg-white border-2 border-gray-200 rounded-lg px-3 py-2 shadow-lg">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(10, 22, 40, 0.8)', border: '1px solid rgba(255, 255, 255, 0.2)', borderRadius: '12px', padding: '0.5rem 0.75rem', backdropFilter: 'blur(10px)' }}>
           <button
             onClick={handleZoomOut}
             disabled={zoom <= 50}
-            className="w-7 h-7 flex items-center justify-center rounded bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed font-bold text-gray-700"
+            style={{
+              width: '1.75rem',
+              height: '1.75rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: '8px',
+              background: 'rgba(255, 255, 255, 0.1)',
+              border: 'none',
+              color: '#fff',
+              fontWeight: '700',
+              fontSize: '1.25rem',
+              cursor: zoom <= 50 ? 'not-allowed' : 'pointer',
+              opacity: zoom <= 50 ? 0.5 : 1,
+              transition: 'all 0.2s'
+            }}
+            onMouseEnter={(e) => {
+              if (zoom > 50) e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+            }}
           >
             −
           </button>
-          <span className="text-sm font-semibold text-gray-700 w-12 text-center">{zoom}%</span>
+          <span style={{ fontSize: '0.875rem', fontWeight: '600', color: '#fff', width: '3rem', textAlign: 'center', fontFamily: "'Barlow Condensed', sans-serif" }}>{zoom}%</span>
           <button
             onClick={handleZoomIn}
             disabled={zoom >= 150}
-            className="w-7 h-7 flex items-center justify-center rounded bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed font-bold text-gray-700"
+            style={{
+              width: '1.75rem',
+              height: '1.75rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: '8px',
+              background: 'rgba(255, 255, 255, 0.1)',
+              border: 'none',
+              color: '#fff',
+              fontWeight: '700',
+              fontSize: '1.25rem',
+              cursor: zoom >= 150 ? 'not-allowed' : 'pointer',
+              opacity: zoom >= 150 ? 0.5 : 1,
+              transition: 'all 0.2s'
+            }}
+            onMouseEnter={(e) => {
+              if (zoom < 150) e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+            }}
           >
             +
           </button>
-          <div className="w-px h-6 bg-gray-300 mx-1"></div>
+          <div style={{ width: '1px', height: '1.5rem', background: 'rgba(255, 255, 255, 0.2)', margin: '0 0.25rem' }}></div>
           <button
             onClick={handleFitToScreen}
-            className="px-3 py-1 text-xs font-semibold bg-gray-100 hover:bg-gray-200 rounded text-gray-700"
+            style={{
+              padding: '0.25rem 0.75rem',
+              fontSize: '0.75rem',
+              fontWeight: '600',
+              background: 'rgba(255, 255, 255, 0.1)',
+              border: 'none',
+              borderRadius: '8px',
+              color: '#fff',
+              cursor: 'pointer',
+              fontFamily: "'Barlow Condensed', sans-serif",
+              textTransform: 'uppercase',
+              transition: 'all 0.2s'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+            }}
           >
             Fit
           </button>
@@ -445,6 +517,48 @@ const SingleEliminationBracket = ({ matches, onMatchClick, onCaptureScorecard, e
         @media print {
           .print-only { display: block !important; }
           .no-print { display: none !important; }
+        }
+
+        /* BYE Matches - Cyan theme */
+        .bye-match-card {
+          background: linear-gradient(135deg, #72efdd 0%, #00d4ff 100%);
+          border: 2px solid #00d4ff;
+        }
+        .bye-match-card * {
+          color: #000 !important;
+        }
+
+        /* READY Matches - Orange & Pink gradient */
+        .ready-match-card {
+          background: linear-gradient(135deg, #fb923c 0%, #ec4899 100%);
+          border: 2px solid #ec4899;
+        }
+        .ready-match-card * {
+          color: #000 !important;
+        }
+
+        /* WAIT Matches - Neon purple/magenta */
+        .wait-match-card {
+          background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
+          border: 2px solid #a855f7;
+        }
+        .wait-match-card * {
+          color: #000 !important;
+        }
+
+        /* COMPLETED Matches - Neon green */
+        .completed-match-card {
+          background: #4fffb0;
+          border: 2px solid #4fffb0;
+        }
+        .completed-match-card * {
+          color: #000 !important;
+        }
+
+        /* Round titles - Black text */
+        .bracket-container h3,
+        .bracket-container .font-bold {
+          color: #000 !important;
         }
       `}</style>
       <div className="print-only" style={{ display: 'none' }}>

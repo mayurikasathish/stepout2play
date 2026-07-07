@@ -374,7 +374,7 @@ const CreateOrganizationModal = ({ isOpen, onClose, onSuccess, editOrg = null })
         }
 
         .modal-subtitle {
-          font-family: 'Barlow', sans-serif;
+          font-family: 'Barlow Condensed', sans-serif;
           font-size: 1rem;
           color: rgba(255, 255, 255, 0.7);
         }
@@ -416,7 +416,7 @@ const CreateOrganizationModal = ({ isOpen, onClose, onSuccess, editOrg = null })
           display: flex;
           align-items: center;
           gap: 0.5rem;
-          font-family: 'Barlow', sans-serif;
+          font-family: 'Barlow Condensed', sans-serif;
           font-size: 0.9rem;
           color: rgba(255, 255, 255, 0.7);
           cursor: pointer;
@@ -459,7 +459,7 @@ const CreateOrganizationModal = ({ isOpen, onClose, onSuccess, editOrg = null })
           border: 1px solid rgba(255, 255, 255, 0.1);
           border-radius: 8px;
           padding: 0.75rem 1rem;
-          font-family: 'Barlow', sans-serif;
+          font-family: 'Barlow Condensed', sans-serif;
           font-size: 0.95rem;
           color: #fff;
           outline: none;
@@ -495,7 +495,7 @@ const CreateOrganizationModal = ({ isOpen, onClose, onSuccess, editOrg = null })
         }
 
         .file-upload-text {
-          font-family: 'Barlow', sans-serif;
+          font-family: 'Barlow Condensed', sans-serif;
           font-size: 0.9rem;
           color: rgba(255, 255, 255, 0.6);
         }
@@ -640,7 +640,7 @@ const CreateOrganizationModal = ({ isOpen, onClose, onSuccess, editOrg = null })
           border: 1px solid rgba(79, 255, 176, 0.3);
           border-radius: 20px;
           padding: 0.35rem 0.75rem;
-          font-family: 'Barlow', sans-serif;
+          font-family: 'Barlow Condensed', sans-serif;
           font-size: 0.85rem;
           color: #4fffb0;
         }
@@ -745,7 +745,7 @@ const CreateOrganizationModal = ({ isOpen, onClose, onSuccess, editOrg = null })
         .name-check-message {
           padding: 0.5rem 0.75rem;
           margin-top: 0.5rem;
-          font-family: 'Barlow', sans-serif;
+          font-family: 'Barlow Condensed', sans-serif;
           font-size: 0.85rem;
           border-radius: 4px;
           animation: slideDown 0.2s ease;
@@ -792,7 +792,7 @@ const CreateOrganizationModal = ({ isOpen, onClose, onSuccess, editOrg = null })
         }
 
         .social-link-text {
-          font-family: 'Barlow', sans-serif;
+          font-family: 'Barlow Condensed', sans-serif;
           font-size: 0.85rem;
           color: rgba(255, 255, 255, 0.8);
         }

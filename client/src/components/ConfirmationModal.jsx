@@ -52,45 +52,108 @@ const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, confirm
     <div className="fixed inset-0 z-50 overflow-y-auto">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black bg-opacity-50 transition-opacity backdrop-blur-sm"
+        className="fixed inset-0 bg-black/80 backdrop-blur-md"
         onClick={onClose}
       ></div>
 
       {/* Modal */}
       <div className="flex min-h-full items-center justify-center p-4">
-        <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full transform transition-all animate-modal-in">
+        <div style={{
+          position: 'relative',
+          background: 'linear-gradient(135deg, rgba(10, 22, 40, 0.98), rgba(6, 13, 31, 0.99))',
+          border: '1px solid rgba(79, 255, 176, 0.3)',
+          borderRadius: '24px',
+          boxShadow: '0 25px 50px rgba(0, 0, 0, 0.5)',
+          maxWidth: '28rem',
+          width: '100%',
+          transform: 'scale(1)',
+          transition: 'all 0.3s'
+        }}>
           {/* Icon */}
-          <div className="pt-8 pb-4 px-6 text-center">
-            <div className={`mx-auto w-20 h-20 ${style.iconBg} rounded-full flex items-center justify-center mb-4`}>
-              <div className={style.iconColor}>
+          <div style={{ padding: '2rem 1.5rem 1rem 1.5rem', textAlign: 'center' }}>
+            <div style={{ margin: '0 auto 1rem auto', width: '5rem', height: '5rem', background: 'rgba(79, 255, 176, 0.15)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ color: '#4fffb0' }}>
                 {style.icon}
               </div>
             </div>
 
             {/* Title */}
-            <h3 className="text-2xl font-bold text-gray-900 mb-3">
+            <h3 style={{ fontSize: '1.5rem', fontWeight: '900', color: '#fff', marginBottom: '0.75rem', fontFamily: "'Barlow Condensed', sans-serif", textTransform: 'uppercase', letterSpacing: '-0.02em' }}>
               {title}
             </h3>
 
             {/* Message */}
-            <p className="text-gray-600 leading-relaxed">
+            <p style={{ color: 'rgba(255, 255, 255, 0.8)', lineHeight: '1.6' }}>
               {message}
             </p>
           </div>
 
           {/* Actions */}
-          <div className="px-6 pb-6 flex gap-3">
+          <div style={{ padding: '0 1.5rem 1.5rem 1.5rem', display: 'flex', gap: '0.75rem' }}>
             <button
               onClick={onClose}
               disabled={isLoading}
-              className="flex-1 px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold rounded-xl transition-all disabled:opacity-50"
+              style={{
+                flex: 1,
+                padding: '0.75rem 1.5rem',
+                background: 'rgba(255, 255, 255, 0.1)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                color: '#fff',
+                fontWeight: '600',
+                borderRadius: '12px',
+                cursor: isLoading ? 'not-allowed' : 'pointer',
+                transition: 'all 0.3s',
+                opacity: isLoading ? 0.5 : 1,
+                fontFamily: "'Barlow Condensed', sans-serif",
+                textTransform: 'uppercase'
+              }}
+              onMouseEnter={(e) => {
+                if (!isLoading) {
+                  e.currentTarget.style.background = '#4fffb0';
+                  e.currentTarget.style.color = '#000';
+                  e.currentTarget.style.borderColor = '#4fffb0';
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                e.currentTarget.style.color = '#fff';
+                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+              }}
             >
               {cancelText || 'Cancel'}
             </button>
             <button
               onClick={onConfirm}
               disabled={isLoading}
-              className={`flex-1 px-6 py-3 ${style.confirmBtn} text-white font-semibold rounded-xl transition-all shadow-lg hover:shadow-xl disabled:opacity-50 flex items-center justify-center gap-2`}
+              style={{
+                flex: 1,
+                padding: '0.75rem 1.5rem',
+                background: type === 'danger' ? '#ec4899' : 'linear-gradient(135deg, #4fffb0 0%, #00d4ff 100%)',
+                border: 'none',
+                color: '#000',
+                fontWeight: '700',
+                borderRadius: '12px',
+                cursor: isLoading ? 'not-allowed' : 'pointer',
+                transition: 'all 0.3s',
+                boxShadow: '0 4px 15px rgba(79, 255, 176, 0.3)',
+                opacity: isLoading ? 0.5 : 1,
+                fontFamily: "'Barlow Condensed', sans-serif",
+                textTransform: 'uppercase',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.5rem'
+              }}
+              onMouseEnter={(e) => {
+                if (!isLoading) {
+                  e.currentTarget.style.boxShadow = '0 6px 20px rgba(79, 255, 176, 0.5)';
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.boxShadow = '0 4px 15px rgba(79, 255, 176, 0.3)';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
             >
               {isLoading ? (
                 <>

@@ -95,30 +95,99 @@ const BrowsePage = () => {
   })
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-primary-50/20">
+    <div className="browse-page" style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #060d1f 0%, #0a1628 50%, #071a2e 100%)' }}>
+      <style>{`
+        .browse-page,
+        .browse-page *,
+        .browse-page input,
+        .browse-page select,
+        .browse-page button,
+        .browse-page h1,
+        .browse-page h2,
+        .browse-page h3,
+        .browse-page p,
+        .browse-page span,
+        .browse-page div,
+        .browse-page label,
+        .browse-page option,
+        .browse-page textarea {
+          font-family: 'Barlow Condensed', sans-serif !important;
+        }
+
+        .content-wrapper {
+          max-width: 80rem;
+          margin: 0 auto;
+          padding: 8rem 1.5rem 2rem 1.5rem;
+        }
+
+        .page-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          margin-bottom: 3rem;
+          gap: 2rem;
+        }
+
+        .page-title {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 900;
+          font-size: 3.5rem;
+          letter-spacing: -0.02em;
+          text-transform: uppercase;
+          color: #4fffb0;
+          line-height: 1;
+        }
+
+        .page-subtitle {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 700;
+          font-size: 2.5rem;
+          color: rgba(255, 255, 255, 0.8);
+          text-transform: uppercase;
+          letter-spacing: -0.02em;
+        }
+      `}</style>
       <Navbar />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Browse Tournaments
-          </h1>
-          <p className="text-gray-600">
-            Find and register for upcoming tournaments in your area
-          </p>
+      <div className="content-wrapper browse-page">
+        <div className="page-header browse-page">
+          <div className="header-left browse-page">
+            <div className="page-title browse-page">TOURNAMENTS</div>
+            <div className="page-subtitle browse-page">FIND AND REGISTER FOR UPCOMING TOURNAMENTS.</div>
+          </div>
         </div>
 
         {/* Search and Filters */}
-        <div className="mb-8 flex flex-col sm:flex-row gap-4 items-stretch">
+        <div className="mb-8 flex flex-col sm:flex-row gap-4 items-stretch browse-page">
           {/* Search */}
           <div className="flex-1 relative">
-            <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <SearchIcon style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', width: '1.25rem', height: '1.25rem', color: '#fff', pointerEvents: 'none', zIndex: 1 }} />
             <input
               type="text"
               placeholder="Search by tournament name, organization, or city..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full h-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all bg-white shadow-sm"
+              style={{
+                width: '100%',
+                height: '100%',
+                paddingLeft: '3rem',
+                paddingRight: '1rem',
+                paddingTop: '0.75rem',
+                paddingBottom: '0.75rem',
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: '12px',
+                outline: 'none',
+                transition: 'all 0.2s',
+                color: '#fff'
+              }}
+              onFocus={(e) => {
+                e.target.style.border = '1px solid rgba(79, 255, 176, 0.5)';
+                e.target.style.background = 'rgba(255, 255, 255, 0.08)';
+              }}
+              onBlur={(e) => {
+                e.target.style.border = '1px solid rgba(255, 255, 255, 0.1)';
+                e.target.style.background = 'rgba(255, 255, 255, 0.05)';
+              }}
             />
           </div>
 
@@ -127,19 +196,36 @@ const BrowsePage = () => {
             <select
               value={filterSport}
               onChange={(e) => setFilterSport(e.target.value)}
-              className="appearance-none h-full w-full sm:w-48 pl-4 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all bg-white font-semibold text-gray-700 cursor-pointer hover:border-gray-400 shadow-sm"
-              style={{ backgroundImage: 'none' }}
+              style={{
+                appearance: 'none',
+                height: '100%',
+                width: '100%',
+                paddingLeft: '1rem',
+                paddingRight: '2.5rem',
+                paddingTop: '0.75rem',
+                paddingBottom: '0.75rem',
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: '12px',
+                outline: 'none',
+                transition: 'all 0.2s',
+                color: '#fff',
+                fontWeight: '600',
+                cursor: 'pointer',
+                backgroundImage: 'none',
+                minWidth: '12rem'
+              }}
             >
-              <option value="all">All Sports</option>
-              <option value="badminton">Badminton</option>
-              <option value="tennis">Tennis</option>
-              <option value="table-tennis">Table Tennis</option>
-              <option value="squash">Squash</option>
-              <option value="pickleball">Pickleball</option>
-              <option value="padel">Padel</option>
+              <option value="all" style={{ background: '#0a1628', color: '#fff' }}>All Sports</option>
+              <option value="badminton" style={{ background: '#0a1628', color: '#fff' }}>Badminton</option>
+              <option value="tennis" style={{ background: '#0a1628', color: '#fff' }}>Tennis</option>
+              <option value="table-tennis" style={{ background: '#0a1628', color: '#fff' }}>Table Tennis</option>
+              <option value="squash" style={{ background: '#0a1628', color: '#fff' }}>Squash</option>
+              <option value="pickleball" style={{ background: '#0a1628', color: '#fff' }}>Pickleball</option>
+              <option value="padel" style={{ background: '#0a1628', color: '#fff' }}>Padel</option>
             </select>
-            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-              <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div style={{ pointerEvents: 'none', position: 'absolute', insetY: 0, right: 0, display: 'flex', alignItems: 'center', paddingRight: '0.75rem', top: '50%', transform: 'translateY(-50%)' }}>
+              <svg style={{ width: '1.25rem', height: '1.25rem', color: 'rgba(255, 255, 255, 0.5)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </div>
@@ -150,18 +236,35 @@ const BrowsePage = () => {
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="appearance-none h-full w-full sm:w-48 pl-4 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all bg-white font-semibold text-gray-700 cursor-pointer hover:border-gray-400 shadow-sm"
-              style={{ backgroundImage: 'none' }}
+              style={{
+                appearance: 'none',
+                height: '100%',
+                width: '100%',
+                paddingLeft: '1rem',
+                paddingRight: '2.5rem',
+                paddingTop: '0.75rem',
+                paddingBottom: '0.75rem',
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: '12px',
+                outline: 'none',
+                transition: 'all 0.2s',
+                color: '#fff',
+                fontWeight: '600',
+                cursor: 'pointer',
+                backgroundImage: 'none',
+                minWidth: '12rem'
+              }}
             >
-              <option value="all">All Status</option>
-              <option value="OPEN">Open</option>
-              <option value="DRAFT">Draft</option>
-              <option value="CLOSED">Closed</option>
-              <option value="ONGOING">Ongoing</option>
-              <option value="COMPLETED">Completed</option>
+              <option value="all" style={{ background: '#0a1628', color: '#fff' }}>All Status</option>
+              <option value="OPEN" style={{ background: '#0a1628', color: '#fff' }}>Open</option>
+              <option value="DRAFT" style={{ background: '#0a1628', color: '#fff' }}>Draft</option>
+              <option value="CLOSED" style={{ background: '#0a1628', color: '#fff' }}>Closed</option>
+              <option value="ONGOING" style={{ background: '#0a1628', color: '#fff' }}>Ongoing</option>
+              <option value="COMPLETED" style={{ background: '#0a1628', color: '#fff' }}>Completed</option>
             </select>
-            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-              <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div style={{ pointerEvents: 'none', position: 'absolute', insetY: 0, right: 0, display: 'flex', alignItems: 'center', paddingRight: '0.75rem', top: '50%', transform: 'translateY(-50%)' }}>
+              <svg style={{ width: '1.25rem', height: '1.25rem', color: 'rgba(255, 255, 255, 0.5)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </div>
@@ -177,23 +280,36 @@ const BrowsePage = () => {
 
         {/* Content */}
         {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="flex flex-col items-center gap-4">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-              <p className="text-sm text-gray-500">Loading tournaments...</p>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '5rem 0' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+              <div style={{ width: '3rem', height: '3rem', border: '3px solid rgba(79, 255, 176, 0.2)', borderTop: '3px solid #4fffb0', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+              <p style={{ fontSize: '0.875rem', color: 'rgba(255, 255, 255, 0.7)', fontWeight: '600', fontFamily: "'Barlow Condensed', sans-serif" }}>Loading tournaments...</p>
             </div>
+            <style>{`
+              @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+              }
+            `}</style>
           </div>
         ) : filteredTournaments.length === 0 ? (
-          <div className="glass-card rounded-2xl p-12">
-            <EmptyState
-              icon={TrophyIcon}
-              title={searchQuery ? 'No tournaments found' : 'No tournaments available'}
-              description={
-                searchQuery
-                  ? 'Try adjusting your search or filters to find tournaments.'
-                  : 'There are no tournaments available at the moment. Check back soon or create your own!'
-              }
-            />
+          <div style={{
+            background: 'rgba(10, 22, 40, 0.6)',
+            backdropFilter: 'blur(10px)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            borderRadius: '24px',
+            padding: '3rem',
+            textAlign: 'center'
+          }}>
+            <TrophyIcon style={{ width: '3rem', height: '3rem', color: '#4fffb0', margin: '0 auto 1rem' }} />
+            <h3 style={{ fontSize: '1.5rem', fontWeight: '900', color: '#4fffb0', marginBottom: '0.5rem', textTransform: 'uppercase', fontFamily: "'Barlow Condensed', sans-serif" }}>
+              {searchQuery ? 'No tournaments found' : 'No tournaments available'}
+            </h3>
+            <p style={{ color: 'rgba(255, 255, 255, 0.7)', fontFamily: "'Barlow Condensed', sans-serif" }}>
+              {searchQuery
+                ? 'Try adjusting your search or filters to find tournaments.'
+                : 'There are no tournaments available at the moment. Check back soon or create your own!'}
+            </p>
           </div>
         ) : (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -202,7 +318,7 @@ const BrowsePage = () => {
             ))}
           </div>
         )}
-      </main>
+      </div>
     </div>
   )
 }
@@ -218,15 +334,25 @@ const TournamentCard = ({ tournament }) => {
 
   const getStatusBadge = (status) => {
     const badges = {
-      OPEN: { bg: 'bg-success-50', text: 'text-success-700', border: 'border-success-100', label: 'Open' },
-      DRAFT: { bg: 'bg-gray-50', text: 'text-gray-700', border: 'border-gray-100', label: 'Draft' },
-      CLOSED: { bg: 'bg-danger-50', text: 'text-danger-700', border: 'border-danger-100', label: 'Closed' },
-      ONGOING: { bg: 'bg-warning-50', text: 'text-warning-700', border: 'border-warning-100', label: 'Ongoing' },
-      COMPLETED: { bg: 'bg-gray-50', text: 'text-gray-700', border: 'border-gray-100', label: 'Completed' }
+      OPEN: { bg: 'rgba(79, 255, 176, 0.15)', text: '#4fffb0', border: 'rgba(79, 255, 176, 0.3)', label: 'Open' },
+      DRAFT: { bg: 'rgba(255, 255, 255, 0.05)', text: 'rgba(255, 255, 255, 0.6)', border: 'rgba(255, 255, 255, 0.1)', label: 'Draft' },
+      CLOSED: { bg: 'rgba(236, 72, 153, 0.15)', text: '#ec4899', border: 'rgba(236, 72, 153, 0.3)', label: 'Closed' },
+      ONGOING: { bg: 'rgba(127, 255, 212, 0.15)', text: '#7fffd4', border: 'rgba(127, 255, 212, 0.3)', label: 'Ongoing' },
+      COMPLETED: { bg: 'rgba(255, 255, 255, 0.05)', text: 'rgba(255, 255, 255, 0.6)', border: 'rgba(255, 255, 255, 0.1)', label: 'Completed' }
     }
     const badge = badges[status] || badges.DRAFT
     return (
-      <span className={`px-3 py-1 ${badge.bg} ${badge.text} text-xs font-medium rounded-full border ${badge.border}`}>
+      <span style={{
+        padding: '0.25rem 0.75rem',
+        background: badge.bg,
+        color: badge.text,
+        fontSize: '0.75rem',
+        fontWeight: '700',
+        borderRadius: '9999px',
+        border: `1px solid ${badge.border}`,
+        textTransform: 'uppercase',
+        fontFamily: "'Barlow Condensed', sans-serif"
+      }}>
         {badge.label}
       </span>
     )
@@ -238,29 +364,54 @@ const TournamentCard = ({ tournament }) => {
 
   return (
     <div
-      className="glass-card rounded-2xl p-6 hover:shadow-glass-lg transition-all duration-300 hover:-translate-y-1 group flex flex-col"
+      className="browse-page"
+      onClick={handleClick}
+      style={{
+        background: 'rgba(10, 22, 40, 0.6)',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+        borderRadius: '16px',
+        padding: '1.5rem',
+        backdropFilter: 'blur(10px)',
+        transition: 'all 0.3s',
+        cursor: 'pointer',
+        display: 'flex',
+        flexDirection: 'column',
+        fontFamily: "'Barlow Condensed', sans-serif"
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.background = 'rgba(10, 22, 40, 0.8)';
+        e.currentTarget.style.borderColor = 'rgba(79, 255, 176, 0.3)';
+        e.currentTarget.style.transform = 'translateY(-4px)';
+        e.currentTarget.style.boxShadow = '0 10px 30px rgba(0, 0, 0, 0.3)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.background = 'rgba(10, 22, 40, 0.6)';
+        e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+        e.currentTarget.style.transform = 'translateY(0)';
+        e.currentTarget.style.boxShadow = 'none';
+      }}
     >
       {/* Header */}
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex-1">
-          <h3 className="text-lg font-semibold text-gray-900 mb-1 group-hover:text-primary-600 transition-colors">
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '1rem' }}>
+        <div style={{ flex: 1 }}>
+          <h3 style={{ fontSize: '1.125rem', fontWeight: '700', color: '#fff', marginBottom: '0.25rem', textTransform: 'uppercase', fontFamily: "'Barlow Condensed', sans-serif" }}>
             {tournament.name}
           </h3>
-          <p className="text-sm text-gray-600">{tournament.organization?.name || 'Unknown Organization'}</p>
+          <p style={{ fontSize: '0.875rem', color: 'rgba(255, 255, 255, 0.6)', fontFamily: "'Barlow Condensed', sans-serif" }}>{tournament.organization?.name || 'Unknown Organization'}</p>
         </div>
         {getStatusBadge(tournament.status)}
       </div>
 
       {/* Details */}
-      <div className="space-y-2 mb-5 flex-grow">
-        <div className="text-sm text-gray-600">
-          <span className="font-medium text-gray-700">Date:</span> {formatDate(tournament.startDate)} - {formatDate(tournament.endDate)}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1.25rem', flex: 1 }}>
+        <div style={{ fontSize: '0.875rem', color: 'rgba(255, 255, 255, 0.8)', fontFamily: "'Barlow Condensed', sans-serif" }}>
+          <span style={{ fontWeight: '700', color: '#4fffb0', fontFamily: "'Barlow Condensed', sans-serif" }}>Date:</span> {formatDate(tournament.startDate)} - {formatDate(tournament.endDate)}
         </div>
-        <div className="text-sm text-gray-600">
-          <span className="font-medium text-gray-700">Venue:</span> {tournament.venueName}, {tournament.city}
+        <div style={{ fontSize: '0.875rem', color: 'rgba(255, 255, 255, 0.8)', fontFamily: "'Barlow Condensed', sans-serif" }}>
+          <span style={{ fontWeight: '700', color: '#4fffb0', fontFamily: "'Barlow Condensed', sans-serif" }}>Venue:</span> {tournament.venueName}, {tournament.city}
         </div>
-        <div className="text-sm text-gray-600">
-          <span className="font-medium text-gray-700">
+        <div style={{ fontSize: '0.875rem', color: 'rgba(255, 255, 255, 0.8)', fontFamily: "'Barlow Condensed', sans-serif" }}>
+          <span style={{ fontWeight: '700', color: '#4fffb0', fontFamily: "'Barlow Condensed', sans-serif" }}>
             {tournament.sportType === 'multi' ? 'Sports:' : 'Sport:'}
           </span>{' '}
           {tournament.sports && tournament.sports.length > 0 ? (
@@ -311,7 +462,31 @@ const TournamentCard = ({ tournament }) => {
       {/* CTA */}
       <button
         onClick={handleClick}
-        className="w-full px-4 py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-lg transition-all shadow-sm hover:shadow-md mt-auto"
+        style={{
+          width: '100%',
+          padding: '0.625rem 1rem',
+          background: '#00d4ff',
+          color: '#000',
+          fontWeight: '700',
+          borderRadius: '12px',
+          transition: 'all 0.3s',
+          border: 'none',
+          cursor: 'pointer',
+          marginTop: 'auto',
+          textTransform: 'uppercase',
+          boxShadow: '0 4px 15px rgba(0, 212, 255, 0.3)',
+          fontFamily: "'Barlow Condensed', sans-serif"
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = 'rgba(0, 212, 255, 0.8)';
+          e.currentTarget.style.boxShadow = '0 6px 20px rgba(0, 212, 255, 0.5)';
+          e.currentTarget.style.transform = 'translateY(-2px)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = '#00d4ff';
+          e.currentTarget.style.boxShadow = '0 4px 15px rgba(0, 212, 255, 0.3)';
+          e.currentTarget.style.transform = 'translateY(0)';
+        }}
       >
         View Details
       </button>
