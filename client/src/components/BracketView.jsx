@@ -767,6 +767,12 @@ const MatchResultModal = ({ match, event, isRoundRobin, onClose, onSubmit }) => 
   const [showEditWarningModal, setShowEditWarningModal] = useState(false)
   const [editingSetIndex, setEditingSetIndex] = useState(null)
 
+  // Status control states
+  const [showWalkoverModal, setShowWalkoverModal] = useState(false)
+  const [showCancelModal, setShowCancelModal] = useState(false)
+  const [walkoverWinner, setWalkoverWinner] = useState(null)
+  const [statusActionLoading, setStatusActionLoading] = useState(false)
+
   const getParticipantName = (participant) => {
     if (!participant) return 'TBD'
     const name = `${participant.user.firstName} ${participant.user.lastName}`
@@ -1000,6 +1006,72 @@ const MatchResultModal = ({ match, event, isRoundRobin, onClose, onSubmit }) => 
     setShowFinalizeModal(false)
     setErrors({})
     onSubmit(winnerId, scoreString)
+  }
+
+  // Status control handlers
+  const handleMarkAsLive = async () => {
+    try {
+      setStatusActionLoading(true)
+      await api.post(`/matches/${match.id}/start`)
+      alert('✅ Match marked as LIVE!')
+      onClose()
+      window.location.reload() // Refresh to show updated status
+    } catch (err) {
+      console.error('Error marking match as live:', err)
+      alert(err.response?.data?.error || 'Failed to mark match as live')
+    } finally {
+      setStatusActionLoading(false)
+    }
+  }
+
+  const handleAwardWalkover = () => {
+    setShowWalkoverModal(true)
+  }
+
+  const confirmWalkover = async () => {
+    if (!walkoverWinner) {
+      alert('Please select which player won by walkover')
+      return
+    }
+
+    try {
+      setStatusActionLoading(true)
+      // Update match with walkover status and winner
+      await api.patch(`/matches/${match.id}/result`, {
+        winnerId: walkoverWinner,
+        score: 'Walkover',
+        isWalkover: true
+      })
+      alert('✅ Walkover awarded!')
+      setShowWalkoverModal(false)
+      onClose()
+      window.location.reload()
+    } catch (err) {
+      console.error('Error awarding walkover:', err)
+      alert(err.response?.data?.error || 'Failed to award walkover')
+    } finally {
+      setStatusActionLoading(false)
+    }
+  }
+
+  const handleCancelMatch = () => {
+    setShowCancelModal(true)
+  }
+
+  const confirmCancel = async () => {
+    try {
+      setStatusActionLoading(true)
+      await api.post(`/matches/${match.id}/cancel`)
+      alert('✅ Match cancelled!')
+      setShowCancelModal(false)
+      onClose()
+      window.location.reload()
+    } catch (err) {
+      console.error('Error cancelling match:', err)
+      alert(err.response?.data?.error || 'Failed to cancel match')
+    } finally {
+      setStatusActionLoading(false)
+    }
   }
 
   return (
@@ -1284,6 +1356,104 @@ const MatchResultModal = ({ match, event, isRoundRobin, onClose, onSubmit }) => 
               </div>
             )}
 
+            {/* Status Control Buttons */}
+            {!matchFinalized && (
+              <div style={{
+                marginBottom: '1.5rem',
+                padding: '1.5rem',
+                background: 'rgba(79, 255, 176, 0.05)',
+                border: '1px solid rgba(79, 255, 176, 0.2)',
+                borderRadius: '12px'
+              }}>
+                <h4 style={{
+                  fontSize: '0.875rem',
+                  fontWeight: '700',
+                  color: '#4fffb0',
+                  marginBottom: '1rem',
+                  textTransform: 'uppercase'
+                }}>
+                  Match Status Controls
+                </h4>
+                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                  {/* Mark as Live button */}
+                  {(match.status === 'PENDING' || match.status === 'READY' || match.status === 'SCHEDULED') && (
+                    <button
+                      type="button"
+                      onClick={handleMarkAsLive}
+                      disabled={statusActionLoading}
+                      style={{
+                        flex: '1 1 auto',
+                        padding: '0.75rem 1rem',
+                        background: 'linear-gradient(135deg, #4fffb0 0%, #00d4ff 100%)',
+                        border: 'none',
+                        color: '#000',
+                        fontWeight: '700',
+                        borderRadius: '12px',
+                        cursor: statusActionLoading ? 'not-allowed' : 'pointer',
+                        transition: 'all 0.2s',
+                        fontFamily: "'Barlow Condensed', sans-serif",
+                        textTransform: 'uppercase',
+                        fontSize: '0.875rem',
+                        opacity: statusActionLoading ? 0.5 : 1
+                      }}
+                    >
+                      {statusActionLoading ? '...' : '🔴 Mark as Live'}
+                    </button>
+                  )}
+
+                  {/* Award Walkover button */}
+                  {(match.status === 'PENDING' || match.status === 'READY' || match.status === 'SCHEDULED' || match.status === 'IN_PROGRESS') && (
+                    <button
+                      type="button"
+                      onClick={handleAwardWalkover}
+                      disabled={statusActionLoading}
+                      style={{
+                        flex: '1 1 auto',
+                        padding: '0.75rem 1rem',
+                        background: 'rgba(251, 146, 60, 0.2)',
+                        border: '1px solid rgba(251, 146, 60, 0.5)',
+                        color: '#fb923c',
+                        fontWeight: '700',
+                        borderRadius: '12px',
+                        cursor: statusActionLoading ? 'not-allowed' : 'pointer',
+                        transition: 'all 0.2s',
+                        fontFamily: "'Barlow Condensed', sans-serif",
+                        textTransform: 'uppercase',
+                        fontSize: '0.875rem',
+                        opacity: statusActionLoading ? 0.5 : 1
+                      }}
+                    >
+                      {statusActionLoading ? '...' : '⚡ Award Walkover'}
+                    </button>
+                  )}
+
+                  {/* Cancel Match button */}
+                  <button
+                    type="button"
+                    onClick={handleCancelMatch}
+                    disabled={statusActionLoading}
+                    style={{
+                      flex: '1 1 auto',
+                      padding: '0.75rem 1rem',
+                      background: 'rgba(236, 72, 153, 0.2)',
+                      border: '1px solid rgba(236, 72, 153, 0.5)',
+                      color: '#ec4899',
+                      fontWeight: '700',
+                      borderRadius: '12px',
+                      cursor: statusActionLoading ? 'not-allowed' : 'pointer',
+                      transition: 'all 0.2s',
+                      fontFamily: "'Barlow Condensed', sans-serif",
+                      textTransform: 'uppercase',
+                      fontSize: '0.875rem',
+                      opacity: statusActionLoading ? 0.5 : 1
+                    }}
+                  >
+                    {statusActionLoading ? '...' : '🚫 Cancel Match'}
+                  </button>
+                </div>
+              </div>
+            )}
+
             <div className="flex gap-3">
               <button
                 type="button"
@@ -1466,6 +1636,191 @@ const MatchResultModal = ({ match, event, isRoundRobin, onClose, onSubmit }) => 
               className="flex-1 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white font-medium rounded-lg transition-all"
             >
               Yes, Edit
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* Walkover Confirmation Modal */}
+    {showWalkoverModal && (
+      <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md" onClick={() => setShowWalkoverModal(false)} />
+        <div style={{
+          position: 'relative',
+          background: 'linear-gradient(135deg, rgba(10, 22, 40, 0.98), rgba(6, 13, 31, 0.99))',
+          border: '1px solid rgba(251, 146, 60, 0.3)',
+          borderRadius: '24px',
+          boxShadow: '0 25px 50px rgba(0, 0, 0, 0.5)',
+          maxWidth: '28rem',
+          width: '100%',
+          padding: '2rem',
+          fontFamily: "'Barlow Condensed', sans-serif"
+        }}>
+          <h3 style={{ fontSize: '1.5rem', fontWeight: '900', color: '#fb923c', marginBottom: '1rem', textTransform: 'uppercase' }}>
+            Award Walkover
+          </h3>
+          <p style={{ color: 'rgba(255, 255, 255, 0.8)', marginBottom: '1.5rem' }}>
+            Select which player won by walkover (other player didn't show up):
+          </p>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.5rem' }}>
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.75rem',
+                padding: '1rem',
+                background: walkoverWinner === match.participant1Id ? 'rgba(79, 255, 176, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+                border: `1px solid ${walkoverWinner === match.participant1Id ? 'rgba(79, 255, 176, 0.5)' : 'rgba(255, 255, 255, 0.1)'}`,
+                borderRadius: '12px',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+            >
+              <input
+                type="radio"
+                name="walkoverWinner"
+                value={match.participant1Id}
+                checked={walkoverWinner === match.participant1Id}
+                onChange={() => setWalkoverWinner(match.participant1Id)}
+                style={{ width: '1.25rem', height: '1.25rem', accentColor: '#4fffb0' }}
+              />
+              <span style={{ fontSize: '1rem', fontWeight: '700', color: '#fff' }}>
+                {getParticipantName(match.participant1)}
+              </span>
+            </label>
+
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.75rem',
+                padding: '1rem',
+                background: walkoverWinner === match.participant2Id ? 'rgba(79, 255, 176, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+                border: `1px solid ${walkoverWinner === match.participant2Id ? 'rgba(79, 255, 176, 0.5)' : 'rgba(255, 255, 255, 0.1)'}`,
+                borderRadius: '12px',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+            >
+              <input
+                type="radio"
+                name="walkoverWinner"
+                value={match.participant2Id}
+                checked={walkoverWinner === match.participant2Id}
+                onChange={() => setWalkoverWinner(match.participant2Id)}
+                style={{ width: '1.25rem', height: '1.25rem', accentColor: '#4fffb0' }}
+              />
+              <span style={{ fontSize: '1rem', fontWeight: '700', color: '#fff' }}>
+                {getParticipantName(match.participant2)}
+              </span>
+            </label>
+          </div>
+
+          <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <button
+              onClick={() => setShowWalkoverModal(false)}
+              disabled={statusActionLoading}
+              style={{
+                flex: 1,
+                padding: '0.75rem 1rem',
+                background: 'rgba(255, 255, 255, 0.1)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                color: '#fff',
+                fontWeight: '600',
+                borderRadius: '12px',
+                cursor: statusActionLoading ? 'not-allowed' : 'pointer',
+                textTransform: 'uppercase',
+                opacity: statusActionLoading ? 0.5 : 1
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={confirmWalkover}
+              disabled={statusActionLoading || !walkoverWinner}
+              style={{
+                flex: 1,
+                padding: '0.75rem 1rem',
+                background: !walkoverWinner || statusActionLoading ? 'rgba(251, 146, 60, 0.3)' : '#fb923c',
+                border: 'none',
+                color: '#000',
+                fontWeight: '700',
+                borderRadius: '12px',
+                cursor: !walkoverWinner || statusActionLoading ? 'not-allowed' : 'pointer',
+                textTransform: 'uppercase',
+                opacity: !walkoverWinner || statusActionLoading ? 0.5 : 1
+              }}
+            >
+              {statusActionLoading ? 'Processing...' : 'Confirm Walkover'}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* Cancel Match Confirmation Modal */}
+    {showCancelModal && (
+      <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md" onClick={() => setShowCancelModal(false)} />
+        <div style={{
+          position: 'relative',
+          background: 'linear-gradient(135deg, rgba(10, 22, 40, 0.98), rgba(6, 13, 31, 0.99))',
+          border: '1px solid rgba(236, 72, 153, 0.3)',
+          borderRadius: '24px',
+          boxShadow: '0 25px 50px rgba(0, 0, 0, 0.5)',
+          maxWidth: '28rem',
+          width: '100%',
+          padding: '2rem',
+          fontFamily: "'Barlow Condensed', sans-serif"
+        }}>
+          <h3 style={{ fontSize: '1.5rem', fontWeight: '900', color: '#ec4899', marginBottom: '1rem', textTransform: 'uppercase' }}>
+            Cancel Match?
+          </h3>
+          <p style={{ color: 'rgba(255, 255, 255, 0.8)', marginBottom: '1.5rem' }}>
+            This will cancel the match with no winner. The match will not count towards standings or progression.
+          </p>
+          <p style={{ color: '#fb923c', fontSize: '0.875rem', marginBottom: '1.5rem', fontWeight: '600' }}>
+            ⚠️ This action cannot be undone!
+          </p>
+
+          <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <button
+              onClick={() => setShowCancelModal(false)}
+              disabled={statusActionLoading}
+              style={{
+                flex: 1,
+                padding: '0.75rem 1rem',
+                background: 'rgba(255, 255, 255, 0.1)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                color: '#fff',
+                fontWeight: '600',
+                borderRadius: '12px',
+                cursor: statusActionLoading ? 'not-allowed' : 'pointer',
+                textTransform: 'uppercase',
+                opacity: statusActionLoading ? 0.5 : 1
+              }}
+            >
+              No, Keep Match
+            </button>
+            <button
+              onClick={confirmCancel}
+              disabled={statusActionLoading}
+              style={{
+                flex: 1,
+                padding: '0.75rem 1rem',
+                background: statusActionLoading ? 'rgba(236, 72, 153, 0.3)' : '#ec4899',
+                border: 'none',
+                color: '#000',
+                fontWeight: '700',
+                borderRadius: '12px',
+                cursor: statusActionLoading ? 'not-allowed' : 'pointer',
+                textTransform: 'uppercase',
+                opacity: statusActionLoading ? 0.5 : 1
+              }}
+            >
+              {statusActionLoading ? 'Cancelling...' : 'Yes, Cancel Match'}
             </button>
           </div>
         </div>

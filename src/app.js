@@ -14,6 +14,7 @@ const notificationRoutes = require('./routes/notification.routes');
 const liveFeedRoutes = require('./routes/livefeed.routes');
 const replacementRoutes = require('./routes/replacement.routes');
 const ratingRoutes = require('./routes/rating.routes');
+const matchRoutes = require('./routes/match.routes');
 
 const app = express();
 
@@ -51,6 +52,7 @@ app.use('/api/notifications', notificationRoutes); // Notification routes
 app.use('/api/live-feed', liveFeedRoutes); // Live feed routes
 app.use('/api', replacementRoutes); // Auto-replacement routes
 app.use('/api/ratings', ratingRoutes); // Rating routes
+app.use('/api/matches', matchRoutes); // Match routes for live matches
 
 // Health check
 app.get('/api/health', (req, res) => {

@@ -133,7 +133,7 @@ const Navbar = () => {
     },
     {
       label: 'People',
-      description: 'Browse players and organizers and invite to your organization',
+      description: 'Follow and connect with players and organizers and invite them to your organization.',
       path: '/players',
       Icon: PlayersIcon,
     },
