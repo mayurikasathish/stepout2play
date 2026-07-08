@@ -417,6 +417,87 @@ class TournamentController {
       next(error);
     }
   }
+
+  /**
+   * Get all live matches for a tournament
+   * GET /tournaments/:tournamentId/live-matches
+   */
+  async getLiveMatches(req, res, next) {
+    try {
+      const { tournamentId } = req.params;
+      const prisma = require('../lib/prisma');
+
+      const tournament = await prisma.tournament.findUnique({
+        where: { id: tournamentId },
+        select: { name: true, id: true }
+      });
+
+      if (!tournament) {
+        return res.status(404).json({
+          success: false,
+          error: 'Tournament not found'
+        });
+      }
+
+      const liveMatches = await prisma.match.findMany({
+        where: {
+          event: {
+            tournamentId: tournamentId
+          },
+          status: 'IN_PROGRESS'
+        },
+        include: {
+          participant1: {
+            include: {
+              user: { select: { firstName: true, lastName: true } },
+              partner: { select: { firstName: true, lastName: true } }
+            }
+          },
+          participant2: {
+            include: {
+              user: { select: { firstName: true, lastName: true } },
+              partner: { select: { firstName: true, lastName: true } }
+            }
+          },
+          event: {
+            include: {
+              tournament: { select: { name: true, id: true } }
+            }
+          }
+        },
+        orderBy: [
+          { scheduledAt: 'asc' },
+          { matchNumber: 'asc' }
+        ]
+      });
+
+      // Add sport data (sportId is just a string like "badminton", "table-tennis")
+      const matchesWithSport = liveMatches.map(match => {
+        if (match.event?.sportId) {
+          return {
+            ...match,
+            event: {
+              ...match.event,
+              sport: {
+                id: match.event.sportId,
+                name: match.event.sportId.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())
+              }
+            }
+          };
+        }
+        return match;
+      });
+
+      res.status(200).json({
+        success: true,
+        tournament,
+        matches: matchesWithSport,
+        count: matchesWithSport.length
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = new TournamentController();

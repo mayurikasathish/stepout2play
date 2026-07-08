@@ -4,6 +4,9 @@ import Navbar from '../components/Navbar'
 import Toast from '../components/Toast'
 import CancelRegistrationModal from '../components/CancelRegistrationModal'
 import ImageUpload from '../components/ImageUpload'
+import SportRatingCard from '../components/profile/SportRatingCard'
+import MatchHistoryTable from '../components/profile/MatchHistoryTable'
+import CareerStatsCard from '../components/profile/CareerStatsCard'
 import api from '../services/api'
 
 const UserIcon = (props) => (
@@ -38,12 +41,31 @@ const ProfilePage = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [saving, setSaving] = useState(false)
   const [cancellingRegistration, setCancellingRegistration] = useState(null)
+  const [sportsStats, setSportsStats] = useState([])
+  const [careerStats, setCareerStats] = useState(null)
+  const [matchHistory, setMatchHistory] = useState([])
+  const [selectedSport, setSelectedSport] = useState('all')
 
   useEffect(() => {
+    console.log('🔄 ProfilePage useEffect running, authUser:', authUser)
     fetchProfile()
     fetchRegistrations()
     fetchRatings()
-  }, [])
+    if (authUser?.id) {
+      console.log('✅ authUser.id exists, fetching player stats...')
+      fetchPlayerStats()
+      fetchMatchHistory()
+    } else {
+      console.log('❌ authUser.id not available yet')
+    }
+  }, [authUser?.id])
+
+  // Debug log when state changes
+  useEffect(() => {
+    console.log('📊 State updated - careerStats:', careerStats)
+    console.log('📊 State updated - sportsStats:', sportsStats)
+    console.log('📊 State updated - matchHistory:', matchHistory)
+  }, [careerStats, sportsStats, matchHistory])
 
   const fetchProfile = async () => {
     try {
@@ -103,6 +125,44 @@ const ProfilePage = () => {
     } catch (err) {
       console.error('Error fetching ratings:', err)
     }
+  }
+
+  const fetchPlayerStats = async () => {
+    try {
+      console.log('🔍 Fetching player stats for user:', authUser?.id)
+      const response = await api.get(`/users/${authUser.id}/profile-stats`)
+      console.log('✅ Player stats response:', response.data)
+      if (response.data.success) {
+        setSportsStats(response.data.sportsStats)
+        setCareerStats(response.data.careerStats)
+        console.log('✅ Set sportsStats:', response.data.sportsStats)
+        console.log('✅ Set careerStats:', response.data.careerStats)
+      }
+    } catch (err) {
+      console.error('❌ Error fetching player stats:', err)
+      console.error('❌ Error details:', err.response?.data)
+    }
+  }
+
+  const fetchMatchHistory = async (sportId = 'all') => {
+    try {
+      console.log('🔍 Fetching match history for user:', authUser?.id)
+      const query = sportId === 'all' ? '' : `?sportId=${sportId}`
+      const response = await api.get(`/users/${authUser.id}/match-history${query}`)
+      console.log('✅ Match history response:', response.data)
+      if (response.data.success) {
+        setMatchHistory(response.data.matchHistory)
+        console.log('✅ Set matchHistory:', response.data.matchHistory)
+      }
+    } catch (err) {
+      console.error('❌ Error fetching match history:', err)
+      console.error('❌ Error details:', err.response?.data)
+    }
+  }
+
+  const handleSportFilter = (sportId) => {
+    setSelectedSport(sportId)
+    fetchMatchHistory(sportId)
   }
 
   const handleUpdateProfile = async (e) => {
@@ -418,6 +478,53 @@ const ProfilePage = () => {
             </div>
           )}
         </div>
+
+        {/* Career Statistics */}
+        {careerStats && <CareerStatsCard stats={careerStats} />}
+
+        {/* Performance by Sport */}
+        {sportsStats && sportsStats.length > 0 && (
+          <div className="glass-card rounded-2xl p-8 mb-6">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+              <svg className="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+              Performance by Sport
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {sportsStats.map((sport) => (
+                <SportRatingCard key={sport.sportId} sport={sport} userId={authUser?.id} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Match History */}
+        {matchHistory && matchHistory.length > 0 && (
+          <div className="glass-card rounded-2xl p-8 mb-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+              <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                <svg className="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Match History
+              </h2>
+              <select
+                value={selectedSport}
+                onChange={(e) => handleSportFilter(e.target.value)}
+                className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-all font-medium"
+              >
+                <option value="all">All Sports</option>
+                {sportsStats.map((sport) => (
+                  <option key={sport.sportId} value={sport.sportId}>
+                    {sport.sportId.charAt(0).toUpperCase() + sport.sportId.slice(1)}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <MatchHistoryTable matches={matchHistory} />
+          </div>
+        )}
 
         {/* Account Settings */}
         <div className="glass-card rounded-2xl p-8 mb-8">

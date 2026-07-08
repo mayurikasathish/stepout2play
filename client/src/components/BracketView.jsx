@@ -6,6 +6,7 @@ import RoundRobinBracket from './RoundRobinBracket'
 import HybridBracket from './HybridBracket'
 import Toast from './Toast'
 import TennisScoreModal from './TennisScoreModal'
+import UniversalScoreModal from './UniversalScoreModal'
 import ScorecardUploadModal from './ScorecardUploadModal'
 import { validateGameScore, getSportValidationHelp, getExampleScores } from '../utils/scoreValidator'
 
@@ -130,12 +131,26 @@ const BracketView = ({ eventId, eventName, eventFormat, registrationCount, isOrg
   }
 
 
-  const handleMatchUpdate = async (winnerId, score) => {
+  const handleMatchUpdate = async (winnerId, score, pointHistory) => {
     try {
       const scrollX = window.scrollX
       const scrollY = window.scrollY
 
-      await api.patch(`/matches/${selectedMatch.id}/result`, { winnerId, score })
+      console.log('Submitting match result:', {
+        matchId: selectedMatch.id,
+        winnerId,
+        score,
+        pointHistory: pointHistory ? 'YES' : 'NO',
+        participant1Id: selectedMatch.participant1?.id,
+        participant2Id: selectedMatch.participant2?.id
+      })
+
+      const payload = { winnerId, score }
+      if (pointHistory) {
+        payload.pointHistory = pointHistory
+      }
+
+      await api.patch(`/matches/${selectedMatch.id}/result`, payload)
 
       setShowMatchModal(false)
       setSelectedMatch(null)
@@ -148,8 +163,51 @@ const BracketView = ({ eventId, eventName, eventFormat, registrationCount, isOrg
       setShowToast(true)
     } catch (err) {
       console.error('Error updating match:', err)
+      console.error('Error response:', err.response?.data)
       setShowMatchModal(false)
-      setToastMessage('Failed to update match result')
+      setToastMessage(err.response?.data?.error || 'Failed to update match result')
+      setToastType('error')
+      setShowToast(true)
+    }
+  }
+
+  const handleMarkAsLive = async (match) => {
+    try {
+      const scrollX = window.scrollX
+      const scrollY = window.scrollY
+
+      await api.patch(`/matches/${match.id}/status`, { status: 'IN_PROGRESS' })
+
+      await loadBracket()
+      requestAnimationFrame(() => window.scrollTo(scrollX, scrollY))
+
+      setToastMessage('Match marked as live! 🔴')
+      setToastType('success')
+      setShowToast(true)
+    } catch (err) {
+      console.error('Error marking match as live:', err)
+      setToastMessage('Failed to mark match as live')
+      setToastType('error')
+      setShowToast(true)
+    }
+  }
+
+  const handleCancelMatch = async (matchId) => {
+    try {
+      const scrollX = window.scrollX
+      const scrollY = window.scrollY
+
+      await api.patch(`/matches/${matchId}/status`, { status: 'READY' })
+
+      await loadBracket()
+      requestAnimationFrame(() => window.scrollTo(scrollX, scrollY))
+
+      setToastMessage('Match cancelled and reset to READY')
+      setToastType('success')
+      setShowToast(true)
+    } catch (err) {
+      console.error('Error cancelling match:', err)
+      setToastMessage('Failed to cancel match')
       setToastType('error')
       setShowToast(true)
     }
@@ -434,6 +492,7 @@ const BracketView = ({ eventId, eventName, eventFormat, registrationCount, isOrg
               matches={bracket.matches}
               onMatchClick={isOrganizer ? handleMatchClick : null}
               onCaptureScorecard={isOrganizer ? handleCaptureScorecard : null}
+              onMarkAsLive={isOrganizer ? handleMarkAsLive : null}
               eventName={eventName}
               tournamentName={tournament?.name || 'Tournament'}
             />
@@ -444,6 +503,7 @@ const BracketView = ({ eventId, eventName, eventFormat, registrationCount, isOrg
       {/* Match Result Modal - Conditional based on sport type */}
       {showMatchModal && selectedMatch && (
         bracket.event?.scoringType === 'game-set-match' ? (
+          // Tennis/Padel - use existing modal
           <TennisScoreModal
             match={selectedMatch}
             event={bracket.event}
@@ -452,12 +512,14 @@ const BracketView = ({ eventId, eventName, eventFormat, registrationCount, isOrg
             onSubmit={handleMatchUpdate}
           />
         ) : (
-          <MatchResultModal
+          // Badminton, Table Tennis, Pickleball, Squash - use new point-by-point modal
+          <UniversalScoreModal
             match={selectedMatch}
             event={bracket.event}
             isRoundRobin={isRoundRobin || (isHybrid && selectedMatch.groupId !== null)}
             onClose={() => setShowMatchModal(false)}
             onSubmit={handleMatchUpdate}
+            onCancelMatch={handleCancelMatch}
           />
         )
       )}

@@ -22,7 +22,7 @@ const getRatingChange = (match, participant) => {
   }
 }
 
-const SingleEliminationBracket = ({ matches, onMatchClick, onCaptureScorecard, eventName, tournamentName }) => {
+const SingleEliminationBracket = ({ matches, onMatchClick, onCaptureScorecard, onMarkAsLive, eventName, tournamentName }) => {
   const [zoom, setZoom] = useState(100)
   const bracketRef = useRef(null)
   const [connectorLines, setConnectorLines] = useState([])
@@ -189,7 +189,7 @@ const SingleEliminationBracket = ({ matches, onMatchClick, onCaptureScorecard, e
 
   const getStatusColor = (match) => {
     if (match.status === 'COMPLETED') return 'completed-match-card'
-    if (match.status === 'IN_PROGRESS') return 'ready-match-card'
+    if (match.status === 'IN_PROGRESS') return 'live-match-card'
     if (match.status === 'BYE') return 'bye-match-card'
     if (match.status === 'READY') return 'ready-match-card'
     if (!match.participant1 || !match.participant2) return 'wait-match-card'
@@ -201,6 +201,7 @@ const SingleEliminationBracket = ({ matches, onMatchClick, onCaptureScorecard, e
       COMPLETED: { dot: 'bg-black', text: 'Done', textColor: 'text-black' },
       BYE: { dot: 'bg-black', text: 'Auto', textColor: 'text-black' },
       READY: { dot: 'bg-black', text: 'Ready', textColor: 'text-black' },
+      IN_PROGRESS: { dot: 'bg-red-700', text: 'Live', textColor: 'text-red-700' },
       PENDING: { dot: 'bg-black', text: 'Wait', textColor: 'text-black' }
     }
 
@@ -299,7 +300,7 @@ const SingleEliminationBracket = ({ matches, onMatchClick, onCaptureScorecard, e
     const p2Name = getParticipantLabel(match.participant2, match, 2)
     const isP1Winner = match.winnerId === match.participant1Id
     const isP2Winner = match.winnerId === match.participant2Id
-    const showButton = (match.status === 'COMPLETED' || match.status === 'READY') && onMatchClick
+    const showButton = (match.status === 'COMPLETED' || match.status === 'READY' || match.status === 'IN_PROGRESS') && onMatchClick
 
     return (
       <div
@@ -393,21 +394,46 @@ const SingleEliminationBracket = ({ matches, onMatchClick, onCaptureScorecard, e
           </div>
         </div>
 
-        {/* Score display and Edit button - consistent spacing */}
+        {/* Score display and Buttons - consistent spacing */}
         <div className="px-3 pb-3 pt-1 flex-shrink-0">
           {match.score && match.status === 'COMPLETED' && (
             <div className="text-[10px] text-gray-500 font-medium text-center mb-1">
               {formatMatchScore(match.score)}
             </div>
           )}
-          {showButton && (
+
+          {/* Show "Mark as Live" for READY matches */}
+          {match.status === 'READY' && onMarkAsLive && (
+            <button
+              onClick={() => onMarkAsLive(match)}
+              className="w-full py-2 rounded-lg font-semibold text-sm transition-all shadow-sm"
+              style={{
+                background: 'linear-gradient(135deg, #dc2626, #991b1b)',
+                color: '#fff'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.transform = 'scale(1.02)'
+                e.target.style.boxShadow = '0 4px 12px rgba(220, 38, 38, 0.4)'
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.transform = 'scale(1)'
+                e.target.style.boxShadow = '0 1px 2px rgba(0, 0, 0, 0.05)'
+              }}
+            >
+              🔴 Mark as Live
+            </button>
+          )}
+
+          {/* Show Edit Score button for IN_PROGRESS and COMPLETED */}
+          {(match.status === 'IN_PROGRESS' || match.status === 'COMPLETED') && onMatchClick && (
             <EditScoreButton
               onManualEntry={() => onMatchClick(match)}
               onCaptureScore={() => onCaptureScorecard?.(match)}
             />
           )}
+
           {/* Maintain consistent card height even without button */}
-          {!showButton && <div className="h-8"></div>}
+          {!showButton && match.status !== 'READY' && <div className="h-8"></div>}
         </div>
       </div>
     )
@@ -534,6 +560,15 @@ const SingleEliminationBracket = ({ matches, onMatchClick, onCaptureScorecard, e
           border: 2px solid #ec4899;
         }
         .ready-match-card * {
+          color: #000 !important;
+        }
+
+        /* LIVE Matches - White background, dark red text */
+        .live-match-card {
+          background: #ffffff !important;
+          border: 2px solid #000 !important;
+        }
+        .live-match-card * {
           color: #000 !important;
         }
 

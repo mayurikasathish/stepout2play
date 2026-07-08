@@ -19,9 +19,9 @@ import PlayersPage from './pages/PlayersPage'
 import OCRTestPage from './pages/OCRTestPage'
 import ScorecardPrintPage from './pages/ScorecardPrintPage'
 import AcceptSpotPage from './pages/AcceptSpotPage'
-import LiveMatchesPage from './pages/LiveMatchesPage'
+import LiveMatchesPage3D from './pages/LiveMatchesPage3D'
 import NotificationsPage from './pages/NotificationsPage'
-// import PlayerProfilePage from './pages/PlayerProfilePage' // wire up when ready
+import PlayerProfilePage from './pages/PlayerProfilePage'
 
 function App() {
   return (
@@ -43,7 +43,7 @@ function App() {
 
           {/* Players directory – public */}
           <Route path="/players" element={<PlayersPage />} />
-          {/* <Route path="/players/:id" element={<PlayerProfilePage />} /> */}
+          <Route path="/players/:userId" element={<PlayerProfilePage />} />
 
           {/* Accept standby spot – requires auth */}
           <Route path="/events/:eventId/accept-spot" element={<AcceptSpotPage />} />
@@ -80,7 +80,15 @@ function App() {
             path="/live"
             element={
               <ProtectedRoute>
-                <LiveMatchesPage />
+                <LiveMatchesPage3D />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/tournaments/:tournamentId/live"
+            element={
+              <ProtectedRoute>
+                <LiveMatchesPage3D />
               </ProtectedRoute>
             }
           />

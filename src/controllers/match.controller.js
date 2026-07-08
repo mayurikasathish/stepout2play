@@ -23,25 +23,43 @@ class MatchController {
           },
           participant1: {
             include: {
-              user: true,
-              partner: true
+              user: { select: { firstName: true, lastName: true } },
+              partner: { select: { firstName: true, lastName: true } }
             }
           },
           participant2: {
             include: {
-              user: true,
-              partner: true
+              user: { select: { firstName: true, lastName: true } },
+              partner: { select: { firstName: true, lastName: true } }
             }
           }
         },
-        orderBy: {
-          actualStartTime: 'desc'
+        orderBy: [
+          { scheduledAt: 'asc' },
+          { matchNumber: 'asc' }
+        ]
+      });
+
+      // Add sport data (sportId is just a string like "badminton", "table-tennis")
+      const matchesWithSport = matches.map(match => {
+        if (match.event?.sportId) {
+          return {
+            ...match,
+            event: {
+              ...match.event,
+              sport: {
+                id: match.event.sportId,
+                name: match.event.sportId.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())
+              }
+            }
+          };
         }
+        return match;
       });
 
       res.status(200).json({
         success: true,
-        matches
+        matches: matchesWithSport
       });
     } catch (error) {
       next(error);

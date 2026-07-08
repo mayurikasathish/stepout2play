@@ -10,13 +10,16 @@
   },
   "dependencies": {
     "axios": "^1.7.2",
+    "chart.js": "^4.5.1",
     "framer-motion": "^12.42.2",
     "html2canvas": "^1.4.1",
     "lucide-react": "^1.23.0",
     "react": "^18.3.1",
+    "react-chartjs-2": "^5.3.1",
     "react-dom": "^18.3.1",
     "react-easy-crop": "^6.1.0",
-    "react-router-dom": "^6.23.1"
+    "react-router-dom": "^6.23.1",
+    "swiper": "^14.0.2"
   },
   "devDependencies": {
     "@types/react": "^18.3.3",

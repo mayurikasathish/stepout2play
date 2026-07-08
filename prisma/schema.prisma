@@ -293,6 +293,7 @@ model Match {
   courtName       String?
   duration        Int?
   notes           String?
+  pointHistory    String?              // JSON string of point-by-point history for live scoring
   createdAt       DateTime             @default(now())
   updatedAt       DateTime             @updatedAt
   // Round Robin: groupId is set for group stage matches, null for knockout

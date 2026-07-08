@@ -175,6 +175,87 @@ class BracketController {
   }
 
   /**
+   * PATCH /matches/:matchId/status
+   * Update match status (READY, IN_PROGRESS, etc.)
+   */
+  async updateMatchStatus(req, res, next) {
+    try {
+      const { matchId } = req.params;
+      const { status } = req.body;
+
+      const validStatuses = ['PENDING', 'READY', 'IN_PROGRESS', 'COMPLETED'];
+      if (!validStatuses.includes(status)) {
+        return res.status(400).json({
+          success: false,
+          error: `Invalid status. Must be one of: ${validStatuses.join(', ')}`
+        });
+      }
+
+      const match = await prisma.match.update({
+        where: { id: matchId },
+        data: { status }
+      });
+
+      res.status(200).json({
+        success: true,
+        message: `Match status updated to ${status}`,
+        match
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * PATCH /matches/:matchId/live-score
+   * Update live score during match (auto-save every point)
+   */
+  async updateLiveScore(req, res, next) {
+    try {
+      const { matchId } = req.params;
+      const { pointHistory, currentScore, currentSet } = req.body;
+
+      // Verify match is IN_PROGRESS
+      const existingMatch = await prisma.match.findUnique({
+        where: { id: matchId },
+        select: { status: true }
+      });
+
+      if (!existingMatch) {
+        return res.status(404).json({
+          success: false,
+          error: 'Match not found'
+        });
+      }
+
+      if (existingMatch.status !== 'IN_PROGRESS') {
+        return res.status(400).json({
+          success: false,
+          error: 'Can only update score for IN_PROGRESS matches'
+        });
+      }
+
+      // Update match with live score
+      const match = await prisma.match.update({
+        where: { id: matchId },
+        data: {
+          pointHistory,
+          // Optionally store current score for quick display
+          // score field will be updated on finalize
+        }
+      });
+
+      res.status(200).json({
+        success: true,
+        message: 'Live score updated',
+        match
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * POST /matches/:matchId/start
    * Manually start a match - set status to IN_PROGRESS
    */

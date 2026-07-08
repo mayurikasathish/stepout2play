@@ -4,6 +4,7 @@ const bracketController = require('../controllers/bracket.controller');
 const seedController = require('../controllers/seed.controller');
 const authenticate = require('../middleware/authenticate');
 const requireEventOrgRole = require('../middleware/requireEventOrgRole');
+const requireMatchOrgRole = require('../middleware/requireMatchOrgRole');
 
 /**
  * Bracket generation routes (organizer only)
@@ -83,12 +84,29 @@ router.delete(
 router.patch(
   '/matches/:matchId/result',
   authenticate,
+  requireMatchOrgRole(['OWNER', 'ADMIN']),
   bracketController.updateMatchResult.bind(bracketController)
 );
 
 /**
  * Match status control routes (organizer only)
  */
+
+// PATCH /matches/:matchId/status - Update match status (IN_PROGRESS, READY, etc.)
+router.patch(
+  '/matches/:matchId/status',
+  authenticate,
+  requireMatchOrgRole(['OWNER', 'ADMIN']),
+  bracketController.updateMatchStatus.bind(bracketController)
+);
+
+// PATCH /matches/:matchId/live-score - Update live score during match (auto-save)
+router.patch(
+  '/matches/:matchId/live-score',
+  authenticate,
+  requireMatchOrgRole(['OWNER', 'ADMIN']),
+  bracketController.updateLiveScore.bind(bracketController)
+);
 
 // POST /matches/:matchId/start - Manually start a match (set to IN_PROGRESS)
 router.post(

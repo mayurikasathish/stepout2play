@@ -541,14 +541,15 @@ class BracketService {
     }
 
     // Update match status to READY if both participants are now filled
-    for (const match of firstRoundMatches) {
+    // Check ALL knockout matches, not just first round
+    for (const match of knockoutMatches) {
       const updated = await tx.match.findUnique({ where: { id: match.id } });
       if (updated.participant1Id && updated.participant2Id && updated.status === 'PENDING') {
         await tx.match.update({
           where: { id: match.id },
           data: { status: 'READY' }
         });
-        console.log(`  Match ${match.matchNumber} now READY`);
+        console.log(`  Match ${match.matchNumber} (${match.bracketPosition}) now READY`);
       }
     }
 

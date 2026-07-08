@@ -3,6 +3,8 @@ const router = express.Router();
 const schedulerController = require('../controllers/scheduler.controller');
 const matchSchedulerController = require('../controllers/matchScheduler.controller');
 const authenticate = require('../middleware/authenticate');
+const requireTournamentOrgRole = require('../middleware/requireTournamentOrgRole');
+const requireEventOrgRole = require('../middleware/requireEventOrgRole');
 
 /**
  * Tournament scheduling configuration (organizer only)
@@ -11,6 +13,7 @@ const authenticate = require('../middleware/authenticate');
 router.patch(
   '/tournaments/:id/schedule-config',
   authenticate,
+  requireTournamentOrgRole(['OWNER', 'ADMIN']),
   schedulerController.updateScheduleConfig.bind(schedulerController)
 );
 
@@ -21,6 +24,7 @@ router.patch(
 router.post(
   '/events/:eventId/auto-schedule',
   authenticate,
+  requireEventOrgRole(['OWNER', 'ADMIN']),
   schedulerController.autoSchedule.bind(schedulerController)
 );
 
@@ -34,6 +38,7 @@ router.get(
 router.delete(
   '/events/:eventId/schedule',
   authenticate,
+  requireEventOrgRole(['OWNER', 'ADMIN']),
   schedulerController.clearSchedule.bind(schedulerController)
 );
 
@@ -49,6 +54,7 @@ router.get(
 router.post(
   '/events/:eventId/generate-schedule',
   authenticate,
+  requireEventOrgRole(['OWNER', 'ADMIN']),
   matchSchedulerController.generateSchedule.bind(matchSchedulerController)
 );
 
@@ -56,6 +62,7 @@ router.post(
 router.post(
   '/events/:eventId/validate-schedule',
   authenticate,
+  requireEventOrgRole(['OWNER', 'ADMIN']),
   matchSchedulerController.validateScheduleOnly.bind(matchSchedulerController)
 );
 
@@ -63,6 +70,7 @@ router.post(
 router.post(
   '/events/:eventId/save-schedule',
   authenticate,
+  requireEventOrgRole(['OWNER', 'ADMIN']),
   matchSchedulerController.saveSchedule.bind(matchSchedulerController)
 );
 
@@ -70,6 +78,7 @@ router.post(
 router.delete(
   '/events/:eventId/delete-schedule',
   authenticate,
+  requireEventOrgRole(['OWNER', 'ADMIN']),
   matchSchedulerController.deleteSchedule.bind(matchSchedulerController)
 );
 

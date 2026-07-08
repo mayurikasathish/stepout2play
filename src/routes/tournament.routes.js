@@ -4,6 +4,7 @@ const tournamentController = require('../controllers/tournament.controller');
 const eventController = require('../controllers/event.controller');
 const authenticate = require('../middleware/authenticate');
 const requireTournamentOrgRole = require('../middleware/requireTournamentOrgRole');
+const requireEventOrgRole = require('../middleware/requireEventOrgRole');
 
 /**
  * Public routes
@@ -18,6 +19,7 @@ router.get('/:id', tournamentController.getTournamentById.bind(tournamentControl
 router.patch(
   '/:id',
   authenticate,
+  requireTournamentOrgRole(['OWNER', 'ADMIN']),
   tournamentController.updateTournament.bind(tournamentController)
 );
 
@@ -25,11 +27,15 @@ router.patch(
 router.delete(
   '/:id',
   authenticate,
+  requireTournamentOrgRole(['OWNER', 'ADMIN']),
   tournamentController.deleteTournament.bind(tournamentController)
 );
 
 // GET /tournaments/:tournamentId/events - List events for tournament
 router.get('/:tournamentId/events', eventController.listEvents.bind(eventController));
+
+// GET /tournaments/:tournamentId/live-matches - Get all live matches for tournament (public)
+router.get('/:tournamentId/live-matches', tournamentController.getLiveMatches.bind(tournamentController));
 
 // GET /tournaments/:id/registrations - Get all registrations for tournament (organizer only)
 router.get(
@@ -53,6 +59,7 @@ router.post(
 router.patch(
   '/events/:eventId',
   authenticate,
+  requireEventOrgRole(['OWNER', 'ADMIN']),
   eventController.updateEvent.bind(eventController)
 );
 
@@ -60,6 +67,7 @@ router.patch(
 router.delete(
   '/events/:eventId',
   authenticate,
+  requireEventOrgRole(['OWNER', 'ADMIN']),
   eventController.deleteEvent.bind(eventController)
 );
 
