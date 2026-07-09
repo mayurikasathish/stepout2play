@@ -28,4 +28,11 @@ router.get(
   playerProfileController.getRatingHistory.bind(playerProfileController)
 );
 
+// GET /users/:userId/activity-heatmap - Get activity heatmap data
+router.get(
+  '/:userId/activity-heatmap',
+  authenticate,
+  playerProfileController.getActivityHeatmap.bind(playerProfileController)
+);
+
 module.exports = router;

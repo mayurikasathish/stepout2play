@@ -78,6 +78,68 @@ class RatingController {
       next(error);
     }
   }
+
+  /**
+   * Get rating history for a user in a specific sport
+   * GET /ratings/:userId/:sportId/history
+   */
+  async getRatingHistory(req, res, next) {
+    try {
+      const { userId, sportId } = req.params;
+
+      const prisma = require('../lib/prisma');
+
+      // Get all rating changes for this user and sport, ordered by date
+      const ratingChanges = await prisma.matchRatingChange.findMany({
+        where: {
+          userId,
+          sportId
+        },
+        orderBy: {
+          createdAt: 'asc'
+        },
+        select: {
+          newRating: true,
+          ratingChange: true,
+          createdAt: true,
+          match: {
+            select: {
+              id: true,
+              completedAt: true
+            }
+          }
+        }
+      });
+
+      // Transform into graph data points
+      const history = ratingChanges.map(change => ({
+        rating: Math.round(change.newRating),
+        change: Math.round(change.ratingChange),
+        date: change.createdAt,
+        matchId: change.match.id
+      }));
+
+      // Add starting point (1200) if there's history
+      if (history.length > 0) {
+        const firstChange = ratingChanges[0];
+        const startingRating = Math.round(firstChange.newRating - firstChange.ratingChange);
+        history.unshift({
+          rating: startingRating,
+          change: 0,
+          date: new Date(ratingChanges[0].createdAt.getTime() - 1000), // 1 second before first match
+          matchId: null
+        });
+      }
+
+      res.status(200).json({
+        success: true,
+        history,
+        count: history.length
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = new RatingController();

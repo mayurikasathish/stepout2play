@@ -68,13 +68,27 @@ class PlayerProfileController {
           }
 
           // Get rank (count how many players have higher rating)
+          // Only show rank if there are players with different ratings (not all at 1200)
           const higherRatedCount = await prisma.playerRating.count({
             where: {
               sportId: rating.sportId,
               rating: { gt: rating.rating }
             }
           });
-          const rank = higherRatedCount + 1;
+
+          const totalPlayersInSport = await prisma.playerRating.count({
+            where: { sportId: rating.sportId }
+          });
+
+          const playersWithDifferentRatings = await prisma.playerRating.count({
+            where: {
+              sportId: rating.sportId,
+              rating: { not: 1200 }
+            }
+          });
+
+          // Only assign rank if at least one player has deviated from 1200
+          const rank = playersWithDifferentRatings > 0 ? higherRatedCount + 1 : null;
 
           return {
             sportId: rating.sportId,
@@ -122,10 +136,53 @@ class PlayerProfileController {
         uniqueTournaments.add(match.event.tournamentId);
       }
 
-      // Count titles (tournament wins)
-      // For now, we'll count this manually later or set to 0
-      // You can add a 'titles' field to User model or track tournament winners separately
-      const titles = 0; // TODO: Implement title tracking
+      // Count titles (finals wins where roundNumber = 1)
+      const titles = allMatches.filter(match => {
+        const isPlayer1 = match.participant1?.userId === userId;
+        const isWinner = match.winnerId === (isPlayer1 ? match.participant1Id : match.participant2Id);
+        return isWinner && match.roundNumber === 1; // Finals are round 1
+      }).length;
+
+      // Calculate current streak
+      let currentStreak = 0;
+      let streakType = null;
+      const sortedAllMatches = allMatches.sort((a, b) =>
+        new Date(b.completedAt) - new Date(a.completedAt)
+      );
+
+      for (const match of sortedAllMatches) {
+        const isPlayer1 = match.participant1?.userId === userId;
+        const isWinner = match.winnerId === (isPlayer1 ? match.participant1Id : match.participant2Id);
+
+        if (streakType === null) {
+          streakType = isWinner ? 'W' : 'L';
+          currentStreak = 1;
+        } else if ((isWinner && streakType === 'W') || (!isWinner && streakType === 'L')) {
+          currentStreak++;
+        } else {
+          break;
+        }
+      }
+
+      // Get highest rating across all sports
+      const allRatingChanges = await prisma.matchRatingChange.findMany({
+        where: { userId },
+        orderBy: { newRating: 'desc' },
+        take: 1
+      });
+      const highestRating = allRatingChanges.length > 0
+        ? Math.round(allRatingChanges[0].newRating)
+        : 1200;
+
+      // Calculate best rank across all sports (only if at least one sport has ranks)
+      let bestRank = null;
+      for (const sportStat of sportsStats) {
+        if (sportStat.rank !== null) {
+          if (bestRank === null || sportStat.rank < bestRank) {
+            bestRank = sportStat.rank;
+          }
+        }
+      }
 
       const totalMatches = totalWins + totalLosses;
       const winRate = totalMatches > 0 ? ((totalWins / totalMatches) * 100).toFixed(1) : 0;
@@ -136,7 +193,10 @@ class PlayerProfileController {
         losses: totalLosses,
         winRate: parseFloat(winRate),
         titles,
-        tournamentsPlayed: uniqueTournaments.size
+        tournamentsPlayed: uniqueTournaments.size,
+        currentStreak: currentStreak > 0 ? `${streakType}${currentStreak}` : null,
+        highestRating,
+        bestRank: bestRank || null
       };
 
       res.status(200).json({
@@ -305,6 +365,50 @@ class PlayerProfileController {
       res.status(200).json({
         success: true,
         ratingHistory
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * GET /api/users/:userId/activity-heatmap
+   * Get activity heatmap data (matches per day for last 365 days)
+   */
+  async getActivityHeatmap(req, res, next) {
+    try {
+      const { userId } = req.params;
+
+      // Get date 365 days ago
+      const oneYearAgo = new Date();
+      oneYearAgo.setDate(oneYearAgo.getDate() - 365);
+
+      // Get all matches in the last year
+      const matches = await prisma.match.findMany({
+        where: {
+          status: 'COMPLETED',
+          completedAt: { gte: oneYearAgo },
+          OR: [
+            { participant1: { userId } },
+            { participant2: { userId } }
+          ]
+        },
+        select: {
+          completedAt: true
+        }
+      });
+
+      // Group by date
+      const activityMap = {};
+      matches.forEach(match => {
+        const date = new Date(match.completedAt).toISOString().split('T')[0]; // YYYY-MM-DD
+        activityMap[date] = (activityMap[date] || 0) + 1;
+      });
+
+      res.status(200).json({
+        success: true,
+        activity: activityMap,
+        totalMatches: matches.length
       });
     } catch (error) {
       next(error);

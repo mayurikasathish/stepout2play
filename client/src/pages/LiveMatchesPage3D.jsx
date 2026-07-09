@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useSearchParams } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import api from '../services/api'
 
 const LiveMatchesPage3D = () => {
   const { tournamentId } = useParams()
+  const [searchParams] = useSearchParams()
+  const matchIdFromUrl = searchParams.get('matchId')
+
   const [liveMatches, setLiveMatches] = useState([])
   const [recentMatches, setRecentMatches] = useState([])
   const [loading, setLoading] = useState(true)
@@ -16,6 +19,16 @@ const LiveMatchesPage3D = () => {
     const interval = setInterval(loadAllMatches, 5000)
     return () => clearInterval(interval)
   }, [tournamentId])
+
+  // Auto-focus on specific match when matchId is provided
+  useEffect(() => {
+    if (matchIdFromUrl && liveMatches.length > 0) {
+      const matchIndex = liveMatches.findIndex(m => m.id === matchIdFromUrl)
+      if (matchIndex !== -1) {
+        setActiveIndex(matchIndex)
+      }
+    }
+  }, [matchIdFromUrl, liveMatches])
 
   const loadAllMatches = async () => {
     try {

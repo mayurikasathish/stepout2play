@@ -15,9 +15,9 @@ router.get('/', tournamentController.listTournaments.bind(tournamentController))
 // GET /tournaments/:id - Get tournament by ID
 router.get('/:id', tournamentController.getTournamentById.bind(tournamentController));
 
-// PATCH /tournaments/:id - Update tournament (organizer only)
+// PATCH /tournaments/:tournamentId - Update tournament (organizer only)
 router.patch(
-  '/:id',
+  '/:tournamentId',
   authenticate,
   requireTournamentOrgRole(['OWNER', 'ADMIN']),
   tournamentController.updateTournament.bind(tournamentController)

@@ -67,6 +67,86 @@ class MatchController {
   }
 
   /**
+   * GET /matches/spotlight
+   * Get prioritized live matches for dashboard spotlight
+   * Priority: Finals > Semis > Quarters > Group stage
+   * Optional: userSports query param for personalization (future)
+   */
+  async getSpotlightMatches(req, res, next) {
+    try {
+      const matches = await prisma.match.findMany({
+        where: {
+          status: 'IN_PROGRESS'
+        },
+        include: {
+          event: {
+            include: {
+              tournament: {
+                include: {
+                  organization: true
+                }
+              }
+            }
+          },
+          participant1: {
+            include: {
+              user: { select: { id: true, firstName: true, lastName: true } },
+              partner: { select: { id: true, firstName: true, lastName: true } }
+            }
+          },
+          participant2: {
+            include: {
+              user: { select: { id: true, firstName: true, lastName: true } },
+              partner: { select: { id: true, firstName: true, lastName: true } }
+            }
+          }
+        }
+      });
+
+      // Priority sorting: Lower roundNumber = later in tournament = higher priority
+      // Finals (roundNumber 1) > Semis (2) > Quarters (3) > etc.
+      const sortedMatches = matches.sort((a, b) => {
+        // First, sort by round number (lower = more important)
+        if (a.roundNumber !== b.roundNumber) {
+          return a.roundNumber - b.roundNumber;
+        }
+        // Then by scheduled time (earlier first)
+        if (a.scheduledAt && b.scheduledAt) {
+          return new Date(a.scheduledAt) - new Date(b.scheduledAt);
+        }
+        return 0;
+      });
+
+      // Add sport data
+      const matchesWithSport = sortedMatches.map(match => {
+        if (match.event?.sportId) {
+          return {
+            ...match,
+            event: {
+              ...match.event,
+              sport: {
+                id: match.event.sportId,
+                name: match.event.sportId.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())
+              }
+            }
+          };
+        }
+        return match;
+      });
+
+      // Limit to top 8 for spotlight
+      const spotlightMatches = matchesWithSport.slice(0, 8);
+
+      res.status(200).json({
+        success: true,
+        matches: spotlightMatches
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * GET /matches/upcoming
    * Get matches starting soon (scheduled within next 30 minutes)
    */

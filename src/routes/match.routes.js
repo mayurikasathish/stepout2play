@@ -9,6 +9,9 @@ const matchController = require('../controllers/match.controller');
 // GET /matches/live - Get all currently IN_PROGRESS matches
 router.get('/live', matchController.getLiveMatches);
 
+// GET /matches/spotlight - Get prioritized live matches for dashboard
+router.get('/spotlight', matchController.getSpotlightMatches);
+
 // GET /matches/upcoming - Get matches starting soon (next 30 mins)
 router.get('/upcoming', matchController.getUpcomingMatches);
 

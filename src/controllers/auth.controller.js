@@ -211,7 +211,7 @@ class AuthController {
    */
   async updateProfile(req, res, next) {
     try {
-      const { firstName, lastName, bio, profilePicture, city, phone, dob, gender, primaryRole } = req.body;
+      const { firstName, lastName, bio, profilePicture, city, phone, dob, gender, primaryRole, sports } = req.body;
 
       const updateData = {};
       if (firstName !== undefined) updateData.firstName = firstName ? firstName.trim() : null;
@@ -222,6 +222,7 @@ class AuthController {
       if (phone !== undefined) updateData.phone = phone ? phone.trim() : null;
       if (dob !== undefined) updateData.dob = dob ? new Date(dob) : null;
       if (gender !== undefined) updateData.gender = gender || null;
+      if (sports !== undefined) updateData.sports = Array.isArray(sports) ? sports : [];
       if (primaryRole !== undefined) {
         if (!['PLAYER', 'ORGANIZER'].includes(primaryRole)) {
           return res.status(400).json({ success: false, error: 'Invalid role' });

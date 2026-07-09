@@ -272,7 +272,9 @@ class TournamentController {
    */
   async updateTournament(req, res, next) {
     try {
-      const { id } = req.params;
+      const { tournamentId } = req.params;
+      console.log('📥 Update tournament request:', { tournamentId, body: req.body });
+
       const {
         name,
         sport,
@@ -343,9 +345,11 @@ class TournamentController {
         updateData.status = status;
       }
 
+      console.log('📝 Update data prepared:', updateData);
+
       const prisma = require('../lib/prisma');
       const tournament = await prisma.tournament.update({
-        where: { id },
+        where: { id: tournamentId },
         data: updateData,
         include: {
           organization: {
@@ -359,6 +363,8 @@ class TournamentController {
         }
       });
 
+      console.log('✅ Tournament updated successfully');
+
       // Apply computed status
       const tournamentService = require('../services/tournament.service');
       const tournamentWithComputedStatus = {
@@ -371,6 +377,9 @@ class TournamentController {
         tournament: tournamentWithComputedStatus
       });
     } catch (error) {
+      console.error('❌ Error updating tournament:', error);
+      console.error('❌ Error message:', error.message);
+      console.error('❌ Error stack:', error.stack);
       next(error);
     }
   }

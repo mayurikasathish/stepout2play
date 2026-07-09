@@ -15,4 +15,7 @@ router.get('/:userId', ratingController.getUserRatings);
 // Get user's rating for specific sport (public)
 router.get('/:userId/:sportId', ratingController.getUserRatingForSport);
 
+// Get rating history for user in specific sport (public)
+router.get('/:userId/:sportId/history', ratingController.getRatingHistory);
+
 module.exports = router;

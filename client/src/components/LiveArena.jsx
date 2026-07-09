@@ -1,9 +1,14 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import api from '../services/api'
 
 const LiveArena = () => {
+  const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState('circle') // circle, turf, spotlight
+  const [spotlightMatches, setSpotlightMatches] = useState([])
+  const [loadingSpotlight, setLoadingSpotlight] = useState(true)
 
-  // Placeholder data
+  // Placeholder data for circle and turf
   const circleItems = [
     { id: 1, type: 'live', player1: 'Alex', player2: 'Jordan', score: '21-18' },
     { id: 2, type: 'result', player: 'Sam', result: 'Won Finals 21-19' },
@@ -13,10 +18,81 @@ const LiveArena = () => {
     { id: 1, name: 'City Championships', location: '2.3 km away', status: 'Registration Open' },
   ]
 
-  const spotlightItems = [
-    { id: 1, title: 'National Finals Live', subtitle: 'Championship Match' },
-    { id: 2, title: 'Record Breaking Performance', subtitle: '5 consecutive wins' },
-  ]
+  // Fetch spotlight matches
+  useEffect(() => {
+    loadSpotlightMatches()
+    const interval = setInterval(loadSpotlightMatches, 10000) // Refresh every 10 seconds
+    return () => clearInterval(interval)
+  }, [])
+
+  const loadSpotlightMatches = async () => {
+    try {
+      const response = await api.get('/matches/spotlight')
+      if (response.data.success) {
+        setSpotlightMatches(response.data.matches || [])
+      }
+      setLoadingSpotlight(false)
+    } catch (err) {
+      console.error('Error loading spotlight matches:', err)
+      setLoadingSpotlight(false)
+    }
+  }
+
+  const getParticipantName = (participant) => {
+    if (!participant) return 'TBD'
+    const name = `${participant.user.firstName} ${participant.user.lastName}`
+    if (participant.partner) {
+      return `${name} / ${participant.partner.firstName} ${participant.partner.lastName}`
+    }
+    return name
+  }
+
+  const parseCurrentScore = (match) => {
+    if (match.pointHistory) {
+      try {
+        const history = JSON.parse(match.pointHistory)
+        if (history.length > 0) {
+          const lastPoint = history[history.length - 1]
+          let p1Sets = 0, p2Sets = 0
+          let set = 1
+          let p1 = 0, p2 = 0
+
+          history.forEach((entry) => {
+            if (entry.set > set) {
+              if (p1 > p2) p1Sets++
+              else p2Sets++
+              set = entry.set
+              p1 = 0
+              p2 = 0
+            }
+            p1 = entry.score.p1
+            p2 = entry.score.p2
+          })
+
+          return { p1: lastPoint.score.p1, p2: lastPoint.score.p2, p1Sets, p2Sets }
+        }
+      } catch (err) {
+        console.error('Error parsing point history:', err)
+      }
+    }
+    return { p1: 0, p2: 0, p1Sets: 0, p2Sets: 0 }
+  }
+
+  const getRoundName = (roundNumber, eventName) => {
+    if (eventName?.toLowerCase().includes('final')) return 'Finals'
+    if (roundNumber === 1) return 'Finals'
+    if (roundNumber === 2) return 'Semi-Finals'
+    if (roundNumber === 3) return 'Quarter-Finals'
+    return `Round ${roundNumber}`
+  }
+
+  const handleViewMatch = (matchId) => {
+    navigate(`/live?matchId=${matchId}`)
+  }
+
+  const handleViewAllLive = () => {
+    navigate('/live')
+  }
 
   return (
     <>
@@ -330,14 +406,110 @@ const LiveArena = () => {
         {/* Spotlight Section */}
         <div className="spotlight-section">
           <div className="spotlight-header">THE SPOTLIGHT</div>
-          {spotlightItems.map(item => (
-            <div key={item.id} className="aurora-card">
-              <div className="card-content">
-                <div className="card-title">{item.title}</div>
-                <div className="card-subtitle">{item.subtitle}</div>
-              </div>
+
+          {loadingSpotlight ? (
+            <div className="empty-state" style={{ padding: '2rem 1rem' }}>
+              Loading live matches...
             </div>
-          ))}
+          ) : spotlightMatches.length === 0 ? (
+            <div className="empty-state" style={{ padding: '2rem 1rem' }}>
+              No live matches right now
+            </div>
+          ) : (
+            <>
+              {spotlightMatches.map(match => {
+                const score = parseCurrentScore(match)
+                const roundName = getRoundName(match.roundNumber, match.event?.name)
+                const sportName = match.event?.sport?.name || 'Match'
+
+                return (
+                  <div key={match.id} className="aurora-card" style={{ cursor: 'pointer' }}>
+                    <div className="card-content">
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <span className="live-indicator"></span>
+                          <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', fontWeight: 600 }}>
+                            {sportName} • {roundName}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="card-title" style={{ marginBottom: '0.25rem' }}>
+                        {getParticipantName(match.participant1)}
+                      </div>
+                      <div className="card-title" style={{ marginBottom: '0.5rem' }}>
+                        {getParticipantName(match.participant2)}
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div className="card-subtitle">
+                          Score: {score.p1}-{score.p2} {score.p1Sets > 0 || score.p2Sets > 0 ? `(${score.p1Sets}-${score.p2Sets})` : ''}
+                        </div>
+                        <button
+                          onClick={() => handleViewMatch(match.id)}
+                          style={{
+                            background: 'rgba(236, 72, 153, 0.2)',
+                            border: '1px solid rgba(236, 72, 153, 0.4)',
+                            color: '#ec4899',
+                            padding: '0.4rem 0.8rem',
+                            borderRadius: '6px',
+                            fontSize: '0.75rem',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease',
+                            textTransform: 'uppercase',
+                            fontFamily: "'Barlow Condensed', sans-serif"
+                          }}
+                          onMouseEnter={(e) => {
+                            e.target.style.background = 'rgba(236, 72, 153, 0.3)'
+                          }}
+                          onMouseLeave={(e) => {
+                            e.target.style.background = 'rgba(236, 72, 153, 0.2)'
+                          }}
+                        >
+                          View Live
+                        </button>
+                      </div>
+
+                      <div className="card-subtitle" style={{ marginTop: '0.5rem', fontSize: '0.7rem' }}>
+                        {match.event?.tournament?.name}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+
+              {/* View All Live Matches Button */}
+              <button
+                onClick={handleViewAllLive}
+                style={{
+                  width: '100%',
+                  background: 'rgba(79, 255, 176, 0.1)',
+                  border: '1px solid rgba(79, 255, 176, 0.3)',
+                  color: '#4fffb0',
+                  padding: '0.8rem',
+                  borderRadius: '8px',
+                  fontSize: '0.85rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  textTransform: 'uppercase',
+                  fontFamily: "'Barlow Condensed', sans-serif",
+                  marginTop: '0.5rem'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.background = 'rgba(79, 255, 176, 0.2)'
+                  e.target.style.transform = 'translateY(-2px)'
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = 'rgba(79, 255, 176, 0.1)'
+                  e.target.style.transform = 'translateY(0)'
+                }}
+              >
+                View All Live Matches →
+              </button>
+            </>
+          )}
         </div>
       </div>
     </>

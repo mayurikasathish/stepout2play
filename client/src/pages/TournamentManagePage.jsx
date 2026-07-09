@@ -109,6 +109,7 @@ const TournamentManagePage = () => {
 
   const handleUpdateTournament = async (updateData) => {
     try {
+      console.log('📤 Sending update data:', updateData)
       const response = await api.patch(`/tournaments/${id}`, updateData)
       if (response.data.success) {
         setShowEditModal(false)
@@ -120,8 +121,12 @@ const TournamentManagePage = () => {
         setShowToast(true)
       }
     } catch (err) {
-      console.error('Error updating tournament:', err)
-      setToastMessage('Failed to update tournament')
+      console.error('❌ Error updating tournament:', err)
+      console.error('❌ Response data:', err.response?.data)
+      console.error('❌ Response status:', err.response?.status)
+
+      const errorMsg = err.response?.data?.error || err.response?.data?.errors?.join(', ') || 'Failed to update tournament'
+      setToastMessage(errorMsg)
       setToastType('error')
       setShowToast(true)
     }
