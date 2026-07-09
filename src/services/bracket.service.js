@@ -559,7 +559,7 @@ class BracketService {
   // ─────────────────────────────────────────────────────────────────
   // ROUND ROBIN: Update match result + recalculate standings
   // ─────────────────────────────────────────────────────────────────
-  async updateRoundRobinMatchResult(matchId, winnerId, score) {
+  async updateRoundRobinMatchResult(matchId, winnerId, score, pointHistory) {
     const match = await prisma.match.findUnique({
       where: { id: matchId },
       include: { event: true }
@@ -573,7 +573,7 @@ class BracketService {
 
     if (!match.groupId) {
       // Not a group match — delegate to single elim handler
-      return this.updateMatchResult(matchId, winnerId, score);
+      return this.updateMatchResult(matchId, winnerId, score, pointHistory);
     }
 
     // Score is mandatory for round robin (for tie-breaking)
@@ -627,14 +627,21 @@ class BracketService {
 
     await prisma.$transaction(async (tx) => {
       // Update match
+      const updateData = {
+        winnerId: actualWinnerId || null,
+        score,
+        status: 'COMPLETED',
+        completedAt: new Date()
+      };
+
+      // Save pointHistory if provided
+      if (pointHistory) {
+        updateData.pointHistory = pointHistory;
+      }
+
       await tx.match.update({
         where: { id: matchId },
-        data: {
-          winnerId: actualWinnerId || null,
-          score,
-          status: 'COMPLETED',
-          completedAt: new Date()
-        }
+        data: updateData
       });
 
       const loserId = actualWinnerId === match.participant1Id
@@ -1109,7 +1116,7 @@ class BracketService {
   // ─────────────────────────────────────────────────────────────────
   // SINGLE ELIM: Update match result + advance winner
   // ─────────────────────────────────────────────────────────────────
-  async updateMatchResult(matchId, winnerId, score) {
+  async updateMatchResult(matchId, winnerId, score, pointHistory) {
     const match = await prisma.match.findUnique({
       where: { id: matchId },
       include: { event: true, participant1: true, participant2: true }
@@ -1121,12 +1128,24 @@ class BracketService {
       throw error;
     }
 
+    console.log('🔥 Match participants:', {
+      participant1Id: match.participant1Id,
+      participant2Id: match.participant2Id,
+      winnerId,
+      groupId: match.groupId
+    });
+
     // If this is a group match, delegate to round robin handler
     if (match.groupId) {
-      return this.updateRoundRobinMatchResult(matchId, winnerId, score);
+      return this.updateRoundRobinMatchResult(matchId, winnerId, score, pointHistory);
     }
 
     if (winnerId !== match.participant1Id && winnerId !== match.participant2Id) {
+      console.error('❌ Winner ID mismatch!', {
+        winnerId,
+        participant1Id: match.participant1Id,
+        participant2Id: match.participant2Id
+      });
       const error = new Error('Winner must be one of the match participants');
       error.statusCode = 400;
       throw error;
@@ -1153,14 +1172,21 @@ class BracketService {
     }
 
     await prisma.$transaction(async (tx) => {
+      const updateData = {
+        winnerId,
+        score: score ? JSON.stringify(score) : null,
+        status: 'COMPLETED',
+        completedAt: new Date()
+      };
+
+      // Save pointHistory if provided
+      if (pointHistory) {
+        updateData.pointHistory = pointHistory;
+      }
+
       await tx.match.update({
         where: { id: matchId },
-        data: {
-          winnerId,
-          score: score ? JSON.stringify(score) : null,
-          status: 'COMPLETED',
-          completedAt: new Date()
-        }
+        data: updateData
       });
       if (match.nextMatchId) {
         await this.advanceWinnerInBracket(tx, match, winnerId);

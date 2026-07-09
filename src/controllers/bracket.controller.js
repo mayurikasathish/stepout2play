@@ -135,10 +135,12 @@ class BracketController {
   async updateMatchResult(req, res, next) {
     try {
       const { matchId } = req.params;
-      const { winnerId, score } = req.body;
+      const { winnerId, score, pointHistory } = req.body;
+
+      console.log('🔥 updateMatchResult called:', { matchId, winnerId, score, hasPointHistory: !!pointHistory });
 
       // winnerId is optional for round robin (draw support)
-      const match = await bracketService.updateMatchResult(matchId, winnerId || null, score);
+      const match = await bracketService.updateMatchResult(matchId, winnerId || null, score, pointHistory);
 
       // Create live feed item when match is won
       if (winnerId) {

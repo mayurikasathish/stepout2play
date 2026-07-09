@@ -94,12 +94,12 @@ function FeaturesBento() {
     {
       name: 'right',
       title: 'Live Match Updates',
-      desc: 'Follow every point as it happens. Real-time notifications, live feeds, instant alerts. Popcorn not included.'
+      desc: 'Follow every point as it happens. Real-time stuff.'
     },
     {
       name: 'back',
       title: 'OCR Score Extraction',
-      desc: 'Snap a scorecard, auto-extract the data. Magic? Nah, just computer vision. Because manually typing scores is so 2015.'
+      desc: 'Snap a scorecard, auto-extract the data.'
     },
     {
       name: 'left',

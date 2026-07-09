@@ -116,8 +116,14 @@ const UniversalScoreModal = ({ match, event, isRoundRobin, onClose, onSubmit, on
     const setsToWin = Math.ceil(scoringRules.bestOf / 2)
     if (newP1Sets >= setsToWin) {
       setMatchWinner('p1')
+      // 🔥 RESET SCORES when match is won to prevent duplicate in finalize
+      setP1Score(0)
+      setP2Score(0)
     } else if (newP2Sets >= setsToWin) {
       setMatchWinner('p2')
+      // 🔥 RESET SCORES when match is won to prevent duplicate in finalize
+      setP1Score(0)
+      setP2Score(0)
     } else {
       setCurrentSet(currentSet + 1)
       setP1Score(0)
@@ -154,6 +160,7 @@ const UniversalScoreModal = ({ match, event, isRoundRobin, onClose, onSubmit, on
 
     history.forEach((entry) => {
       if (entry.set > set) {
+        // Previous set was completed, add it to history
         sets.push({ p1, p2 })
         if (p1 > p2) p1Sets++
         else p2Sets++
@@ -165,14 +172,7 @@ const UniversalScoreModal = ({ match, event, isRoundRobin, onClose, onSubmit, on
       p2 = entry.score.p2
     })
 
-    setCurrentSet(set)
-    setP1Score(p1)
-    setP2Score(p2)
-    setP1SetsWon(p1Sets)
-    setP2SetsWon(p2Sets)
-    setCompletedSets(sets)
-
-    // 🔥 CHECK IF CURRENT SET IS WON (not yet added to completedSets)
+    // 🔥 CHECK IF CURRENT SET IS WON (not yet in history's next set)
     const currentSetWinner = checkSetWinner(p1, p2, scoringRules)
     let finalP1Sets = p1Sets
     let finalP2Sets = p2Sets
@@ -182,6 +182,13 @@ const UniversalScoreModal = ({ match, event, isRoundRobin, onClose, onSubmit, on
     } else if (currentSetWinner === 'p2') {
       finalP2Sets++
     }
+
+    setCurrentSet(set)
+    setP1Score(p1)
+    setP2Score(p2)
+    setP1SetsWon(finalP1Sets)
+    setP2SetsWon(finalP2Sets)
+    setCompletedSets(sets)
 
     // 🔥 CHECK IF MATCH IS ALREADY WON
     const setsToWin = Math.ceil(scoringRules.bestOf / 2)
@@ -210,10 +217,15 @@ const UniversalScoreModal = ({ match, event, isRoundRobin, onClose, onSubmit, on
       return
     }
 
-    console.log('Finalizing match with winnerId:', winnerId)
-    console.log('Participant 1 ID:', match.participant1?.id)
-    console.log('Participant 2 ID:', match.participant2?.id)
-    console.log('Score string:', scoreString)
+    console.log('🔥 UniversalScoreModal - Finalizing match:')
+    console.log('  Match ID:', match.id)
+    console.log('  Match Winner (internal):', matchWinner)
+    console.log('  Winner ID (registration):', winnerId)
+    console.log('  Participant 1 ID:', match.participant1?.id, '- Name:', match.participant1?.user?.firstName)
+    console.log('  Participant 2 ID:', match.participant2?.id, '- Name:', match.participant2?.user?.firstName)
+    console.log('  Score string:', scoreString)
+    console.log('  Sets won:', p1SetsWon, '-', p2SetsWon)
+    console.log('  Point history length:', pointHistory.length)
 
     // Call onSubmit with winnerId, score, and pointHistory as separate parameters
     onSubmit(winnerId, scoreString, JSON.stringify(pointHistory))

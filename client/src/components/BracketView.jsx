@@ -136,19 +136,25 @@ const BracketView = ({ eventId, eventName, eventFormat, registrationCount, isOrg
       const scrollX = window.scrollX
       const scrollY = window.scrollY
 
-      console.log('Submitting match result:', {
+      console.log('🔥 BracketView - Submitting match result:', {
         matchId: selectedMatch.id,
         winnerId,
+        winnerIdType: typeof winnerId,
         score,
+        scoreType: typeof score,
         pointHistory: pointHistory ? 'YES' : 'NO',
         participant1Id: selectedMatch.participant1?.id,
-        participant2Id: selectedMatch.participant2?.id
+        participant2Id: selectedMatch.participant2?.id,
+        participant1Name: selectedMatch.participant1?.user?.firstName,
+        participant2Name: selectedMatch.participant2?.user?.firstName
       })
 
       const payload = { winnerId, score }
       if (pointHistory) {
         payload.pointHistory = pointHistory
       }
+
+      console.log('🔥 Sending payload:', JSON.stringify(payload, null, 2))
 
       await api.patch(`/matches/${selectedMatch.id}/result`, payload)
 
