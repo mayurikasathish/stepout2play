@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import api from '../services/api'
+import LocationSelector from '../components/LocationSelector'
 
 const sportsList = ['Badminton', 'Tennis', 'Table Tennis', 'Squash', 'Pickleball', 'Padel']
 
@@ -11,7 +12,7 @@ export default function OnboardingPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [profile, setProfile] = useState({
-    dob: '', gender: '', city: '', phone: '', bio: '', sports: []
+    dob: '', gender: '', city: '', state: '', locality: '', latitude: null, longitude: null, phone: '', bio: '', sports: []
   })
 
   const setP = (field) => (e) => setProfile(p => ({ ...p, [field]: e.target.value }))
@@ -325,13 +326,19 @@ export default function OnboardingPage() {
           </div>
 
           <div className="form-section">
-            <label className="form-label">City *</label>
-            <input
-              type="text"
-              value={profile.city}
-              onChange={setP('city')}
-              placeholder="e.g. Bangalore"
-              className="form-input"
+            <LocationSelector
+              city={profile.city}
+              state={profile.state}
+              locality={profile.locality}
+              onLocationChange={(location) => setProfile(p => ({
+                ...p,
+                city: location.city,
+                state: location.state,
+                locality: location.locality,
+                latitude: location.latitude,
+                longitude: location.longitude
+              }))}
+              darkMode={true}
             />
           </div>
 

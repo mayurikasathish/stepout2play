@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext'
 import Navbar from '../components/Navbar'
 import ImageUpload from '../components/ImageUpload'
 import Toast from '../components/Toast'
+import LocationSelector from '../components/LocationSelector'
 import api from '../services/api'
 
 const ProfilePage = () => {
@@ -55,6 +56,10 @@ const ProfilePage = () => {
           dob: response.data.user.dob ? response.data.user.dob.split('T')[0] : '',
           gender: response.data.user.gender || '',
           city: response.data.user.city || '',
+          state: response.data.user.state || '',
+          locality: response.data.user.locality || '',
+          latitude: response.data.user.latitude || null,
+          longitude: response.data.user.longitude || null,
           phone: response.data.user.phone || '',
           bio: response.data.user.bio || '',
           sports: response.data.user.sports || [],
@@ -225,6 +230,10 @@ const ProfilePage = () => {
           dob: response.data.user.dob ? response.data.user.dob.split('T')[0] : '',
           gender: response.data.user.gender || '',
           city: response.data.user.city || '',
+          state: response.data.user.state || '',
+          locality: response.data.user.locality || '',
+          latitude: response.data.user.latitude || null,
+          longitude: response.data.user.longitude || null,
           phone: response.data.user.phone || '',
           bio: response.data.user.bio || '',
           sports: response.data.user.sports || [],
@@ -1403,6 +1412,22 @@ const ProfilePage = () => {
                   <div className="profile-field-value">{profile?.city || 'Not set'}</div>
                 </div>
 
+                {/* State */}
+                {profile?.state && (
+                  <div className="profile-field">
+                    <div className="profile-field-label">State</div>
+                    <div className="profile-field-value">{profile.state}</div>
+                  </div>
+                )}
+
+                {/* Locality */}
+                {profile?.locality && (
+                  <div className="profile-field">
+                    <div className="profile-field-label">Locality/Area</div>
+                    <div className="profile-field-value">{profile.locality}</div>
+                  </div>
+                )}
+
                 {/* Phone */}
                 {profile?.phone && (
                   <div className="profile-field">
@@ -1941,13 +1966,19 @@ const ProfilePage = () => {
               </div>
 
               <div className="form-section">
-                <label className="form-label">City *</label>
-                <input
-                  type="text"
-                  value={formData.city}
-                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                  placeholder="e.g. Bangalore"
-                  className="form-input"
+                <LocationSelector
+                  city={formData.city}
+                  state={formData.state}
+                  locality={formData.locality}
+                  onLocationChange={(location) => setFormData({
+                    ...formData,
+                    city: location.city,
+                    state: location.state,
+                    locality: location.locality,
+                    latitude: location.latitude,
+                    longitude: location.longitude
+                  })}
+                  darkMode={true}
                 />
               </div>
 

@@ -100,6 +100,10 @@ class AuthController {
           bio: true,
           profilePicture: true,
           city: true,
+          state: true,
+          locality: true,
+          latitude: true,
+          longitude: true,
           phone: true,
           dob: true,
           gender: true,
@@ -211,7 +215,7 @@ class AuthController {
    */
   async updateProfile(req, res, next) {
     try {
-      const { firstName, lastName, bio, profilePicture, city, phone, dob, gender, primaryRole, sports } = req.body;
+      const { firstName, lastName, bio, profilePicture, city, state, locality, latitude, longitude, phone, dob, gender, primaryRole, sports } = req.body;
 
       const updateData = {};
       if (firstName !== undefined) updateData.firstName = firstName ? firstName.trim() : null;
@@ -219,6 +223,10 @@ class AuthController {
       if (bio !== undefined) updateData.bio = bio ? bio.trim() : null;
       if (profilePicture !== undefined) updateData.profilePicture = profilePicture ? profilePicture.trim() : null;
       if (city !== undefined) updateData.city = city ? city.trim() : null;
+      if (state !== undefined) updateData.state = state ? state.trim() : null;
+      if (locality !== undefined) updateData.locality = locality ? locality.trim() : null;
+      if (latitude !== undefined) updateData.latitude = latitude;
+      if (longitude !== undefined) updateData.longitude = longitude;
       if (phone !== undefined) updateData.phone = phone ? phone.trim() : null;
       if (dob !== undefined) updateData.dob = dob ? new Date(dob) : null;
       if (gender !== undefined) updateData.gender = gender || null;
@@ -241,6 +249,10 @@ class AuthController {
           bio: true,
           profilePicture: true,
           city: true,
+          state: true,
+          locality: true,
+          latitude: true,
+          longitude: true,
           phone: true,
           dob: true,
           gender: true,

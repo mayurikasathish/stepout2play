@@ -22,6 +22,10 @@ model User {
   onboardingComplete   Boolean        @default(false)
   bio                  String?
   city                 String?
+  state                String?
+  locality             String?
+  latitude             Decimal?       @db.Decimal(10, 8)
+  longitude            Decimal?       @db.Decimal(11, 8)
   phone                String?
   profilePicture       String?
   primaryRole          String?
@@ -145,6 +149,9 @@ model Tournament {
   venueName            String
   venueAddress         String?
   city                 String
+  state                String?
+  latitude             Decimal?       @db.Decimal(10, 8)
+  longitude            Decimal?       @db.Decimal(11, 8)
   registrationDeadline DateTime
   description          String?
   status               TournamentStatus @default(DRAFT)
