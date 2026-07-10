@@ -248,6 +248,7 @@ model Registration {
   userId         String
   eventId        String
   partnerId      String?
+  teamName       String?         // Team name for doubles/mixed doubles
   playerId       String?         // Unique player ID for this event (e.g., "P001", "P002")
   status         RegistrationStatus @default(CONFIRMED)
   registrationOrder Int?          // Order of registration (for seeding)

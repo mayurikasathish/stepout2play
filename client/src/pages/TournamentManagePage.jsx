@@ -1115,10 +1115,15 @@ const CreateEventModal = ({ tournament, onClose, onSubmit }) => {
                 value={formData.sportId}
                 onChange={(e) => handleSportChange(e.target.value)}
                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none disabled:bg-gray-100 disabled:cursor-not-allowed"
+                style={{
+                  background: 'rgba(10, 22, 40, 0.6)',
+                  color: '#fff',
+                  borderColor: 'rgba(255, 255, 255, 0.1)'
+                }}
                 disabled={showCustomRules || tournament?.sportType === 'single'}
               >
                 {allowedSports.map(sport => (
-                  <option key={sport.id} value={sport.id}>
+                  <option key={sport.id} value={sport.id} style={{ background: '#0a1628', color: '#fff' }}>
                     {sport.icon} {sport.name}
                   </option>
                 ))}
@@ -1308,22 +1313,41 @@ const CreateEventModal = ({ tournament, onClose, onSubmit }) => {
                   value={formData.format}
                   onChange={(e) => setFormData({ ...formData, format: e.target.value })}
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                  style={{
+                    background: 'rgba(10, 22, 40, 0.6)',
+                    color: '#fff',
+                    borderColor: 'rgba(255, 255, 255, 0.1)',
+                    colorScheme: 'dark'
+                  }}
                 >
-                  <option value="SINGLES">Singles</option>
-                  <option value="DOUBLES">Doubles</option>
-                  <option value="MIXED_DOUBLES">Mixed Doubles</option>
+                  <option value="SINGLES" style={{ background: '#0a1628', color: '#fff' }}>Singles</option>
+                  <option value="DOUBLES" style={{ background: '#0a1628', color: '#fff' }}>Doubles</option>
+                  <option value="MIXED_DOUBLES" style={{ background: '#0a1628', color: '#fff' }}>Mixed Doubles</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">Category</label>
+                <label className="block text-sm font-medium mb-2">Category (Age Restrictions)</label>
                 <input
                   type="text"
                   value={formData.category}
                   onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  placeholder="e.g., Open, U19, Veterans 40+"
+                  placeholder="e.g., Open, U19, 40+, 3+ U19"
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                  style={{
+                    background: 'rgba(10, 22, 40, 0.6)',
+                    color: '#fff',
+                    borderColor: 'rgba(255, 255, 255, 0.1)',
+                    colorScheme: 'dark'
+                  }}
                 />
+                <div className="mt-2 text-xs" style={{ color: 'rgba(255, 255, 255, 0.6)', lineHeight: '1.4' }}>
+                  ℹ️ <strong>Age Format:</strong><br/>
+                  • <strong>U19</strong> = Under 19 (ages 18 and below)<br/>
+                  • <strong>40+</strong> = 40 and above<br/>
+                  • <strong>3+ U19</strong> = Ages 3 to 18 (range)<br/>
+                  • <strong>Open</strong> or leave empty = All ages allowed
+                </div>
               </div>
             </div>
 
@@ -1334,18 +1358,26 @@ const CreateEventModal = ({ tournament, onClose, onSubmit }) => {
                   value={formData.gender}
                   onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                  style={{
+                    background: 'rgba(10, 22, 40, 0.6)',
+                    color: '#fff',
+                    borderColor: 'rgba(255, 255, 255, 0.1)',
+                    colorScheme: 'dark'
+                  }}
                   required
                 >
-                  <option value="">Select Gender</option>
-                  <option value="Men">Men</option>
-                  <option value="Women">Women</option>
-                  <option value="Mixed">Mixed</option>
-                  <option value="Any">Any</option>
+                  <option value="" style={{ background: '#0a1628', color: '#fff' }}>Select Gender</option>
+                  <option value="Men" style={{ background: '#0a1628', color: '#fff' }}>Men</option>
+                  <option value="Women" style={{ background: '#0a1628', color: '#fff' }}>Women</option>
+                  <option value="Mixed" style={{ background: '#0a1628', color: '#fff' }}>Mixed</option>
+                  <option value="Any" style={{ background: '#0a1628', color: '#fff' }}>Any</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">Max Participants</label>
+                <label className="block text-sm font-medium mb-2">
+                  {formData.format === 'MIXED_DOUBLES' ? 'Max Teams' : 'Max Participants'}
+                </label>
                 <input
                   type="number"
                   value={formData.maxParticipants}
@@ -1718,9 +1750,14 @@ const EditTournamentModal = ({ tournament, onClose, onSubmit }) => {
                 value={formData.status}
                 onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                style={{
+                  background: 'rgba(10, 22, 40, 0.6)',
+                  color: '#fff',
+                  borderColor: 'rgba(255, 255, 255, 0.1)'
+                }}
               >
-                <option value="DRAFT">Draft</option>
-                <option value="OPEN">Open</option>
+                <option value="DRAFT" style={{ background: '#0a1628', color: '#fff' }}>Draft</option>
+                <option value="OPEN" style={{ background: '#0a1628', color: '#fff' }}>Open</option>
               </select>
               <p className="mt-1 text-xs text-gray-500">
                 Other statuses (Closed, Ongoing, Completed) are calculated automatically based on dates
@@ -1967,10 +2004,15 @@ const EditEventModal = ({ event, tournament, onClose, onSubmit }) => {
                 value={formData.sportId}
                 onChange={(e) => handleSportChange(e.target.value)}
                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none disabled:bg-gray-100 disabled:cursor-not-allowed"
+                style={{
+                  background: 'rgba(10, 22, 40, 0.6)',
+                  color: '#fff',
+                  borderColor: 'rgba(255, 255, 255, 0.1)'
+                }}
                 disabled={showCustomRules || tournament?.sportType === 'single'}
               >
                 {allowedSports.map(sport => (
-                  <option key={sport.id} value={sport.id}>
+                  <option key={sport.id} value={sport.id} style={{ background: '#0a1628', color: '#fff' }}>
                     {sport.icon} {sport.name}
                   </option>
                 ))}
@@ -2105,22 +2147,41 @@ const EditEventModal = ({ event, tournament, onClose, onSubmit }) => {
                   value={formData.format}
                   onChange={(e) => setFormData({ ...formData, format: e.target.value })}
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                  style={{
+                    background: 'rgba(10, 22, 40, 0.6)',
+                    color: '#fff',
+                    borderColor: 'rgba(255, 255, 255, 0.1)',
+                    colorScheme: 'dark'
+                  }}
                 >
-                  <option value="SINGLES">Singles</option>
-                  <option value="DOUBLES">Doubles</option>
-                  <option value="MIXED_DOUBLES">Mixed Doubles</option>
+                  <option value="SINGLES" style={{ background: '#0a1628', color: '#fff' }}>Singles</option>
+                  <option value="DOUBLES" style={{ background: '#0a1628', color: '#fff' }}>Doubles</option>
+                  <option value="MIXED_DOUBLES" style={{ background: '#0a1628', color: '#fff' }}>Mixed Doubles</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">Category</label>
+                <label className="block text-sm font-medium mb-2">Category (Age Restrictions)</label>
                 <input
                   type="text"
                   value={formData.category}
                   onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  placeholder="e.g., Open, U19, Veterans 40+"
+                  placeholder="e.g., Open, U19, 40+, 3+ U19"
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                  style={{
+                    background: 'rgba(10, 22, 40, 0.6)',
+                    color: '#fff',
+                    borderColor: 'rgba(255, 255, 255, 0.1)',
+                    colorScheme: 'dark'
+                  }}
                 />
+                <div className="mt-2 text-xs" style={{ color: 'rgba(255, 255, 255, 0.6)', lineHeight: '1.4' }}>
+                  ℹ️ <strong>Age Format:</strong><br/>
+                  • <strong>U19</strong> = Under 19 (ages 18 and below)<br/>
+                  • <strong>40+</strong> = 40 and above<br/>
+                  • <strong>3+ U19</strong> = Ages 3 to 18 (range)<br/>
+                  • <strong>Open</strong> or leave empty = All ages allowed
+                </div>
               </div>
             </div>
 
@@ -2131,18 +2192,26 @@ const EditEventModal = ({ event, tournament, onClose, onSubmit }) => {
                   value={formData.gender}
                   onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                  style={{
+                    background: 'rgba(10, 22, 40, 0.6)',
+                    color: '#fff',
+                    borderColor: 'rgba(255, 255, 255, 0.1)',
+                    colorScheme: 'dark'
+                  }}
                   required
                 >
-                  <option value="">Select Gender</option>
-                  <option value="Men">Men</option>
-                  <option value="Women">Women</option>
-                  <option value="Mixed">Mixed</option>
-                  <option value="Any">Any</option>
+                  <option value="" style={{ background: '#0a1628', color: '#fff' }}>Select Gender</option>
+                  <option value="Men" style={{ background: '#0a1628', color: '#fff' }}>Men</option>
+                  <option value="Women" style={{ background: '#0a1628', color: '#fff' }}>Women</option>
+                  <option value="Mixed" style={{ background: '#0a1628', color: '#fff' }}>Mixed</option>
+                  <option value="Any" style={{ background: '#0a1628', color: '#fff' }}>Any</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">Max Participants</label>
+                <label className="block text-sm font-medium mb-2">
+                  {formData.format === 'MIXED_DOUBLES' ? 'Max Teams' : 'Max Participants'}
+                </label>
                 <input
                   type="number"
                   value={formData.maxParticipants}

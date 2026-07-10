@@ -87,6 +87,13 @@ router.post(
   registrationController.verifyPartner.bind(registrationController)
 );
 
+// POST /events/:eventId/check-team-name - Check if team name is available
+router.post(
+  '/events/:eventId/check-team-name',
+  authenticate,
+  registrationController.checkTeamName.bind(registrationController)
+);
+
 /**
  * Organizer routes
  */

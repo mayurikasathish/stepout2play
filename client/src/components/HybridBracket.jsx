@@ -45,6 +45,7 @@ const HybridBracket = ({ bracket, onMatchClick, onCaptureScorecard, isOrganizer 
 
     const user = participant.user
     const partner = participant.partner
+    const teamName = participant.teamName
 
     if (event.format === 'SINGLES') {
       return {
@@ -53,8 +54,9 @@ const HybridBracket = ({ bracket, onMatchClick, onCaptureScorecard, isOrganizer 
       }
     } else {
       const partnerName = partner ? `${partner.firstName} ${partner.lastName}` : 'No Partner'
+      const teamPrefix = teamName ? `${teamName} - ` : ''
       return {
-        name: `${user.firstName} ${user.lastName}`,
+        name: `${teamPrefix}${user.firstName} ${user.lastName}`,
         subtext: partnerName
       }
     }

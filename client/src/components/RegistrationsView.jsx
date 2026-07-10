@@ -481,6 +481,26 @@ const RegistrationsView = ({ tournamentId }) => {
                           </td>
                           <td className="px-6 py-4">
                             <div className="space-y-2">
+                              {/* Team Name for Doubles/Mixed */}
+                              {reg.teamName && (
+                                <div className="mb-2 inline-flex items-center gap-2 px-3 py-1 rounded-lg" style={{
+                                  background: 'rgba(79, 255, 176, 0.1)',
+                                  border: '1px solid rgba(79, 255, 176, 0.3)'
+                                }}>
+                                  <svg className="w-4 h-4" style={{ color: '#4fffb0' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                  </svg>
+                                  <span className="font-bold text-sm" style={{
+                                    color: '#4fffb0',
+                                    fontFamily: "'Barlow Condensed', sans-serif",
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.05em'
+                                  }}>
+                                    {reg.teamName}
+                                  </span>
+                                </div>
+                              )}
+
                               {/* Primary Player */}
                               <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0">

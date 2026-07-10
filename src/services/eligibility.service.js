@@ -3,47 +3,42 @@
  * Handles age and gender verification for event registration
  */
 
+const { parseAgeCategory, checkAgeEligibility: checkAge } = require('../utils/ageValidation');
+
 class EligibilityService {
   /**
    * Parse category string to extract age requirements
-   * Examples: "U19", "U15", "Veterans 40+", "Open", "30-45"
+   * Examples: "U19", "40+", "3+ U19", "Open"
+   * Uses the standardized age validation utility
    */
   parseAgeRequirements(category) {
-    if (!category) {
+    const { minAge, maxAge, isValid } = parseAgeCategory(category);
+
+    if (!isValid) {
+      // Treat invalid categories as OPEN
       return { type: 'OPEN', min: null, max: null };
     }
 
-    const categoryLower = category.toLowerCase().trim();
-
-    // Open category - no restrictions
-    if (categoryLower.includes('open')) {
+    // No restrictions (Open or empty)
+    if (minAge === null && maxAge === null) {
       return { type: 'OPEN', min: null, max: null };
     }
 
-    // Under age (U19, U15, U13, etc)
-    const underMatch = categoryLower.match(/u(\d+)/);
-    if (underMatch) {
-      const maxAge = parseInt(underMatch[1]);
+    // Under age (U19 = maxAge 18)
+    if (minAge === null && maxAge !== null) {
       return { type: 'UNDER', min: null, max: maxAge };
     }
 
-    // Veterans/Seniors (40+, 50+, 60+, etc) or just "40+", "50+"
-    // Match patterns: "Veterans 40+", "40+", "Seniors 50+", etc.
-    const veteransMatch = categoryLower.match(/(?:(?:veterans?|seniors?)\s*)?(\d+)\+/);
-    if (veteransMatch) {
-      const minAge = parseInt(veteransMatch[1]);
+    // Veterans (40+)
+    if (minAge !== null && maxAge === null) {
       return { type: 'VETERANS', min: minAge, max: null };
     }
 
-    // Age range (30-45, 35-50, etc)
-    const rangeMatch = categoryLower.match(/(\d+)\s*-\s*(\d+)/);
-    if (rangeMatch) {
-      const minAge = parseInt(rangeMatch[1]);
-      const maxAge = parseInt(rangeMatch[2]);
+    // Age range (3+ U19 = minAge 3, maxAge 18)
+    if (minAge !== null && maxAge !== null) {
       return { type: 'RANGE', min: minAge, max: maxAge };
     }
 
-    // If we can't parse it, treat as open
     return { type: 'OPEN', min: null, max: null };
   }
 

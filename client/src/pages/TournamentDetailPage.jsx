@@ -183,7 +183,7 @@ const TournamentDetailPage = () => {
     setPendingRegistration(null)
   }
 
-  const registerForEvent = async (eventId, eventName, partnerId) => {
+  const registerForEvent = async (eventId, eventName, partnerId, teamName) => {
     try {
       setRegistering(true)
 
@@ -207,7 +207,8 @@ const TournamentDetailPage = () => {
 
       // Proceed with registration (with or without partner)
       const response = await api.post(`/events/${eventId}/register`, {
-        partnerId: partnerId || undefined
+        partnerId: partnerId || undefined,
+        teamName: teamName || undefined
       })
 
       if (response.data.success) {
@@ -258,9 +259,9 @@ const TournamentDetailPage = () => {
     }
   }
 
-  const handlePartnerConfirm = (partnerId, partnerInfo) => {
+  const handlePartnerConfirm = (partnerId, partnerInfo, teamName) => {
     if (currentEvent) {
-      registerForEvent(currentEvent.id, currentEvent.name, partnerId)
+      registerForEvent(currentEvent.id, currentEvent.name, partnerId, teamName)
     }
   }
 
@@ -920,7 +921,7 @@ const EventCard = ({ event, tournament, canRegister, onRegister, onCancelRegistr
                     fontSize: '0.875rem',
                     textTransform: 'uppercase'
                   }}
-                  title={isDeadlinePassed ? 'Registration deadline has passed' : 'Cancel registration'}
+                  title={isDeadlinePassed ? 'Registration deadline has passed' : 'Withdraw from event'}
                   onMouseEnter={(e) => {
                     if (!isDeadlinePassed) {
                       e.currentTarget.style.background = 'rgba(236, 72, 153, 0.2)';
@@ -932,7 +933,7 @@ const EventCard = ({ event, tournament, canRegister, onRegister, onCancelRegistr
                     }
                   }}
                 >
-                  Cancel
+                  Withdraw from Event
                 </button>
               </div>
             ) : isFull ? (

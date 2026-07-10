@@ -31,7 +31,7 @@ class RegistrationController {
   async registerForEvent(req, res, next) {
     try {
       const { eventId } = req.params;
-      const { partnerId } = req.body;
+      const { partnerId, teamName } = req.body;
       const userId = req.user.id;
 
       // Validation
@@ -50,6 +50,32 @@ class RegistrationController {
         });
       }
 
+      // Validate team name if provided
+      if (teamName && partnerId) {
+        if (typeof teamName !== 'string' || teamName.trim().length < 3) {
+          return res.status(400).json({
+            success: false,
+            error: 'Team name must be at least 3 characters'
+          });
+        }
+
+        // Check if team name already exists for this event
+        const existingTeam = await prisma.registration.findFirst({
+          where: {
+            eventId,
+            teamName: teamName.trim(),
+            status: { not: 'WITHDRAWN' }
+          }
+        });
+
+        if (existingTeam) {
+          return res.status(400).json({
+            success: false,
+            error: 'This team name is already taken for this event'
+          });
+        }
+      }
+
       // Check eligibility
       const eligibility = await eligibilityService.checkEligibility(userId, eventId);
       if (!eligibility.eligible) {
@@ -64,7 +90,8 @@ class RegistrationController {
       }
 
       const registration = await registrationService.registerForEvent(userId, eventId, {
-        partnerId: partnerId || null
+        partnerId: partnerId || null,
+        teamName: teamName ? teamName.trim() : null
       });
 
       // Create live feed item when player registers
@@ -257,6 +284,48 @@ class RegistrationController {
       res.status(200).json({
         success: true,
         message: 'Registration cancelled successfully'
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Check if team name is available for an event
+   * POST /events/:eventId/check-team-name
+   */
+  async checkTeamName(req, res, next) {
+    try {
+      const { eventId } = req.params;
+      const { teamName } = req.body;
+
+      if (!teamName || typeof teamName !== 'string') {
+        return res.status(400).json({
+          success: false,
+          error: 'Team name is required'
+        });
+      }
+
+      if (teamName.trim().length < 3) {
+        return res.status(400).json({
+          success: false,
+          error: 'Team name must be at least 3 characters'
+        });
+      }
+
+      // Check if team name exists for this event (excluding withdrawn registrations)
+      const existingTeam = await prisma.registration.findFirst({
+        where: {
+          eventId,
+          teamName: teamName.trim(),
+          status: { not: 'WITHDRAWN' }
+        }
+      });
+
+      res.status(200).json({
+        success: true,
+        available: !existingTeam,
+        teamName: teamName.trim()
       });
     } catch (error) {
       next(error);

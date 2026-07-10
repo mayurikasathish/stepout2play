@@ -32,8 +32,9 @@ const STATUS_CONFIG = {
 
 const getParticipantName = (reg) => {
   if (!reg) return 'TBD'
+  const teamName = reg.teamName ? `${reg.teamName} - ` : ''
   const name = `${reg.user.firstName} ${reg.user.lastName}`
-  if (reg.partner) return `${name} / ${reg.partner.firstName} ${reg.partner.lastName}`
+  if (reg.partner) return `${teamName}${name} / ${reg.partner.firstName} ${reg.partner.lastName}`
   return name
 }
 

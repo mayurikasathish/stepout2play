@@ -1,4 +1,5 @@
 const eventService = require('../services/event.service');
+const { parseAgeCategory } = require('../utils/ageValidation');
 
 class EventController {
   /**
@@ -12,6 +13,14 @@ class EventController {
 
       // Validation
       const errors = [];
+
+      // Validate age category format if provided
+      if (category && category.trim() !== '') {
+        const ageValidation = parseAgeCategory(category.trim());
+        if (!ageValidation.isValid) {
+          errors.push(ageValidation.error);
+        }
+      }
 
       if (!name || typeof name !== 'string' || name.trim().length === 0) {
         errors.push('Event name is required');

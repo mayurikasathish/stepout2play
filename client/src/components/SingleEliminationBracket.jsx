@@ -134,10 +134,11 @@ const SingleEliminationBracket = ({ matches, onMatchClick, onCaptureScorecard, o
     if (participant) {
       if (participant.user) {
         const playerId = participant.playerId ? `${participant.playerId}: ` : ''
+        const teamName = participant.teamName ? `${participant.teamName} - ` : ''
         const userName = `${participant.user.firstName || ''} ${participant.user.lastName || ''}`.trim()
         if (participant.partner && participant.partner.firstName) {
           const partnerName = `${participant.partner.firstName} ${participant.partner.lastName || ''}`.trim()
-          return `${playerId}${userName ? `${userName} / ${partnerName}` : partnerName}`
+          return `${playerId}${teamName}${userName ? `${userName} / ${partnerName}` : partnerName}`
         }
         return `${playerId}${userName || 'Unknown Player'}`
       }
@@ -159,19 +160,21 @@ const SingleEliminationBracket = ({ matches, onMatchClick, onCaptureScorecard, o
             : sourceMatch.participant2
 
           if (winnerParticipant && winnerParticipant.user) {
+            const teamName = winnerParticipant.teamName ? `${winnerParticipant.teamName} - ` : ''
             const winnerName = `${winnerParticipant.user.firstName || ''} ${winnerParticipant.user.lastName || ''}`.trim()
             if (winnerParticipant.partner && winnerParticipant.partner.firstName) {
               const partnerName = `${winnerParticipant.partner.firstName} ${winnerParticipant.partner.lastName || ''}`.trim()
-              return winnerName ? `${winnerName} / ${partnerName}` : partnerName
+              return `${teamName}${winnerName ? `${winnerName} / ${partnerName}` : partnerName}`
             }
             return winnerName || 'Winner Advancing'
           }
 
           // Fallback to winner object if participant lookup fails
           if (sourceMatch.winner && sourceMatch.winner.user) {
+            const teamName = sourceMatch.winner.teamName ? `${sourceMatch.winner.teamName} - ` : ''
             const winnerName = `${sourceMatch.winner.user.firstName || ''} ${sourceMatch.winner.user.lastName || ''}`.trim()
             if (sourceMatch.winner.partner) {
-              return `${winnerName} / ${sourceMatch.winner.partner.firstName} ${sourceMatch.winner.partner.lastName || ''}`.trim()
+              return `${teamName}${winnerName} / ${sourceMatch.winner.partner.firstName} ${sourceMatch.winner.partner.lastName || ''}`.trim()
             }
             return winnerName || 'Winner Advancing'
           }

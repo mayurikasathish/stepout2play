@@ -55,20 +55,34 @@ const CancelRegistrationModal = ({ registration, onClose, onCancelled }) => {
     return (
       <>
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-          <div className="relative bg-white rounded-2xl w-full max-w-md p-8 border-2 border-gray-300">
+          <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm" onClick={onClose} />
+          <div className="relative rounded-2xl w-full max-w-md p-8" style={{
+            background: 'rgba(10, 22, 40, 0.95)',
+            border: '1px solid rgba(255, 165, 0, 0.4)'
+          }}>
             <div className="text-center mb-6">
-              <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-red-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <AlertIcon className="w-8 h-8 text-white" />
+              <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{
+                background: 'linear-gradient(135deg, rgba(255, 165, 0, 0.2), rgba(255, 68, 68, 0.2))',
+                border: '2px solid rgba(255, 165, 0, 0.5)'
+              }}>
+                <AlertIcon style={{ color: '#ffa500' }} />
               </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">Cannot Withdraw</h3>
-              <p className="text-gray-600 leading-relaxed">
+              <h3 className="text-2xl font-bold mb-2" style={{
+                fontFamily: "'Barlow Condensed', sans-serif",
+                textTransform: 'uppercase',
+                color: '#ffa500',
+                letterSpacing: '-0.02em'
+              }}>Cannot Withdraw</h3>
+              <p style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '0.95rem' }}>
                 The event has already started. You can no longer withdraw online.
               </p>
             </div>
 
-            <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl mb-6">
-              <p className="text-sm text-blue-800">
+            <div className="p-4 rounded-xl mb-6" style={{
+              background: 'rgba(0, 212, 255, 0.1)',
+              border: '1px solid rgba(0, 212, 255, 0.3)'
+            }}>
+              <p className="text-sm" style={{ color: 'rgba(0, 212, 255, 0.9)' }}>
                 <strong>Need to withdraw?</strong><br/>
                 Please contact the tournament organizer directly for assistance with cancellation.
               </p>
@@ -76,7 +90,14 @@ const CancelRegistrationModal = ({ registration, onClose, onCancelled }) => {
 
             <button
               onClick={onClose}
-              className="w-full px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold rounded-xl transition-all"
+              className="w-full px-6 py-3 font-semibold rounded-xl transition-all"
+              style={{
+                background: 'linear-gradient(135deg, rgba(79, 255, 176, 0.9), rgba(16, 185, 129, 0.9))',
+                color: '#060d1f',
+                fontFamily: "'Barlow Condensed', sans-serif",
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em'
+              }}
             >
               Got it
             </button>
@@ -97,35 +118,59 @@ const CancelRegistrationModal = ({ registration, onClose, onCancelled }) => {
   return (
     <>
       <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-        <div className="relative bg-white rounded-2xl w-full max-w-md p-8 border-2 border-gray-300">
+        <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm" onClick={onClose} />
+        <div className="relative rounded-2xl w-full max-w-md p-8" style={{
+          background: 'rgba(10, 22, 40, 0.95)',
+          border: '1px solid rgba(236, 72, 153, 0.4)'
+        }}>
           <div className="text-center mb-6">
-            <div className="w-16 h-16 bg-gradient-to-br from-red-500 to-red-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{
+              background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.2), rgba(219, 39, 119, 0.2))',
+              border: '2px solid rgba(236, 72, 153, 0.5)'
+            }}>
+              <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="#ec4899" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-2">Withdraw from Event?</h3>
-            <p className="text-gray-600">
-              Are you sure you want to withdraw from <strong>{registration.event.name}</strong>?
+            <h3 className="text-2xl font-bold mb-2" style={{
+              fontFamily: "'Barlow Condensed', sans-serif",
+              textTransform: 'uppercase',
+              color: '#ec4899',
+              letterSpacing: '-0.02em'
+            }}>Withdraw from Event?</h3>
+            <p style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '0.95rem' }}>
+              Are you sure you want to withdraw from <strong style={{ color: '#fff' }}>{registration.event.name}</strong>?
             </p>
           </div>
 
-          <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl mb-4">
-            <p className="text-sm text-amber-800">
+          <div className="p-4 rounded-xl mb-4" style={{
+            background: 'rgba(251, 191, 36, 0.1)',
+            border: '1px solid rgba(251, 191, 36, 0.3)'
+          }}>
+            <p className="text-sm" style={{ color: 'rgba(251, 191, 36, 0.9)' }}>
               The tournament organizer will be notified of your withdrawal.
             </p>
           </div>
 
           <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2 text-left">
+            <label className="block text-sm font-medium mb-2 text-left" style={{
+              color: 'rgba(255, 255, 255, 0.9)',
+              fontFamily: "'Barlow Condensed', sans-serif",
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em'
+            }}>
               Reason (optional)
             </label>
             <textarea
               value={withdrawalReason}
               onChange={(e) => setWithdrawalReason(e.target.value)}
               placeholder="e.g., Injury, Schedule conflict..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none resize-none"
+              className="w-full px-3 py-2 rounded-lg outline-none resize-none"
+              style={{
+                background: 'rgba(10, 22, 40, 0.6)',
+                color: '#fff',
+                border: '1px solid rgba(255, 255, 255, 0.1)'
+              }}
               rows={3}
             />
           </div>
@@ -134,14 +179,29 @@ const CancelRegistrationModal = ({ registration, onClose, onCancelled }) => {
             <button
               onClick={onClose}
               disabled={cancelling}
-              className="flex-1 px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-900 font-semibold rounded-xl transition-all disabled:opacity-50"
+              className="flex-1 px-6 py-3 font-semibold rounded-xl transition-all disabled:opacity-50"
+              style={{
+                background: 'rgba(255, 255, 255, 0.1)',
+                color: 'rgba(255, 255, 255, 0.8)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                fontFamily: "'Barlow Condensed', sans-serif",
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em'
+              }}
             >
               Keep Registration
             </button>
             <button
               onClick={handleCancel}
               disabled={cancelling}
-              className="flex-1 px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-semibold rounded-xl transition-all shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
+              className="flex-1 px-6 py-3 font-semibold rounded-xl transition-all shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
+              style={{
+                background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.9), rgba(219, 39, 119, 0.9))',
+                color: '#fff',
+                fontFamily: "'Barlow Condensed', sans-serif",
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em'
+              }}
             >
               {cancelling ? (
                 <>

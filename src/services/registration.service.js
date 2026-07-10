@@ -140,6 +140,7 @@ class RegistrationService {
         where: { id: existingRegistration.id },
         data: {
           partnerId,
+          teamName: registrationData.teamName || null,
           status,
           isStandby,
           standbyPosition,
@@ -160,6 +161,7 @@ class RegistrationService {
           userId,
           eventId,
           partnerId,
+          teamName: registrationData.teamName || null,
           playerId,
           status,
           isStandby,

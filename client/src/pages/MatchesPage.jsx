@@ -751,7 +751,21 @@ const RegistrationCard = ({ registration, navigate, isUpcoming, highlightedEvent
         {isUpcoming && registration.status !== 'WITHDRAWN' && (
           <button
             onClick={handleWithdraw}
-            className="w-full mt-3 px-4 py-2 bg-red-50 hover:bg-red-100 text-red-700 font-semibold text-sm rounded-lg border border-red-200 transition-colors"
+            className="w-full mt-3 px-4 py-2 font-semibold text-sm rounded-lg transition-all"
+            style={{
+              background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.15), rgba(219, 39, 119, 0.15))',
+              color: '#ec4899',
+              border: '1px solid rgba(236, 72, 153, 0.4)',
+              fontFamily: "'Barlow Condensed', sans-serif",
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.background = 'linear-gradient(135deg, rgba(236, 72, 153, 0.25), rgba(219, 39, 119, 0.25))'
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.background = 'linear-gradient(135deg, rgba(236, 72, 153, 0.15), rgba(219, 39, 119, 0.15))'
+            }}
           >
             {registration.status === 'STANDBY' ? 'Remove from Waitlist' : 'Withdraw from Event'}
           </button>
@@ -764,32 +778,54 @@ const RegistrationCard = ({ registration, navigate, isUpcoming, highlightedEvent
           <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm" />
           <div className="flex min-h-full items-center justify-center p-4">
             <div
-              className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-8"
+              className="relative rounded-2xl shadow-2xl w-full max-w-md p-8"
+              style={{
+                background: 'rgba(10, 22, 40, 0.95)',
+                border: '1px solid rgba(236, 72, 153, 0.4)'
+              }}
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex flex-col items-center text-center">
-                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
-                  <svg className="w-8 h-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{
+                  background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.2), rgba(219, 39, 119, 0.2))',
+                  border: '2px solid rgba(236, 72, 153, 0.5)'
+                }}>
+                  <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="#ec4899" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                   </svg>
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">Confirm Withdrawal</h3>
-                <p className="text-gray-600 mb-2">
-                  Are you sure you want to withdraw from <span className="font-semibold">{registration.event.name}</span>?
+                <h3 className="text-xl font-bold mb-2" style={{
+                  fontFamily: "'Barlow Condensed', sans-serif",
+                  textTransform: 'uppercase',
+                  color: '#ec4899',
+                  letterSpacing: '-0.02em'
+                }}>Confirm Withdrawal</h3>
+                <p className="mb-2" style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '0.95rem' }}>
+                  Are you sure you want to withdraw from <span style={{ fontWeight: '600', color: '#fff' }}>{registration.event.name}</span>?
                 </p>
-                <p className="text-sm text-gray-500 mb-4">
+                <p className="text-sm mb-4" style={{ color: 'rgba(255, 255, 255, 0.6)' }}>
                   The tournament organizer will be notified of your withdrawal.
                 </p>
 
                 <div className="w-full mb-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-2 text-left">
+                  <label className="block text-sm font-medium mb-2 text-left" style={{
+                    color: 'rgba(255, 255, 255, 0.9)',
+                    fontFamily: "'Barlow Condensed', sans-serif",
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em'
+                  }}>
                     Reason (optional)
                   </label>
                   <textarea
                     value={withdrawalReason}
                     onChange={(e) => setWithdrawalReason(e.target.value)}
                     placeholder="e.g., Injury, Schedule conflict..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none resize-none"
+                    className="w-full px-3 py-2 rounded-lg outline-none resize-none"
+                    style={{
+                      background: 'rgba(10, 22, 40, 0.6)',
+                      color: '#fff',
+                      border: '1px solid rgba(255, 255, 255, 0.1)'
+                    }}
                     rows={3}
                   />
                 </div>
@@ -798,14 +834,29 @@ const RegistrationCard = ({ registration, navigate, isUpcoming, highlightedEvent
                   <button
                     onClick={() => setShowWithdrawModal(false)}
                     disabled={withdrawing}
-                    className="flex-1 px-6 py-3 bg-white hover:bg-gray-50 text-gray-700 font-semibold rounded-xl border border-gray-300 transition-colors disabled:opacity-50"
+                    className="flex-1 px-6 py-3 font-semibold rounded-xl transition-all disabled:opacity-50"
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.1)',
+                      color: 'rgba(255, 255, 255, 0.8)',
+                      border: '1px solid rgba(255, 255, 255, 0.2)',
+                      fontFamily: "'Barlow Condensed', sans-serif",
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em'
+                    }}
                   >
                     Cancel
                   </button>
                   <button
                     onClick={confirmWithdraw}
                     disabled={withdrawing}
-                    className="flex-1 px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl transition-colors disabled:opacity-50"
+                    className="flex-1 px-6 py-3 font-semibold rounded-xl transition-all disabled:opacity-50"
+                    style={{
+                      background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.9), rgba(219, 39, 119, 0.9))',
+                      color: '#fff',
+                      fontFamily: "'Barlow Condensed', sans-serif",
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em'
+                    }}
                   >
                     {withdrawing ? 'Withdrawing...' : 'Yes, Withdraw'}
                   </button>

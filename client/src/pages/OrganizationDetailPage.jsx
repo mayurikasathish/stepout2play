@@ -1419,6 +1419,7 @@ const CreateTournamentModal = ({ onClose, onSubmit }) => {
                 <input
                   type="date"
                   value={formData.startDate}
+                  min={new Date().toISOString().split('T')[0]}
                   onChange={(e) => {
                     const newStartDate = e.target.value
                     setFormData({
@@ -1450,6 +1451,7 @@ const CreateTournamentModal = ({ onClose, onSubmit }) => {
                 <input
                   type="date"
                   value={formData.endDate}
+                  min={formData.startDate || new Date().toISOString().split('T')[0]}
                   onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
                   className="tournament-form-input"
                   required
@@ -1516,6 +1518,8 @@ const CreateTournamentModal = ({ onClose, onSubmit }) => {
               <input
                 type="datetime-local"
                 value={formData.registrationDeadline}
+                min={new Date().toISOString().slice(0, 16)}
+                max={formData.startDate && formData.startTime ? `${formData.startDate}T${formData.startTime}` : undefined}
                 onChange={(e) => setFormData({ ...formData, registrationDeadline: e.target.value })}
                 className="tournament-form-input"
                 required
