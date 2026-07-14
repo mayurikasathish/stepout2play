@@ -1450,6 +1450,81 @@ const ProfilePage = () => {
                   </div>
                 </div>
 
+                {/* Privacy Toggle */}
+                <div className="profile-field privacy-section" style={{
+                  marginTop: '1.5rem',
+                  padding: '1.25rem',
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  borderRadius: '12px',
+                  border: '1px solid rgba(255, 255, 255, 0.08)'
+                }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginBottom: '0.5rem'
+                  }}>
+                    <div>
+                      <div className="profile-field-label" style={{ marginBottom: '0.25rem' }}>Profile Privacy</div>
+                      <div style={{
+                        fontSize: '0.875rem',
+                        color: 'rgba(255, 255, 255, 0.6)',
+                        fontFamily: "'Barlow Condensed', sans-serif"
+                      }}>
+                        {profile?.isProfilePrivate ? 'People need to send follow requests' : 'Anyone can follow you instantly'}
+                      </div>
+                    </div>
+                    <button
+                      onClick={async () => {
+                        try {
+                          const newPrivacy = !profile?.isProfilePrivate
+                          const response = await api.patch('/users/profile-privacy', {
+                            isProfilePrivate: newPrivacy
+                          })
+                          if (response.data.success) {
+                            setProfile({ ...profile, isProfilePrivate: newPrivacy })
+                            setToastMessage(`Profile is now ${newPrivacy ? 'Private' : 'Public'}`)
+                            setToastType('success')
+                            setShowToast(true)
+                          }
+                        } catch (err) {
+                          console.error('Error updating privacy:', err)
+                          setToastMessage('Failed to update privacy setting')
+                          setToastType('error')
+                          setShowToast(true)
+                        }
+                      }}
+                      style={{
+                        position: 'relative',
+                        width: '56px',
+                        height: '32px',
+                        borderRadius: '16px',
+                        border: 'none',
+                        cursor: 'pointer',
+                        transition: 'all 0.3s ease',
+                        background: profile?.isProfilePrivate
+                          ? 'linear-gradient(135deg, #ec4899, #f472b6)'
+                          : 'rgba(255, 255, 255, 0.2)',
+                        boxShadow: profile?.isProfilePrivate
+                          ? '0 4px 15px rgba(236, 72, 153, 0.4)'
+                          : 'none'
+                      }}
+                    >
+                      <div style={{
+                        position: 'absolute',
+                        width: '24px',
+                        height: '24px',
+                        borderRadius: '50%',
+                        background: '#fff',
+                        top: '4px',
+                        left: profile?.isProfilePrivate ? '28px' : '4px',
+                        transition: 'left 0.3s ease',
+                        boxShadow: '0 2px 5px rgba(0, 0, 0, 0.2)'
+                      }} />
+                    </button>
+                  </div>
+                </div>
+
                 <button
                   className="edit-profile-button"
                   onClick={() => setIsEditing(true)}
@@ -1539,7 +1614,7 @@ const ProfilePage = () => {
                     <div className="no-history">Loading...</div>
                   ) : ratingHistory.length === 0 ? (
                     <div className="no-history">
-                      No match history yet for {getSportDisplayName(selectedGraphSport)}
+                      No matches played yet to show rating variation for {getSportDisplayName(selectedGraphSport)}
                     </div>
                   ) : (
                     <div className="graph-canvas">

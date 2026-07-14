@@ -523,7 +523,10 @@ const TournamentDetailPage = () => {
               <div>
                 <p style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.5)', marginBottom: '0.25rem', textTransform: 'uppercase', fontWeight: '600' }}>Venue</p>
                 <p style={{ fontWeight: '700', color: '#fff', fontSize: '1rem' }}>{tournament.venueName}</p>
-                <p style={{ fontSize: '0.875rem', color: 'rgba(255, 255, 255, 0.7)' }}>{tournament.city}</p>
+                <p style={{ fontSize: '0.875rem', color: 'rgba(255, 255, 255, 0.7)' }}>
+                  {tournament.venueAddress && <>{tournament.venueAddress}<br /></>}
+                  {tournament.city}{tournament.state && `, ${tournament.state}`}
+                </p>
               </div>
             </div>
 

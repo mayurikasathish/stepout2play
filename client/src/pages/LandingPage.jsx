@@ -1295,7 +1295,7 @@ export default function LandingPage() {
 
       {/* ── LOGIN MODAL ── */}
       {showLogin && (
-        <div className="modal-overlay" onClick={() => { setShowLogin(false); setError(''); }}>
+        <div className="modal-overlay">
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <button className="modal-close" onClick={() => { setShowLogin(false); setError(''); }}>×</button>
             <h2 className="modal-title">Game on!</h2>
@@ -1356,7 +1356,7 @@ export default function LandingPage() {
 
       {/* ── SIGNUP MODAL ── */}
       {showSignup && (
-        <div className="modal-overlay" onClick={() => { setShowSignup(false); setError(''); }}>
+        <div className="modal-overlay">
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <button className="modal-close" onClick={() => { setShowSignup(false); setError(''); }}>×</button>
             <h2 className="modal-title">The game begins here!</h2>

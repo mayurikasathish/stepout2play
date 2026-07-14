@@ -584,9 +584,6 @@ const Navbar = () => {
                       <button onClick={() => navigate('/profile')} className="dropdown-item">
                         My Profile
                       </button>
-                      <button onClick={() => navigate('/settings')} className="dropdown-item">
-                        Settings
-                      </button>
                       <div className="dropdown-divider"></div>
                       <button onClick={handleLogout} className="dropdown-item danger">
                         Sign out

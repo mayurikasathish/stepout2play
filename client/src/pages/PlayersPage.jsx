@@ -51,7 +51,7 @@ const getGradient = (name = '') => {
 }
 
 /* ─── Player Card ───────────────────────────────────── */
-const PlayerCard = ({ player, onClick, onInvite, playerOrgInfo }) => {
+const PlayerCard = ({ player, onClick, onInvite, playerOrgInfo, onFollow, followStatus }) => {
   const fullName = `${player.firstName || ''} ${player.lastName || ''}`.trim() || 'Unknown Player'
   const initials = `${player.firstName?.charAt(0) || ''}${player.lastName?.charAt(0) || ''}`.toUpperCase()
 
@@ -85,9 +85,15 @@ const PlayerCard = ({ player, onClick, onInvite, playerOrgInfo }) => {
               letterSpacing: '-0.02em',
               textTransform: 'uppercase',
               color: '#fff',
-              marginBottom: '0.25rem'
+              marginBottom: '0.25rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem'
             }}>
               {fullName}
+              {player.isProfilePrivate && (
+                <span style={{ fontSize: '0.9rem', opacity: 0.7 }}>🔒</span>
+              )}
             </h3>
             <p style={{
               fontFamily: "'Barlow Condensed', sans-serif",
@@ -177,11 +183,57 @@ const PlayerCard = ({ player, onClick, onInvite, playerOrgInfo }) => {
         </div>
 
         {/* Action Buttons */}
-        <div style={{display: 'flex', gap: '0.75rem'}}>
+        <div style={{display: 'flex', gap: '0.75rem', flexWrap: 'wrap'}}>
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              onFollow(player.id)
+            }}
+            style={{
+              flex: '1 1 auto',
+              minWidth: '120px',
+              background: followStatus === 'none' ? '#ec4899' : 'transparent',
+              color: followStatus === 'none' ? '#fff' : (followStatus === 'pending' ? '#fbbf24' : '#ec4899'),
+              fontFamily: "'Barlow Condensed', sans-serif",
+              fontWeight: 700,
+              fontSize: '0.95rem',
+              textTransform: 'uppercase',
+              padding: '0.65rem 1.25rem',
+              border: followStatus === 'none' ? 'none' : (followStatus === 'pending' ? '1px solid #fbbf24' : '1px solid #ec4899'),
+              borderRadius: '50px',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease'
+            }}
+            onMouseOver={(e) => {
+              if (followStatus === 'accepted') {
+                e.target.style.background = 'rgba(236, 72, 153, 0.1)'
+              } else if (followStatus === 'pending') {
+                e.target.style.background = 'rgba(251, 191, 36, 0.1)'
+              } else {
+                e.target.style.transform = 'translateY(-2px)'
+                e.target.style.boxShadow = '0 8px 25px rgba(236, 72, 153, 0.5)'
+                e.target.style.background = '#f472b6'
+              }
+            }}
+            onMouseOut={(e) => {
+              if (followStatus === 'accepted') {
+                e.target.style.background = 'transparent'
+              } else if (followStatus === 'pending') {
+                e.target.style.background = 'transparent'
+              } else {
+                e.target.style.transform = 'translateY(0)'
+                e.target.style.boxShadow = 'none'
+                e.target.style.background = '#ec4899'
+              }
+            }}
+          >
+            {followStatus === 'accepted' ? 'Following' : (followStatus === 'pending' ? 'Requested' : 'Follow')}
+          </button>
           <button
             onClick={onClick}
             style={{
-              flex: 1,
+              flex: '1 1 auto',
+              minWidth: '120px',
               background: 'transparent',
               color: 'rgba(255, 255, 255, 0.8)',
               fontFamily: "'Barlow Condensed', sans-serif",
@@ -211,7 +263,8 @@ const PlayerCard = ({ player, onClick, onInvite, playerOrgInfo }) => {
               onInvite(player)
             }}
             style={{
-              flex: 1,
+              flex: '1 1 auto',
+              minWidth: '120px',
               background: '#4fffb0',
               color: '#060d1f',
               fontFamily: "'Barlow Condensed', sans-serif",
@@ -280,9 +333,11 @@ const PlayersPage = () => {
     message: ''
   })
   const [sendingInvite, setSendingInvite] = useState(false)
+  const [followStatuses, setFollowStatuses] = useState({}) // { userId: 'accepted' | 'pending' | 'none' }
 
   useEffect(() => {
     loadMyOrgs()
+    loadFollowStatuses()
   }, [])
 
   useEffect(() => {
@@ -291,6 +346,22 @@ const PlayersPage = () => {
       loadPlayers()
     }
   }, [allMyOrgs])
+
+  const loadFollowStatuses = async () => {
+    try {
+      const response = await api.get('/follows/following')
+      if (response.data.success) {
+        // Build a map of userId -> 'accepted'
+        const statuses = {}
+        response.data.followingIds.forEach(id => {
+          statuses[id] = 'accepted'
+        })
+        setFollowStatuses(statuses)
+      }
+    } catch (err) {
+      console.error('Error loading follow statuses:', err)
+    }
+  }
 
   const loadPlayers = async () => {
     try {
@@ -386,6 +457,50 @@ const PlayersPage = () => {
       alert(err.response?.data?.error || 'Failed to send invitation')
     } finally {
       setSendingInvite(false)
+    }
+  }
+
+  const handleFollow = async (playerId) => {
+    try {
+      const currentStatus = followStatuses[playerId] || 'none'
+
+      if (currentStatus === 'accepted' || currentStatus === 'pending') {
+        // Unfollow - update UI immediately
+        setFollowStatuses(prev => {
+          const newStatuses = { ...prev }
+          delete newStatuses[playerId]
+          return newStatuses
+        })
+        await api.delete(`/follows/${playerId}`)
+      } else {
+        // Follow - send request and get response to know if it's pending or accepted
+        const response = await api.post('/follows', { followingId: playerId })
+
+        if (response.data.success) {
+          const newStatus = response.data.follow.status // 'pending' or 'accepted'
+          setFollowStatuses(prev => ({
+            ...prev,
+            [playerId]: newStatus
+          }))
+        }
+      }
+    } catch (err) {
+      console.error('Error toggling follow:', err)
+      // Revert on error
+      const currentStatus = followStatuses[playerId] || 'none'
+      if (currentStatus !== 'none') {
+        setFollowStatuses(prev => ({
+          ...prev,
+          [playerId]: currentStatus
+        }))
+      } else {
+        setFollowStatuses(prev => {
+          const newStatuses = { ...prev }
+          delete newStatuses[playerId]
+          return newStatuses
+        })
+      }
+      alert(err.response?.data?.error || 'Failed to update follow status')
     }
   }
 
@@ -664,6 +779,8 @@ const PlayersPage = () => {
                   player={player}
                   onClick={() => navigate(`/players/${player.id}`)}
                   onInvite={handleInviteClick}
+                  onFollow={handleFollow}
+                  followStatus={followStatuses[player.id] || 'none'}
                   playerOrgInfo={getPlayerOrgInfo(player)}
                 />
               ))}

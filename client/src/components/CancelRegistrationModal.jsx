@@ -55,7 +55,7 @@ const CancelRegistrationModal = ({ registration, onClose, onCancelled }) => {
     return (
       <>
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-          <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm" onClick={onClose} />
+          <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm" />
           <div className="relative rounded-2xl w-full max-w-md p-8" style={{
             background: 'rgba(10, 22, 40, 0.95)',
             border: '1px solid rgba(255, 165, 0, 0.4)'
@@ -118,7 +118,7 @@ const CancelRegistrationModal = ({ registration, onClose, onCancelled }) => {
   return (
     <>
       <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-        <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm" onClick={onClose} />
+        <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm" />
         <div className="relative rounded-2xl w-full max-w-md p-8" style={{
           background: 'rgba(10, 22, 40, 0.95)',
           border: '1px solid rgba(236, 72, 153, 0.4)'

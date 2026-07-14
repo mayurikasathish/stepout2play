@@ -30,12 +30,15 @@ model User {
   profilePicture       String?
   primaryRole          String?
   sports               String[]       @default([])
+  isProfilePrivate     Boolean        @default(false)
   orgMemberships       OrgMember[]
   partnerRegistrations Registration[] @relation("PartnerRegistrations")
   registrations        Registration[] @relation("UserRegistrations")
   notifications        Notification[]
   liveFeedItems        LiveFeedItem[]
   playerRatings        PlayerRating[]
+  following            Follow[]       @relation("UserFollowing")
+  followers            Follow[]       @relation("UserFollowers")
 
   @@map("users")
 }
@@ -56,6 +59,8 @@ model Organization {
   membershipBenefits String?
   membershipFee      String?
   location           String?
+  city               String?
+  state              String?
   contactPerson      String?
   contactEmail       String?
   contactPhone       String?
@@ -468,4 +473,22 @@ model MatchRatingChange {
   @@index([matchId])
   @@index([userId])
   @@map("match_rating_changes")
+}
+
+model Follow {
+  id          String   @id @default(uuid())
+  followerId  String
+  followingId String
+  status      String   @default("pending") // pending, accepted, rejected
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  follower  User @relation("UserFollowing", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("UserFollowers", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+  @@index([status])
+  @@map("follows")
 }

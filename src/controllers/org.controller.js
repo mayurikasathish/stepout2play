@@ -15,7 +15,7 @@ function generateSlug(name) {
 // POST /orgs — create a new organization
 // The creating user automatically becomes OWNER
 const createOrg = async (req, res) => {
-  const { name, logoUrl, contactPerson, contactEmail, contactPhone, location, description, sports, socialLinks } = req.body;
+  const { name, logoUrl, contactPerson, contactEmail, contactPhone, location, city, state, description, sports, socialLinks } = req.body;
 
   if (!name || name.trim().length < 2) {
     return res.status(400).json({ success: false, error: 'Organization name is required' });
@@ -43,6 +43,8 @@ const createOrg = async (req, res) => {
         contactEmail: contactEmail?.trim() || null,
         contactPhone: contactPhone?.trim() || null,
         location: location?.trim() || null,
+        city: city?.trim() || null,
+        state: state?.trim() || null,
         description: description?.trim() || null,
         sports: sports || [],
         socialLinks: socialLinks || null
@@ -184,6 +186,8 @@ const getOrgPublic = async (req, res, next) => {
         joinUsInfo: org.joinUsInfo,
         membershipFee: org.membershipFee,
         location: org.location,
+        city: org.city,
+        state: org.state,
         contactEmail: org.contactEmail,
         contactPhone: org.contactPhone,
         instagramUrl: org.instagramUrl,
@@ -251,6 +255,8 @@ const updateOrg = async (req, res) => {
     contactEmail,
     contactPhone,
     location,
+    city,
+    state,
     description,
     sports,
     socialLinks,
@@ -286,6 +292,8 @@ const updateOrg = async (req, res) => {
   if (contactEmail !== undefined) updateData.contactEmail = contactEmail || null;
   if (contactPhone !== undefined) updateData.contactPhone = contactPhone || null;
   if (location !== undefined) updateData.location = location || null;
+  if (city !== undefined) updateData.city = city || null;
+  if (state !== undefined) updateData.state = state || null;
   if (description !== undefined) updateData.description = description || null;
   if (sports !== undefined) updateData.sports = sports || [];
   if (socialLinks !== undefined) updateData.socialLinks = socialLinks;
@@ -426,6 +434,8 @@ const discoverOrgs = async (req, res, next) => {
         contactPhone: org.contactPhone,
         contactEmail: org.contactEmail,
         location: org.location,
+        city: org.city,
+        state: org.state,
         socialLinks: org.socialLinks,
         website: org.website,
         memberCount: org.members.length,

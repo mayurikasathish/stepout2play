@@ -914,7 +914,7 @@ const EditOrgPage = () => {
                   type="text"
                   value={formData.location || ''}
                   onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                  placeholder="e.g., Bangalore, Karnataka"
+                  placeholder="e.g., Bengaluru, Karnataka"
                   className="form-input"
                   required
                 />

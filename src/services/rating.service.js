@@ -51,12 +51,19 @@ class RatingService {
    * @returns {Promise<PlayerRating[]>}
    */
   async getUserRatings(userId) {
-    const ratings = await prisma.playerRating.findMany({
-      where: { userId },
-      orderBy: { rating: 'desc' }
-    });
+    // Get all available sports
+    const sportsService = require('./sports.service');
+    const allSports = sportsService.getAllSports();
 
-    return ratings;
+    // Get or create ratings for all sports
+    const ratingsPromises = allSports.map(sport =>
+      this.getOrCreateRating(userId, sport.id)
+    );
+
+    const ratings = await Promise.all(ratingsPromises);
+
+    // Sort by rating descending
+    return ratings.sort((a, b) => b.rating - a.rating);
   }
 
   /**

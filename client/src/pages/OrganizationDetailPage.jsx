@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import Navbar from '../components/Navbar'
 import CreateOrganizationModal from '../components/CreateOrganizationModal'
+import VenueLocationSelector from '../components/VenueLocationSelector'
 import api from '../services/api'
 
 // Scroll reveal hook
@@ -1069,6 +1070,9 @@ const CreateTournamentModal = ({ onClose, onSubmit }) => {
     venueName: '',
     venueAddress: '',
     city: '',
+    state: '',
+    latitude: null,
+    longitude: null,
     registrationDeadline: '',
     description: '',
     rules: '',
@@ -1087,7 +1091,7 @@ const CreateTournamentModal = ({ onClose, onSubmit }) => {
   ]
 
   const indianCities = [
-    'Mumbai', 'Delhi', 'Bangalore', 'Hyderabad', 'Chennai', 'Kolkata', 'Pune',
+    'Mumbai', 'Delhi', 'Bengaluru', 'Hyderabad', 'Chennai', 'Kolkata', 'Pune',
     'Ahmedabad', 'Jaipur', 'Surat', 'Lucknow', 'Kanpur', 'Nagpur', 'Indore',
     'Thane', 'Bhopal', 'Visakhapatnam', 'Pimpri-Chinchwad', 'Patna', 'Vadodara',
     'Ghaziabad', 'Ludhiana', 'Agra', 'Nashik', 'Faridabad', 'Meerut', 'Rajkot',
@@ -1326,7 +1330,7 @@ const CreateTournamentModal = ({ onClose, onSubmit }) => {
           onClose={() => setValidationError(null)}
         />
       )}
-      <div className="tournament-modal-overlay" onClick={onClose}>
+      <div className="tournament-modal-overlay">
         <div className="tournament-modal-content" onClick={(e) => e.stopPropagation()}>
           <h2 className="tournament-modal-title">Create Tournament</h2>
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -1472,45 +1476,58 @@ const CreateTournamentModal = ({ onClose, onSubmit }) => {
               </div>
             </div>
 
-            <div>
-              <label className="tournament-form-label">Venue Name *</label>
-              <input
-                type="text"
-                value={formData.venueName}
-                onChange={(e) => setFormData({ ...formData, venueName: e.target.value })}
-                placeholder="e.g., Sports Complex Arena"
-                className="tournament-form-input"
-                required
-              />
-            </div>
+            {/* Venue Location Section */}
+            <div className="space-y-4 p-4 rounded-lg" style={{
+              background: 'rgba(79, 255, 176, 0.05)',
+              border: '1px solid rgba(79, 255, 176, 0.2)'
+            }}>
+              <h3 className="tournament-form-label" style={{ color: '#4fffb0', marginBottom: '1rem' }}>
+                📍 Venue Location
+              </h3>
 
-            <div>
-              <label className="tournament-form-label">Venue Address</label>
-              <input
-                type="text"
-                value={formData.venueAddress}
-                onChange={(e) => setFormData({ ...formData, venueAddress: e.target.value })}
-                placeholder="Street address"
-                className="tournament-form-input"
-              />
-            </div>
+              <div>
+                <label className="tournament-form-label">Venue Name *</label>
+                <input
+                  type="text"
+                  value={formData.venueName}
+                  onChange={(e) => setFormData({ ...formData, venueName: e.target.value })}
+                  placeholder="e.g., Sports Complex Arena"
+                  className="tournament-form-input"
+                  required
+                />
+              </div>
 
-            <div>
-              <label className="tournament-form-label">City *</label>
-              <input
-                type="text"
-                list="cities"
-                value={formData.city}
-                onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                placeholder="e.g., Mumbai"
-                className="tournament-form-input"
-                required
+              <div>
+                <label className="tournament-form-label">Venue Address/Locality</label>
+                <input
+                  type="text"
+                  value={formData.venueAddress}
+                  onChange={(e) => setFormData({ ...formData, venueAddress: e.target.value })}
+                  placeholder="Street address or locality"
+                  className="tournament-form-input"
+                />
+              </div>
+
+              <VenueLocationSelector
+                city={formData.city}
+                state={formData.state}
+                venueName={formData.venueName}
+                venueAddress={formData.venueAddress}
+                latitude={formData.latitude}
+                longitude={formData.longitude}
+                onLocationChange={(locationData) => {
+                  setFormData({
+                    ...formData,
+                    city: locationData.city,
+                    state: locationData.state,
+                    venueName: locationData.venueName,
+                    venueAddress: locationData.venueAddress,
+                    latitude: locationData.latitude,
+                    longitude: locationData.longitude
+                  })
+                }}
+                darkMode={true}
               />
-              <datalist id="cities">
-                {indianCities.map(city => (
-                  <option key={city} value={city} />
-                ))}
-              </datalist>
             </div>
 
             <div>

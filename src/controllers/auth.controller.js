@@ -107,6 +107,7 @@ class AuthController {
           phone: true,
           dob: true,
           gender: true,
+          isProfilePrivate: true,
           orgMemberships: {
             include: {
               org: {
@@ -121,6 +122,8 @@ class AuthController {
                   contactEmail: true,
                   contactPhone: true,
                   location: true,
+                  city: true,
+                  state: true,
                   sports: true,
                   socialLinks: true,
                   _count: {
@@ -148,6 +151,8 @@ class AuthController {
         contactEmail: m.org.contactEmail,
         contactPhone: m.org.contactPhone,
         location: m.org.location,
+        city: m.org.city,
+        state: m.org.state,
         sports: m.org.sports,
         socialLinks: m.org.socialLinks,
         myRole: m.role,
@@ -168,6 +173,10 @@ class AuthController {
           bio: user.bio,
           profilePicture: user.profilePicture,
           city: user.city,
+          state: user.state,
+          locality: user.locality,
+          latitude: user.latitude,
+          longitude: user.longitude,
           phone: user.phone,
           dob: user.dob,
           gender: user.gender,

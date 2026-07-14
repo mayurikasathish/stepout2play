@@ -76,35 +76,107 @@ const NotificationsPage = () => {
         return '✅'
       case 'WITHDRAWAL':
         return '⚠️'
+      case 'FOLLOW_REQUEST':
+        return '👤'
+      case 'NEW_FOLLOWER':
+        return '✨'
+      case 'FOLLOW_ACCEPTED':
+        return '🎉'
       default:
         return '🔔'
     }
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
+    <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #060d1f 0%, #0a1628 50%, #071a2e 100%)' }}>
+      <style>{`
+        .notifications-page *,
+        .notifications-page input,
+        .notifications-page select,
+        .notifications-page button,
+        .notifications-page h1,
+        .notifications-page h2,
+        .notifications-page h3,
+        .notifications-page p,
+        .notifications-page span,
+        .notifications-page div {
+          font-family: 'Barlow Condensed', sans-serif !important;
+        }
+      `}</style>
       <Navbar />
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="notifications-page" style={{ maxWidth: '60rem', margin: '0 auto', padding: '8rem 1.5rem 2rem 1.5rem' }}>
         {/* Header */}
-        <div className="mb-8 flex items-center justify-between">
+        <div style={{ marginBottom: '2rem', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Notifications</h1>
-            <p className="text-gray-600">Stay updated with your tournaments and matches</p>
+            <h1 style={{
+              fontSize: '3.5rem',
+              fontWeight: '900',
+              color: '#4fffb0',
+              marginBottom: '0.5rem',
+              textTransform: 'uppercase',
+              letterSpacing: '-0.02em',
+              lineHeight: 1
+            }}>
+              NOTIFICATIONS
+            </h1>
+            <p style={{
+              fontSize: '1rem',
+              fontWeight: '600',
+              color: 'rgba(255, 255, 255, 0.8)',
+              textTransform: 'uppercase',
+              letterSpacing: '-0.01em'
+            }}>
+              Stay updated with your tournaments and matches
+            </p>
           </div>
 
           {/* Action Buttons */}
           {notifications.length > 0 && (
-            <div className="flex items-center gap-3">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
               <button
                 onClick={handleMarkAllAsRead}
-                className="px-4 py-2 text-sm font-medium text-primary-600 hover:text-primary-700 hover:bg-primary-50 rounded-lg transition-all"
+                style={{
+                  padding: '0.75rem 1.5rem',
+                  background: 'rgba(79, 255, 176, 0.15)',
+                  color: '#4fffb0',
+                  fontWeight: '700',
+                  fontSize: '0.875rem',
+                  textTransform: 'uppercase',
+                  border: '1px solid rgba(79, 255, 176, 0.3)',
+                  borderRadius: '12px',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(79, 255, 176, 0.25)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(79, 255, 176, 0.15)';
+                }}
               >
                 Mark all as read
               </button>
               <button
                 onClick={handleClearAll}
-                className="px-4 py-2 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-all"
+                style={{
+                  padding: '0.75rem 1.5rem',
+                  background: 'rgba(236, 72, 153, 0.15)',
+                  color: '#ec4899',
+                  fontWeight: '700',
+                  fontSize: '0.875rem',
+                  textTransform: 'uppercase',
+                  border: '1px solid rgba(236, 72, 153, 0.3)',
+                  borderRadius: '12px',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(236, 72, 153, 0.25)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(236, 72, 153, 0.15)';
+                }}
               >
                 Clear all
               </button>
@@ -114,45 +186,153 @@ const NotificationsPage = () => {
 
         {/* Notifications List */}
         {loading ? (
-          <div className="text-center py-12">
-            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-            <p className="text-gray-600 mt-4">Loading notifications...</p>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '5rem 0' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+              <div style={{ width: '3rem', height: '3rem', border: '3px solid rgba(79, 255, 176, 0.2)', borderTop: '3px solid #4fffb0', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+              <p style={{ fontSize: '0.875rem', color: 'rgba(255, 255, 255, 0.7)', fontWeight: '600' }}>Loading notifications...</p>
+            </div>
+            <style>{`
+              @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+              }
+            `}</style>
           </div>
         ) : notifications.length === 0 ? (
-          <div className="glass-card rounded-2xl p-12 text-center">
-            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-4xl">🔔</span>
+          <div style={{
+            background: 'rgba(10, 22, 40, 0.6)',
+            backdropFilter: 'blur(10px)',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            borderRadius: '24px',
+            padding: '3rem',
+            textAlign: 'center'
+          }}>
+            <div style={{ width: '5rem', height: '5rem', background: 'rgba(79, 255, 176, 0.15)', border: '2px solid rgba(79, 255, 176, 0.3)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
+              <span style={{ fontSize: '2.5rem' }}>🔔</span>
             </div>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">No notifications yet</h2>
-            <p className="text-gray-600">
+            <h2 style={{ fontSize: '1.5rem', fontWeight: '900', color: '#4fffb0', marginBottom: '0.5rem', textTransform: 'uppercase' }}>No notifications yet</h2>
+            <p style={{ color: 'rgba(255, 255, 255, 0.7)' }}>
               You'll see updates about your tournaments and matches here
             </p>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             {notifications.map((notif) => (
               <div
                 key={notif.id}
                 onClick={() => handleNotificationClick(notif)}
-                className={`glass-card rounded-xl p-4 cursor-pointer transition-all hover:shadow-md ${
-                  notif.read ? 'bg-white/50' : 'bg-white border-l-4 border-primary-500'
-                }`}
+                style={{
+                  background: notif.read ? 'rgba(10, 22, 40, 0.4)' : 'rgba(10, 22, 40, 0.6)',
+                  backdropFilter: 'blur(10px)',
+                  border: notif.read ? '1px solid rgba(255, 255, 255, 0.05)' : '1px solid rgba(79, 255, 176, 0.3)',
+                  borderLeft: notif.read ? '1px solid rgba(255, 255, 255, 0.05)' : '4px solid #4fffb0',
+                  borderRadius: '16px',
+                  padding: '1rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                  e.currentTarget.style.borderColor = 'rgba(79, 255, 176, 0.3)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = notif.read ? 'rgba(10, 22, 40, 0.4)' : 'rgba(10, 22, 40, 0.6)';
+                  if (notif.read) {
+                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.05)';
+                  }
+                }}
               >
-                <div className="flex items-start gap-4">
-                  <div className="text-3xl">{getIcon(notif.type)}</div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900 mb-1">{notif.title}</h3>
-                    <p className="text-sm text-gray-600 mb-2">{notif.message}</p>
-                    <div className="flex items-center gap-4 text-xs text-gray-500">
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+                  <div style={{ fontSize: '2rem', flexShrink: 0 }}>{getIcon(notif.type)}</div>
+                  <div style={{ flex: 1 }}>
+                    <h3 style={{ fontWeight: '700', color: '#fff', marginBottom: '0.25rem', fontSize: '1rem' }}>{notif.title}</h3>
+                    <p style={{ fontSize: '0.875rem', color: 'rgba(255, 255, 255, 0.7)', marginBottom: '0.5rem' }}>{notif.message}</p>
+
+                    {/* Accept/Reject buttons for follow requests */}
+                    {notif.type === 'FOLLOW_REQUEST' && notif.data?.followId && (
+                      <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.75rem' }}>
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation()
+                            try {
+                              await api.patch(`/follows/${notif.data.followId}/accept`)
+                              setNotifications(notifications.filter(n => n.id !== notif.id))
+                              alert('Follow request accepted! 🎉')
+                            } catch (err) {
+                              console.error('Error accepting follow:', err)
+                              alert('Failed to accept request')
+                            }
+                          }}
+                          style={{
+                            background: '#4fffb0',
+                            color: '#060d1f',
+                            fontFamily: "'Barlow Condensed', sans-serif",
+                            fontWeight: 700,
+                            fontSize: '0.875rem',
+                            textTransform: 'uppercase',
+                            padding: '0.5rem 1rem',
+                            border: 'none',
+                            borderRadius: '8px',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.target.style.transform = 'translateY(-2px)'
+                            e.target.style.boxShadow = '0 4px 15px rgba(79, 255, 176, 0.4)'
+                          }}
+                          onMouseLeave={(e) => {
+                            e.target.style.transform = 'translateY(0)'
+                            e.target.style.boxShadow = 'none'
+                          }}
+                        >
+                          Accept
+                        </button>
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation()
+                            try {
+                              await api.patch(`/follows/${notif.data.followId}/reject`)
+                              setNotifications(notifications.filter(n => n.id !== notif.id))
+                            } catch (err) {
+                              console.error('Error rejecting follow:', err)
+                              alert('Failed to reject request')
+                            }
+                          }}
+                          style={{
+                            background: 'transparent',
+                            color: '#ec4899',
+                            fontFamily: "'Barlow Condensed', sans-serif",
+                            fontWeight: 700,
+                            fontSize: '0.875rem',
+                            textTransform: 'uppercase',
+                            padding: '0.5rem 1rem',
+                            border: '1px solid #ec4899',
+                            borderRadius: '8px',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.target.style.background = 'rgba(236, 72, 153, 0.1)'
+                          }}
+                          onMouseLeave={(e) => {
+                            e.target.style.background = 'transparent'
+                          }}
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    )}
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.5)', marginTop: notif.type === 'FOLLOW_REQUEST' ? '0.5rem' : '0' }}>
                       <span>{new Date(notif.createdAt).toLocaleDateString()}</span>
                       <span>{new Date(notif.createdAt).toLocaleTimeString()}</span>
-                      {notif.actionText && (
-                        <span className="text-primary-600 font-medium">{notif.actionText} →</span>
+                      {notif.actionText && notif.type !== 'FOLLOW_REQUEST' && (
+                        <span style={{ color: '#4fffb0', fontWeight: '600' }}>{notif.actionText} →</span>
                       )}
                     </div>
                   </div>
                   {!notif.read && (
-                    <div className="w-2 h-2 bg-primary-600 rounded-full"></div>
+                    <div style={{ width: '0.5rem', height: '0.5rem', background: '#4fffb0', borderRadius: '50%', flexShrink: 0, marginTop: '0.25rem' }}></div>
                   )}
                 </div>
               </div>

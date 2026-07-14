@@ -102,7 +102,7 @@ const SeedingModal = ({ event, registrations, onClose, onSaved }) => {
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="fixed inset-0 bg-gray-900/70 backdrop-blur-md" onClick={onClose} />
+      <div className="fixed inset-0 bg-gray-900/70 backdrop-blur-md" />
       <div className="flex min-h-full items-center justify-center p-4">
         <div className="relative rounded-2xl shadow-2xl w-full max-w-3xl p-8 max-h-[90vh] overflow-y-auto" style={{
           background: 'rgba(10, 22, 40, 0.98)',

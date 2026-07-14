@@ -1,21 +1,22 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 import api from '../services/api'
+import { sortTournamentsByDistance, sortTournamentsByCity, formatDistance, hasGPSLocation } from '../utils/distance'
 
 const LiveArena = () => {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const [activeTab, setActiveTab] = useState('circle') // circle, turf, spotlight
   const [spotlightMatches, setSpotlightMatches] = useState([])
   const [loadingSpotlight, setLoadingSpotlight] = useState(true)
+  const [nearbyTournaments, setNearbyTournaments] = useState([])
+  const [loadingTournaments, setLoadingTournaments] = useState(true)
 
-  // Placeholder data for circle and turf
+  // Placeholder data for circle
   const circleItems = [
     { id: 1, type: 'live', player1: 'Alex', player2: 'Jordan', score: '21-18' },
     { id: 2, type: 'result', player: 'Sam', result: 'Won Finals 21-19' },
-  ]
-
-  const turfItems = [
-    { id: 1, name: 'City Championships', location: '2.3 km away', status: 'Registration Open' },
   ]
 
   // Fetch spotlight matches
@@ -24,6 +25,11 @@ const LiveArena = () => {
     const interval = setInterval(loadSpotlightMatches, 10000) // Refresh every 10 seconds
     return () => clearInterval(interval)
   }, [])
+
+  // Fetch nearby tournaments
+  useEffect(() => {
+    loadNearbyTournaments()
+  }, [user])
 
   const loadSpotlightMatches = async () => {
     try {
@@ -35,6 +41,51 @@ const LiveArena = () => {
     } catch (err) {
       console.error('Error loading spotlight matches:', err)
       setLoadingSpotlight(false)
+    }
+  }
+
+  const loadNearbyTournaments = async () => {
+    try {
+      setLoadingTournaments(true)
+      const response = await api.get('/tournaments', {
+        params: { status: 'OPEN' }
+      })
+      if (response.data.success) {
+        let tournaments = response.data.tournaments || []
+
+        // Filter out past tournaments
+        tournaments = tournaments.filter(t => new Date(t.registrationDeadline) > new Date())
+
+        // Sort by distance if user has GPS, otherwise filter by exact city match only
+        if (hasGPSLocation(user)) {
+          // Separate tournaments with and without GPS coordinates
+          const tournamentsWithGPS = tournaments.filter(t => t.latitude != null && t.longitude != null)
+          const tournamentsWithoutGPS = tournaments.filter(t => t.latitude == null || t.longitude == null)
+
+          // Sort tournaments with GPS by distance
+          const sortedWithGPS = sortTournamentsByDistance(tournamentsWithGPS, user)
+
+          // Filter tournaments without GPS to same city only
+          const sameCityWithoutGPS = user?.city
+            ? tournamentsWithoutGPS.filter(t => t.city && t.city.toLowerCase() === user.city.toLowerCase())
+            : []
+
+          // Combine: GPS tournaments first (sorted by distance), then same-city tournaments without GPS
+          tournaments = [...sortedWithGPS, ...sameCityWithoutGPS]
+        } else if (user?.city) {
+          // Only show tournaments in the SAME city - no other cities
+          tournaments = tournaments.filter(t =>
+            t.city && t.city.toLowerCase() === user.city.toLowerCase()
+          )
+        }
+
+        // Take top 3
+        setNearbyTournaments(tournaments.slice(0, 3))
+      }
+      setLoadingTournaments(false)
+    } catch (err) {
+      console.error('Error loading nearby tournaments:', err)
+      setLoadingTournaments(false)
     }
   }
 
@@ -376,6 +427,22 @@ const LiveArena = () => {
 
             {activeTab === 'turf' && (
               <>
+                {!hasGPSLocation(user) && (
+                  <div style={{
+                    fontFamily: 'Barlow, sans-serif',
+                    fontSize: '0.7rem',
+                    color: '#4fffb0',
+                    textAlign: 'center',
+                    marginBottom: '0.75rem',
+                    padding: '0.5rem',
+                    background: 'rgba(79, 255, 176, 0.08)',
+                    borderRadius: '6px',
+                    border: '1px solid rgba(79, 255, 176, 0.2)'
+                  }}>
+                    💡 Click "Use Location" above for accurate nearby results
+                  </div>
+                )}
+
                 <div style={{
                   fontFamily: 'Barlow, sans-serif',
                   fontSize: '0.75rem',
@@ -384,17 +451,94 @@ const LiveArena = () => {
                   marginBottom: '0.5rem',
                   fontStyle: 'italic'
                 }}>
-                  Tournaments near you
+                  {hasGPSLocation(user) ? 'Tournaments near you (by distance)' : user?.city ? `Tournaments in ${user.city} only` : 'Tournaments near you'}
                 </div>
-                {turfItems.map(item => (
-                  <div key={item.id} className="liquid-card">
-                    <div className="card-content">
-                      <div className="card-title">{item.name}</div>
-                      <div className="card-subtitle">{item.location}</div>
-                      <div className="card-subtitle">{item.status}</div>
-                    </div>
+
+                {loadingTournaments ? (
+                  <div className="empty-state" style={{ padding: '2rem 1rem' }}>
+                    Loading tournaments...
                   </div>
-                ))}
+                ) : nearbyTournaments.length === 0 ? (
+                  <div className="empty-state" style={{ padding: '1.5rem 1rem' }}>
+                    {user?.city ? (
+                      <>
+                        No tournaments in {user.city}.<br/>
+                        <button
+                          onClick={() => navigate('/browse')}
+                          style={{
+                            color: '#4fffb0',
+                            textDecoration: 'underline',
+                            marginTop: '0.75rem',
+                            display: 'inline-block',
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            fontFamily: "'Barlow Condensed', sans-serif",
+                            fontSize: '0.85rem',
+                            fontWeight: 600
+                          }}
+                        >
+                          View all tournaments →
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        No location set.<br/>
+                        Click "Use Location" above to see nearby tournaments.
+                      </>
+                    )}
+                  </div>
+                ) : (
+                  <>
+                    {nearbyTournaments.map(tournament => (
+                      <div
+                        key={tournament.id}
+                        className="liquid-card"
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => navigate(`/tournaments/${tournament.id}`)}
+                      >
+                        <div className="card-content">
+                          <div className="card-title">{tournament.name}</div>
+                          <div className="card-subtitle">
+                            {tournament.distance != null
+                              ? formatDistance(tournament.distance)
+                              : `${tournament.city}${tournament.state ? `, ${tournament.state}` : ''}`
+                            }
+                          </div>
+                          <div className="card-subtitle" style={{ color: '#4fffb0', marginTop: '0.25rem' }}>
+                            Registration Open
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    <button
+                      onClick={() => navigate('/browse')}
+                      style={{
+                        width: '100%',
+                        background: 'rgba(79, 255, 176, 0.05)',
+                        border: '1px solid rgba(79, 255, 176, 0.2)',
+                        color: '#4fffb0',
+                        padding: '0.6rem',
+                        borderRadius: '8px',
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        textTransform: 'uppercase',
+                        fontFamily: "'Barlow Condensed', sans-serif",
+                        marginTop: '0.5rem'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.target.style.background = 'rgba(79, 255, 176, 0.1)'
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.background = 'rgba(79, 255, 176, 0.05)'
+                      }}
+                    >
+                      View All →
+                    </button>
+                  </>
+                )}
               </>
             )}
           </div>

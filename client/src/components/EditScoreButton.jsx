@@ -37,7 +37,7 @@ const EditScoreButton = ({ onManualEntry, onCaptureScore }) => {
           >
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
-              <h3 style={{ fontSize: '1.5rem', fontWeight: '900', color: '#fff', fontFamily: "'Barlow Condensed', sans-serif", textTransform: 'uppercase', letterSpacing: '-0.02em' }}>Edit Score</h3>
+              <h3 className="edit-score-modal-header" style={{ fontSize: '1.5rem', fontWeight: '900', fontFamily: "'Barlow Condensed', sans-serif", textTransform: 'uppercase', letterSpacing: '-0.02em' }}>Edit Score</h3>
               <button
                 onClick={() => setShowModal(false)}
                 style={{
@@ -149,42 +149,51 @@ const EditScoreButton = ({ onManualEntry, onCaptureScore }) => {
 
   return (
     <>
+      <style>{`
+        .edit-score-btn-custom {
+          color: #fff !important;
+        }
+        .edit-score-btn-custom:hover {
+          color: #fff !important;
+        }
+        .edit-score-btn-custom * {
+          color: #fff !important;
+        }
+        .edit-score-modal-header {
+          color: #fff !important;
+        }
+      `}</style>
       <button
         onClick={(e) => {
           e.stopPropagation()
           setShowModal(true)
         }}
-        className="edit-score-btn"
+        className="edit-score-btn-custom"
         style={{
           width: '100%',
           padding: '0.5rem 0.75rem',
-          background: '#000',
+          background: '#fff',
+          color: '#000',
           fontSize: '0.75rem',
           fontWeight: '700',
           borderRadius: '8px',
-          border: 'none',
+          border: '2px solid #000',
           cursor: 'pointer',
           transition: 'all 0.3s',
           fontFamily: "'Barlow Condensed', sans-serif",
           textTransform: 'uppercase'
         }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.background = '#1a1a1a';
+          e.currentTarget.style.background = '#f0f0f0';
+          e.currentTarget.style.color = '#000';
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.background = '#000';
+          e.currentTarget.style.background = '#fff';
+          e.currentTarget.style.color = '#000';
         }}
       >
-        <span style={{ color: '#fff !important' }}>Edit Score</span>
+        <span style={{ color: '#000' }}>Edit Score</span>
       </button>
-      <style>{`
-        .edit-score-btn {
-          color: #fff !important;
-        }
-        .edit-score-btn * {
-          color: #fff !important;
-        }
-      `}</style>
       {modal}
     </>
   )

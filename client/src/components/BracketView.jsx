@@ -713,39 +713,117 @@ const BracketView = ({ eventId, eventName, eventFormat, registrationCount, isOrg
       {showPublishConfirm && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-black/80 backdrop-blur-md" onClick={() => setShowPublishConfirm(false)} />
-          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-10 animate-slide-up">
-            <div className="text-center mb-6">
-              <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div style={{
+            position: 'relative',
+            background: 'linear-gradient(135deg, rgba(10, 22, 40, 0.98), rgba(6, 13, 31, 0.99))',
+            border: '1px solid rgba(79, 255, 176, 0.3)',
+            borderRadius: '24px',
+            boxShadow: '0 25px 50px rgba(0, 0, 0, 0.5)',
+            width: '100%',
+            maxWidth: '28rem',
+            padding: '2rem',
+            fontFamily: "'Barlow Condensed', sans-serif"
+          }}>
+            <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+              <div style={{
+                width: '4rem',
+                height: '4rem',
+                background: 'linear-gradient(135deg, #4fffb0 0%, #00d4ff 100%)',
+                borderRadius: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 1rem'
+              }}>
+                <svg style={{ width: '2rem', height: '2rem', color: '#000' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
                 </svg>
               </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">Publish Bracket?</h3>
-              <p className="text-gray-600">
+              <h3 style={{ fontSize: '1.5rem', fontWeight: '900', color: '#4fffb0', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '-0.02em' }}>
+                Publish Bracket?
+              </h3>
+              <p style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '0.95rem', lineHeight: '1.6' }}>
                 All registered players will be notified that the bracket is ready. Make sure you've reviewed it.
               </p>
             </div>
-            <div className="flex gap-3">
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
               <button
                 onClick={() => setShowPublishConfirm(false)}
                 disabled={publishing}
-                className="flex-1 px-6 py-4 bg-gray-100 hover:bg-gray-200 text-gray-900 font-semibold rounded-xl transition-all disabled:opacity-50"
+                style={{
+                  flex: 1,
+                  padding: '0.75rem 1rem',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  color: '#fff',
+                  fontWeight: '600',
+                  borderRadius: '12px',
+                  cursor: publishing ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.3s',
+                  textTransform: 'uppercase',
+                  opacity: publishing ? 0.5 : 1
+                }}
+                onMouseEnter={(e) => {
+                  if (!publishing) {
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!publishing) {
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                  }
+                }}
               >
                 Cancel
               </button>
               <button
                 onClick={handlePublishBracket}
                 disabled={publishing}
-                className="flex-1 px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-xl transition-all shadow-lg disabled:opacity-50"
+                style={{
+                  flex: 1,
+                  padding: '0.75rem 1rem',
+                  background: publishing ? 'rgba(79, 255, 176, 0.3)' : 'linear-gradient(135deg, #4fffb0 0%, #00d4ff 100%)',
+                  border: 'none',
+                  color: '#000',
+                  fontWeight: '700',
+                  borderRadius: '12px',
+                  cursor: publishing ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.3s',
+                  boxShadow: publishing ? 'none' : '0 4px 15px rgba(79, 255, 176, 0.3)',
+                  textTransform: 'uppercase',
+                  opacity: publishing ? 0.5 : 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem'
+                }}
+                onMouseEnter={(e) => {
+                  if (!publishing) {
+                    e.currentTarget.style.boxShadow = '0 6px 20px rgba(79, 255, 176, 0.5)';
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!publishing) {
+                    e.currentTarget.style.boxShadow = '0 4px 15px rgba(79, 255, 176, 0.3)';
+                    e.currentTarget.style.transform = 'translateY(0)';
+                  }
+                }}
               >
                 {publishing ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  <>
+                    <svg style={{ animation: 'spin 1s linear infinite', height: '1.25rem', width: '1.25rem' }} fill="none" viewBox="0 0 24 24">
+                      <circle style={{ opacity: 0.25 }} cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path style={{ opacity: 0.75 }} fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                     </svg>
-                    Publishing...
-                  </span>
+                    <span>Publishing...</span>
+                    <style>{`
+                      @keyframes spin {
+                        0% { transform: rotate(0deg); }
+                        100% { transform: rotate(360deg); }
+                      }
+                    `}</style>
+                  </>
                 ) : (
                   'Publish'
                 )}
@@ -908,6 +986,59 @@ const MatchResultModal = ({ match, event, isRoundRobin, onClose, onSubmit }) => 
 
     if (isNaN(p1) || isNaN(p2)) {
       return 'Both scores must be entered'
+    }
+
+    // Tennis/Padel set validation (game-set-match)
+    if (event?.scoringType === 'game-set-match') {
+      console.log('✅ Using tennis set validation')
+      const gamesPerSet = scoringRules.gamesPerSet || 6
+      const higher = Math.max(p1, p2)
+      const lower = Math.min(p1, p2)
+      const diff = higher - lower
+
+      // Valid tennis set scores:
+      // 6-0, 6-1, 6-2, 6-3, 6-4 (winner has 6, difference >= 2)
+      // 7-5 (winner has 7, opponent has 5)
+      // 7-6 (tiebreak - shown as 7-6)
+      // Invalid: 5-anything (need at least 6 to win), 6-5 (need 7-5 or tiebreak)
+
+      // Must reach at least 6 games
+      if (higher < 6) {
+        return 'At least one player must win 6 games to win a set'
+      }
+
+      // If score is 6-5, invalid (must play to 7-5)
+      if (higher === 6 && lower === 5) {
+        return 'Score cannot be 6-5. Must win by 2 games (7-5) or go to tiebreak (7-6)'
+      }
+
+      // Valid cases:
+      // 6-0, 6-1, 6-2, 6-3, 6-4 (difference of 2+)
+      if (higher === 6 && diff >= 2) {
+        return null
+      }
+
+      // 7-5 (valid)
+      if (higher === 7 && lower === 5) {
+        return null
+      }
+
+      // 7-6 (tiebreak - valid)
+      if (higher === 7 && lower === 6) {
+        return null
+      }
+
+      // Any other 7-X combination is invalid
+      if (higher === 7) {
+        return 'Invalid set score. Valid 7-game scores are 7-5 or 7-6 (tiebreak) only'
+      }
+
+      // Scores above 7 are invalid in tennis
+      if (higher > 7) {
+        return 'Invalid set score. Maximum games in a set is 7 (7-6 tiebreak or 7-5)'
+      }
+
+      return 'Invalid tennis set score'
     }
 
     // Use the comprehensive validation utility for point-based sports

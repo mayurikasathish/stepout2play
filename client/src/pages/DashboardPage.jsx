@@ -4,9 +4,16 @@ import Navbar from '../components/Navbar'
 import PlayerRadarCard from '../components/PlayerRadarCard'
 import LiveArena from '../components/LiveArena'
 import MatchCountdown from '../components/MatchCountdown'
+import LocationButton from '../components/LocationButton'
 
 const DashboardPage = () => {
   const { user } = useAuth()
+  const [locationKey, setLocationKey] = useState(0)
+
+  const handleLocationUpdate = () => {
+    // Force LiveArena to re-fetch tournaments
+    setLocationKey(prev => prev + 1)
+  }
 
   const greetings = [
   
@@ -139,7 +146,13 @@ const DashboardPage = () => {
               <MatchCountdown />
             </div>
             <div className="right-section">
-              <LiveArena />
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', width: '100%', maxWidth: '380px', marginRight: '1.5rem' }}>
+                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+                  <LocationButton onLocationUpdate={handleLocationUpdate} compact={true} />
+                  <LocationButton onLocationUpdate={handleLocationUpdate} compact={true} removeMode={true} />
+                </div>
+                <LiveArena key={locationKey} />
+              </div>
             </div>
           </div>
         </div>

@@ -16,6 +16,7 @@ const replacementRoutes = require('./routes/replacement.routes');
 const ratingRoutes = require('./routes/rating.routes');
 const matchRoutes = require('./routes/match.routes');
 const playerProfileRoutes = require('./routes/playerProfile.routes');
+const followRoutes = require('./routes/follow.routes');
 
 const app = express();
 
@@ -55,6 +56,7 @@ app.use('/api', replacementRoutes); // Auto-replacement routes
 app.use('/api/ratings', ratingRoutes); // Rating routes
 app.use('/api/matches', matchRoutes); // Match routes for live matches
 app.use('/api/users', playerProfileRoutes); // Player profile routes
+app.use('/api/follows', followRoutes); // Follow routes
 
 // Health check
 app.get('/api/health', (req, res) => {

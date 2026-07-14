@@ -135,85 +135,130 @@ const BracketViewModal = ({ eventId, onClose }) => {
     const p2 = match.participant2
 
     return (
-      <div className="p-3 bg-white rounded-lg border border-gray-200 hover:border-primary-300 transition-colors">
-        <div className="flex justify-between items-center mb-2">
-          <span className="text-xs font-semibold text-gray-600">
+      <div style={{ padding: '0.75rem', background: 'rgba(10, 22, 40, 0.6)', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.1)', transition: 'all 0.3s' }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.borderColor = 'rgba(79, 255, 176, 0.3)';
+          e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+          e.currentTarget.style.background = 'rgba(10, 22, 40, 0.6)';
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+          <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#4fffb0', textTransform: 'uppercase' }}>
             {match.roundNumber ? `Round ${match.roundNumber}` : 'Match'}
             {match.matchNumber ? ` #${match.matchNumber}` : ''}
           </span>
           {showTime && match.scheduledTime && (
-            <span className="text-xs text-gray-500">
+            <span style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.6)' }}>
               {formatMatchTime(match.scheduledTime)}
             </span>
           )}
         </div>
-        <div className="space-y-1.5 text-sm">
-          <div className="flex justify-between items-center">
-            <span className={match.winnerId === p1?.id ? 'font-bold text-gray-900' : 'text-gray-700'}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem', fontSize: '0.875rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontWeight: match.winnerId === p1?.id ? '700' : '600', color: match.winnerId === p1?.id ? '#4fffb0' : 'rgba(255, 255, 255, 0.8)' }}>
               {getPlayerName(p1)}
             </span>
             {match.participant1Score !== null && (
-              <span className="font-mono font-semibold text-gray-900">{match.participant1Score}</span>
+              <span style={{ fontFamily: 'monospace', fontWeight: '700', color: '#fff' }}>{match.participant1Score}</span>
             )}
           </div>
-          <div className="flex justify-between items-center">
-            <span className={match.winnerId === p2?.id ? 'font-bold text-gray-900' : 'text-gray-700'}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontWeight: match.winnerId === p2?.id ? '700' : '600', color: match.winnerId === p2?.id ? '#4fffb0' : 'rgba(255, 255, 255, 0.8)' }}>
               {getPlayerName(p2)}
             </span>
             {match.participant2Score !== null && (
-              <span className="font-mono font-semibold text-gray-900">{match.participant2Score}</span>
+              <span style={{ fontFamily: 'monospace', fontWeight: '700', color: '#fff' }}>{match.participant2Score}</span>
             )}
           </div>
         </div>
+
+        {/* Detailed Score for Completed Matches */}
+        {match.status === 'COMPLETED' && match.score && (
+          <div style={{ marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid rgba(79, 255, 176, 0.2)' }}>
+            <div style={{ fontSize: '0.7rem', color: 'rgba(79, 255, 176, 0.8)', fontWeight: '600', marginBottom: '0.25rem' }}>
+              FINAL
+            </div>
+            <div style={{ fontSize: '0.75rem', color: '#4fffb0', fontWeight: '700', fontFamily: 'monospace' }}>
+              {match.score}
+            </div>
+          </div>
+        )}
       </div>
     )
   }
 
   if (loading || !event) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/80 backdrop-blur-sm">
-        <div className="bg-white rounded-2xl p-8 shadow-2xl text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mb-4"></div>
-          <p className="text-gray-600">Loading bracket...</p>
+      <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0, 0, 0, 0.9)', backdropFilter: 'blur(10px)' }}>
+        <div style={{ background: 'linear-gradient(135deg, rgba(10, 22, 40, 0.98), rgba(6, 13, 31, 0.99))', borderRadius: '24px', padding: '2rem', boxShadow: '0 25px 50px rgba(0, 0, 0, 0.5)', border: '1px solid rgba(79, 255, 176, 0.3)', textAlign: 'center' }}>
+          <div style={{ display: 'inline-block', width: '3rem', height: '3rem', border: '3px solid rgba(79, 255, 176, 0.2)', borderTop: '3px solid #4fffb0', borderRadius: '50%', animation: 'spin 1s linear infinite', marginBottom: '1rem' }}></div>
+          <p style={{ color: 'rgba(255, 255, 255, 0.8)', fontFamily: "'Barlow Condensed', sans-serif", fontSize: '0.95rem' }}>Loading bracket...</p>
+          <style>{`
+            @keyframes spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+          `}</style>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden bg-gray-900/90 backdrop-blur-sm">
+    <div style={{ position: 'fixed', inset: 0, zIndex: 50, overflow: 'hidden', background: 'rgba(0, 0, 0, 0.95)', backdropFilter: 'blur(10px)' }}>
+      <style>{`
+        .bracket-modal *,
+        .bracket-modal button,
+        .bracket-modal h1,
+        .bracket-modal h2,
+        .bracket-modal h3,
+        .bracket-modal p,
+        .bracket-modal span,
+        .bracket-modal div {
+          font-family: 'Barlow Condensed', sans-serif !important;
+        }
+      `}</style>
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 shadow-sm">
-        <div className="max-w-[calc(100%-2rem)] mx-auto px-6 py-4 flex items-center justify-between">
+      <div className="bracket-modal" style={{ background: 'linear-gradient(135deg, rgba(10, 22, 40, 0.98), rgba(6, 13, 31, 0.99))', borderBottom: '1px solid rgba(79, 255, 176, 0.2)', boxShadow: '0 4px 15px rgba(0, 0, 0, 0.3)', paddingTop: '5rem' }}>
+        <div style={{ maxWidth: 'calc(100% - 2rem)', margin: '0 auto', padding: '1rem 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">{event.name}</h2>
-            <p className="text-sm text-gray-600">{event.tournament?.name || 'Tournament'}</p>
+            <h2 style={{ fontSize: '1.75rem', fontWeight: '900', color: '#4fffb0', textTransform: 'uppercase', letterSpacing: '-0.02em', lineHeight: 1 }}>{event.name}</h2>
+            <p style={{ fontSize: '0.875rem', color: 'rgba(255, 255, 255, 0.7)', fontWeight: '600', marginTop: '0.25rem' }}>{event.tournament?.name || ''}</p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
             {/* Zoom Controls */}
-            <div className="flex items-center gap-2 bg-gray-100 rounded-lg px-3 py-2">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(255, 255, 255, 0.05)', borderRadius: '12px', padding: '0.5rem 0.75rem', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
               <button
                 onClick={handleZoomOut}
-                className="text-gray-600 hover:text-gray-900 font-bold text-lg w-6 h-6 flex items-center justify-center"
+                style={{ color: '#fff', fontWeight: '700', fontSize: '1.125rem', width: '1.5rem', height: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', transition: 'color 0.2s' }}
                 title="Zoom out"
+                onMouseEnter={(e) => e.currentTarget.style.color = '#4fffb0'}
+                onMouseLeave={(e) => e.currentTarget.style.color = '#fff'}
               >
                 −
               </button>
-              <span className="text-sm font-medium text-gray-700 min-w-[3rem] text-center">
+              <span style={{ fontSize: '0.875rem', fontWeight: '600', color: '#fff', minWidth: '3rem', textAlign: 'center' }}>
                 {zoomLevel}%
               </span>
               <button
                 onClick={handleZoomIn}
-                className="text-gray-600 hover:text-gray-900 font-bold text-lg w-6 h-6 flex items-center justify-center"
+                style={{ color: '#fff', fontWeight: '700', fontSize: '1.125rem', width: '1.5rem', height: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', transition: 'color 0.2s' }}
                 title="Zoom in"
+                onMouseEnter={(e) => e.currentTarget.style.color = '#4fffb0'}
+                onMouseLeave={(e) => e.currentTarget.style.color = '#fff'}
               >
                 +
               </button>
               <button
                 onClick={handleZoomReset}
-                className="ml-2 text-xs text-gray-500 hover:text-gray-700"
+                style={{ marginLeft: '0.5rem', fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.6)', background: 'none', border: 'none', cursor: 'pointer', transition: 'color 0.2s', textTransform: 'uppercase' }}
                 title="Reset zoom"
+                onMouseEnter={(e) => e.currentTarget.style.color = '#4fffb0'}
+                onMouseLeave={(e) => e.currentTarget.style.color = 'rgba(255, 255, 255, 0.6)'}
               >
                 Reset
               </button>
@@ -223,7 +268,26 @@ const BracketViewModal = ({ eventId, onClose }) => {
             {userMatches.length > 0 && (
               <button
                 onClick={() => setShowMyMatches(!showMyMatches)}
-                className="px-4 py-2 bg-primary-100 hover:bg-primary-200 text-primary-700 font-medium rounded-lg transition-colors text-sm"
+                style={{
+                  padding: '0.5rem 1rem',
+                  background: showMyMatches ? 'rgba(79, 255, 176, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                  color: showMyMatches ? '#4fffb0' : 'rgba(255, 255, 255, 0.8)',
+                  fontWeight: '700',
+                  borderRadius: '12px',
+                  border: `1px solid ${showMyMatches ? 'rgba(79, 255, 176, 0.4)' : 'rgba(255, 255, 255, 0.1)'}`,
+                  cursor: 'pointer',
+                  transition: 'all 0.3s',
+                  fontSize: '0.875rem',
+                  textTransform: 'uppercase'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(79, 255, 176, 0.25)';
+                  e.currentTarget.style.borderColor = 'rgba(79, 255, 176, 0.5)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = showMyMatches ? 'rgba(79, 255, 176, 0.2)' : 'rgba(255, 255, 255, 0.05)';
+                  e.currentTarget.style.borderColor = showMyMatches ? 'rgba(79, 255, 176, 0.4)' : 'rgba(255, 255, 255, 0.1)';
+                }}
               >
                 {showMyMatches ? 'Hide My Matches' : 'Show My Matches'}
               </button>
@@ -232,7 +296,26 @@ const BracketViewModal = ({ eventId, onClose }) => {
             {/* Schedule Toggle */}
             <button
               onClick={() => setShowSchedule(!showSchedule)}
-              className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors text-sm"
+              style={{
+                padding: '0.5rem 1rem',
+                background: showSchedule ? 'rgba(0, 212, 255, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                color: showSchedule ? '#00d4ff' : 'rgba(255, 255, 255, 0.8)',
+                fontWeight: '700',
+                borderRadius: '12px',
+                border: `1px solid ${showSchedule ? 'rgba(0, 212, 255, 0.4)' : 'rgba(255, 255, 255, 0.1)'}`,
+                cursor: 'pointer',
+                transition: 'all 0.3s',
+                fontSize: '0.875rem',
+                textTransform: 'uppercase'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(0, 212, 255, 0.25)';
+                e.currentTarget.style.borderColor = 'rgba(0, 212, 255, 0.5)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = showSchedule ? 'rgba(0, 212, 255, 0.2)' : 'rgba(255, 255, 255, 0.05)';
+                e.currentTarget.style.borderColor = showSchedule ? 'rgba(0, 212, 255, 0.4)' : 'rgba(255, 255, 255, 0.1)';
+              }}
             >
               {showSchedule ? 'Hide Schedule' : 'Show Schedule'}
             </button>
@@ -241,7 +324,29 @@ const BracketViewModal = ({ eventId, onClose }) => {
             <button
               onClick={refreshBracketData}
               disabled={refreshing}
-              className="px-4 py-2 bg-primary-50 hover:bg-primary-100 text-primary-700 font-medium rounded-lg transition-colors text-sm disabled:opacity-50"
+              style={{
+                padding: '0.5rem 1rem',
+                background: 'rgba(79, 255, 176, 0.15)',
+                color: '#4fffb0',
+                fontWeight: '700',
+                borderRadius: '12px',
+                border: '1px solid rgba(79, 255, 176, 0.3)',
+                cursor: refreshing ? 'not-allowed' : 'pointer',
+                transition: 'all 0.3s',
+                fontSize: '0.875rem',
+                textTransform: 'uppercase',
+                opacity: refreshing ? 0.5 : 1
+              }}
+              onMouseEnter={(e) => {
+                if (!refreshing) {
+                  e.currentTarget.style.background = 'rgba(79, 255, 176, 0.25)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!refreshing) {
+                  e.currentTarget.style.background = 'rgba(79, 255, 176, 0.15)';
+                }
+              }}
             >
               {refreshing ? 'Refreshing...' : '🔄 Refresh'}
             </button>
@@ -249,10 +354,28 @@ const BracketViewModal = ({ eventId, onClose }) => {
             {/* Close */}
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              style={{
+                padding: '0.5rem',
+                background: 'rgba(255, 255, 255, 0.05)',
+                borderRadius: '12px',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                cursor: 'pointer',
+                transition: 'all 0.3s',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
               title="Close"
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(236, 72, 153, 0.2)';
+                e.currentTarget.style.borderColor = 'rgba(236, 72, 153, 0.4)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+              }}
             >
-              <svg className="w-6 h-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg style={{ width: '1.5rem', height: '1.5rem', color: '#fff' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
@@ -261,15 +384,15 @@ const BracketViewModal = ({ eventId, onClose }) => {
       </div>
 
       {/* Content */}
-      <div className="h-[calc(100vh-5rem)] flex flex-col">
+      <div style={{ height: 'calc(100vh - 10rem)', display: 'flex', flexDirection: 'column' }}>
         {/* Your Upcoming Matches */}
         {showMyMatches && userMatches.length > 0 && (
-          <div className="bg-gradient-to-r from-primary-600 to-primary-700 px-6 py-4 border-b border-primary-800">
-            <div className="max-w-7xl mx-auto">
-              <h3 className="text-white font-bold text-lg mb-3 flex items-center gap-2">
+          <div style={{ background: 'linear-gradient(135deg, rgba(10, 22, 40, 0.98), rgba(6, 13, 31, 0.95))', padding: '1rem 1.5rem', borderBottom: '1px solid rgba(79, 255, 176, 0.2)', borderTop: '1px solid rgba(79, 255, 176, 0.1)' }}>
+            <div style={{ maxWidth: '90rem', margin: '0 auto' }}>
+              <h3 style={{ color: '#fff', fontWeight: '900', fontSize: '1.125rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem', textTransform: 'uppercase' }}>
                 🎾 Your Confirmed Matches
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 280px))', gap: '0.75rem', justifyContent: 'start' }}>
                 {userMatches.map((match) => {
                   const isScheduled = match.status === 'SCHEDULED'
                   const isCompleted = match.status === 'COMPLETED'
@@ -278,60 +401,83 @@ const BracketViewModal = ({ eventId, onClose }) => {
                   const isBye = !opponent || (!match.participant1 || !match.participant2)
 
                   return (
-                    <div key={match.id} className="bg-white/95 rounded-lg p-3 backdrop-blur-sm">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-bold text-gray-600">
-                          {match.roundNumber ? `Round ${match.roundNumber}` : 'Match'}
-                          {match.matchNumber ? ` #${match.matchNumber}` : ''}
+                    <div key={match.id} style={{ background: 'rgba(10, 22, 40, 0.8)', borderRadius: '10px', padding: '0.75rem', backdropFilter: 'blur(10px)', border: '1px solid rgba(79, 255, 176, 0.2)' }}>
+                      {/* Header Row: Round + Status */}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                        <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#4fffb0', textTransform: 'uppercase' }}>
+                          {match.roundNumber ? `Round ${match.roundNumber}` : 'Match'} {match.matchNumber ? `#${match.matchNumber}` : ''}
                         </span>
                         {isBye ? (
-                          <span className="px-2 py-1 bg-amber-100 text-amber-700 text-xs font-bold rounded">BYE</span>
+                          <span style={{ padding: '0.25rem 0.5rem', background: 'rgba(251, 146, 60, 0.2)', color: '#fb923c', fontSize: '0.7rem', fontWeight: '700', borderRadius: '6px', border: '1px solid rgba(251, 146, 60, 0.3)' }}>BYE</span>
                         ) : (
                           <>
                             {isLive && (
-                              <span className="flex items-center gap-1 text-xs font-bold text-red-600">
-                                <span className="relative flex h-2 w-2">
-                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                                  <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-                                </span>
+                              <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.7rem', fontWeight: '700', color: '#ef4444', padding: '0.25rem 0.5rem', background: 'rgba(239, 68, 68, 0.15)', borderRadius: '6px', border: '1px solid rgba(239, 68, 68, 0.3)' }}>
+                                <span style={{ width: '0.5rem', height: '0.5rem', background: '#ef4444', borderRadius: '50%' }}></span>
                                 LIVE
                               </span>
                             )}
-                            {isScheduled && match.scheduledTime && (
-                              <span className="text-xs font-semibold text-primary-600">
-                                {formatMatchTime(match.scheduledTime)}
-                              </span>
-                            )}
                             {isCompleted && (
-                              <span className="text-xs font-bold text-green-600">✓ Done</span>
+                              <span style={{ fontSize: '0.7rem', fontWeight: '700', color: '#4fffb0', padding: '0.25rem 0.5rem', background: 'rgba(79, 255, 176, 0.15)', borderRadius: '6px' }}>✓ DONE</span>
                             )}
                           </>
                         )}
                       </div>
-                      <div className="text-sm">
+
+                      {/* Match Info: ALWAYS SHOW - Date, Time, Court */}
+                      {!isBye && (
+                        <div style={{ marginBottom: '0.5rem', padding: '0.5rem', background: 'rgba(0, 212, 255, 0.12)', borderRadius: '8px', border: '1px solid rgba(0, 212, 255, 0.3)', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                          <div style={{ fontSize: '0.8rem', color: '#00d4ff', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                            <span style={{ fontSize: '1rem' }}>📅</span>
+                            <span>{match.scheduledTime ? new Date(match.scheduledTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Date: TBD'}</span>
+                          </div>
+                          <div style={{ fontSize: '0.8rem', color: '#00d4ff', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                            <span style={{ fontSize: '1rem' }}>⏰</span>
+                            <span>{match.scheduledTime ? new Date(match.scheduledTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : 'Time: TBD'}</span>
+                          </div>
+                          <div style={{ fontSize: '0.8rem', color: '#4fffb0', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                            <span style={{ fontSize: '1rem' }}>🏟️</span>
+                            <span>{match.court ? `Court ${match.court}` : 'Court: TBD'}</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Players */}
+                      <div style={{ fontSize: '0.85rem' }}>
                         {isBye ? (
-                          <div className="text-center py-2">
-                            <span className="font-semibold text-amber-700">You get a bye this round</span>
-                            <div className="text-xs text-amber-600 mt-1">Automatic advance to next round</div>
+                          <div style={{ textAlign: 'center', padding: '0.5rem 0', color: '#fb923c', fontWeight: '700', fontSize: '0.8rem' }}>
+                            Auto-advance (BYE)
                           </div>
                         ) : (
-                          <>
-                            <div className="flex justify-between items-center">
-                              <span className="font-semibold text-gray-900">You</span>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.25rem 0' }}>
+                              <span style={{ fontWeight: '700', color: '#4fffb0', fontSize: '0.85rem' }}>You</span>
                               {match.participant1Score !== null && (
-                                <span className="font-bold">{match.participant1?.userId === user.id ? match.participant1Score : match.participant2Score}</span>
+                                <span style={{ fontWeight: '700', color: '#fff', fontSize: '0.85rem' }}>{match.participant1?.userId === user.id ? match.participant1Score : match.participant2Score}</span>
                               )}
                             </div>
-                            <div className="text-xs text-gray-500 my-1">vs</div>
-                            <div className="flex justify-between items-center">
-                              <span className="text-gray-700">{getPlayerName(opponent)}</span>
+                            <div style={{ height: '1px', background: 'rgba(255, 255, 255, 0.15)', margin: '0.15rem 0' }}></div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.25rem 0' }}>
+                              <span style={{ color: 'rgba(255, 255, 255, 0.9)', fontSize: '0.85rem', fontWeight: '600' }}>{getPlayerName(opponent)}</span>
                               {match.participant2Score !== null && (
-                                <span className="font-bold">{match.participant1?.userId === user.id ? match.participant2Score : match.participant1Score}</span>
+                                <span style={{ fontWeight: '700', color: '#fff', fontSize: '0.85rem' }}>{match.participant1?.userId === user.id ? match.participant2Score : match.participant1Score}</span>
                               )}
                             </div>
-                          </>
+                          </div>
                         )}
                       </div>
+
+                      {/* Detailed Score for Completed Matches */}
+                      {isCompleted && match.score && (
+                        <div style={{ marginTop: '0.5rem', padding: '0.5rem', background: 'rgba(79, 255, 176, 0.1)', borderRadius: '6px', border: '1px solid rgba(79, 255, 176, 0.2)' }}>
+                          <div style={{ fontSize: '0.7rem', color: 'rgba(255, 255, 255, 0.7)', fontWeight: '600', marginBottom: '0.25rem', textTransform: 'uppercase' }}>
+                            Final Score
+                          </div>
+                          <div style={{ fontSize: '0.8rem', color: '#4fffb0', fontWeight: '700', fontFamily: 'monospace' }}>
+                            {match.score}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )
                 })}
@@ -341,10 +487,10 @@ const BracketViewModal = ({ eventId, onClose }) => {
         )}
 
         {/* Bracket and Schedule Container */}
-        <div className="flex-1 flex overflow-hidden">
+        <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
         {/* Bracket View */}
         <div
-          className={`${showSchedule ? 'w-[70%]' : 'w-full'} overflow-auto p-6 transition-all duration-300 bg-gray-50`}
+          style={{ width: showSchedule ? '70%' : '100%', overflow: 'auto', padding: '1.5rem', transition: 'all 0.3s', background: 'rgba(6, 13, 31, 0.6)' }}
         >
           <div style={{ transform: `scale(${zoomLevel / 100})`, transformOrigin: 'top left' }}>
             {event.bracketFormat === 'SINGLE_ELIMINATION' && (
@@ -378,22 +524,22 @@ const BracketViewModal = ({ eventId, onClose }) => {
 
         {/* Schedule Sidebar */}
         {showSchedule && (
-          <div className="w-[30%] border-l border-gray-200 bg-white overflow-y-auto">
-            <div className="p-4 space-y-4">
+          <div style={{ width: '30%', borderLeft: '1px solid rgba(79, 255, 176, 0.2)', background: 'rgba(10, 22, 40, 0.8)', overflowY: 'auto' }}>
+            <div style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {/* User's Next Match */}
               {nextUserMatch && (
-                <div className="bg-gradient-to-br from-primary-50 to-primary-100 border-2 border-primary-300 rounded-xl p-4">
-                  <h3 className="text-base font-bold text-primary-900 mb-3 flex items-center gap-2">
+                <div style={{ background: 'linear-gradient(135deg, rgba(79, 255, 176, 0.15), rgba(0, 212, 255, 0.15))', border: '2px solid rgba(79, 255, 176, 0.3)', borderRadius: '16px', padding: '1rem' }}>
+                  <h3 style={{ fontSize: '1rem', fontWeight: '900', color: '#4fffb0', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem', textTransform: 'uppercase' }}>
                     ⏱️ Your Next Match
                   </h3>
                   <MatchItem match={nextUserMatch} />
                   {nextUserMatch.scheduledTime && (
-                    <div className="mt-3 p-3 bg-white rounded-lg border border-primary-200">
-                      <div className="text-center">
-                        <div className="text-xl font-bold text-primary-700">
+                    <div style={{ marginTop: '0.75rem', padding: '0.75rem', background: 'rgba(10, 22, 40, 0.8)', borderRadius: '12px', border: '1px solid rgba(79, 255, 176, 0.2)' }}>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '1.25rem', fontWeight: '700', color: '#4fffb0' }}>
                           {getTimeUntilMatch(nextUserMatch.scheduledTime)}
                         </div>
-                        <div className="text-xs text-gray-600 mt-1">until match starts</div>
+                        <div style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.6)', marginTop: '0.25rem' }}>until match starts</div>
                       </div>
                     </div>
                   )}
@@ -403,14 +549,14 @@ const BracketViewModal = ({ eventId, onClose }) => {
               {/* Live Matches */}
               {liveMatches.length > 0 && (
                 <div>
-                  <h3 className="text-base font-bold text-gray-900 mb-2 flex items-center gap-2">
-                    <span className="relative flex h-2.5 w-2.5">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
+                  <h3 style={{ fontSize: '1rem', fontWeight: '900', color: '#fff', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', textTransform: 'uppercase' }}>
+                    <span style={{ position: 'relative', display: 'flex', height: '0.625rem', width: '0.625rem' }}>
+                      <span style={{ animation: 'ping 1s cubic-bezier(0, 0, 0.2, 1) infinite', position: 'absolute', display: 'inline-flex', height: '100%', width: '100%', borderRadius: '50%', background: '#f87171', opacity: 0.75 }}></span>
+                      <span style={{ position: 'relative', display: 'inline-flex', borderRadius: '50%', height: '0.625rem', width: '0.625rem', background: '#ef4444' }}></span>
                     </span>
                     Live Now
                   </h3>
-                  <div className="space-y-2">
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                     {liveMatches.slice(0, 3).map(match => (
                       <MatchItem key={match.id} match={match} showTime={false} />
                     ))}
@@ -421,10 +567,10 @@ const BracketViewModal = ({ eventId, onClose }) => {
               {/* Upcoming Matches */}
               {upcomingMatches.length > 0 && (
                 <div>
-                  <h3 className="text-base font-bold text-gray-900 mb-2">
+                  <h3 style={{ fontSize: '1rem', fontWeight: '900', color: '#fff', marginBottom: '0.5rem', textTransform: 'uppercase' }}>
                     Upcoming
                   </h3>
-                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '16rem', overflowY: 'auto' }}>
                     {upcomingMatches.slice(0, 5).map(match => (
                       <MatchItem key={match.id} match={match} />
                     ))}
@@ -435,10 +581,10 @@ const BracketViewModal = ({ eventId, onClose }) => {
               {/* Completed Matches */}
               {completedMatches.length > 0 && (
                 <div>
-                  <h3 className="text-base font-bold text-gray-900 mb-2">
+                  <h3 style={{ fontSize: '1rem', fontWeight: '900', color: '#fff', marginBottom: '0.5rem', textTransform: 'uppercase' }}>
                     Completed
                   </h3>
-                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '12rem', overflowY: 'auto' }}>
                     {completedMatches.slice(0, 5).map(match => (
                       <MatchItem key={match.id} match={match} showTime={false} />
                     ))}

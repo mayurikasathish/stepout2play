@@ -1110,6 +1110,23 @@ const ManagePage = () => {
                                 <div className="role-ribbon" style={{ background: getRoleColor(org.myRole) }}>
                                   {org.myRole}
                                 </div>
+                                {(org.city || org.state) && (
+                                  <div style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.375rem',
+                                    marginTop: '0.5rem',
+                                    fontSize: '0.875rem',
+                                    color: 'rgba(255, 255, 255, 0.6)',
+                                    fontFamily: "'Barlow Condensed', sans-serif"
+                                  }}>
+                                    <svg style={{ width: '1rem', height: '1rem' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    </svg>
+                                    <span>{org.city}{org.state ? `, ${org.state}` : ''}</span>
+                                  </div>
+                                )}
                               </div>
                             </div>
                           </div>

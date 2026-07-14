@@ -32,6 +32,18 @@ const OrganizationCard = ({ organization, onClick }) => {
       <h3 className="text-lg font-semibold text-gray-900 mb-2 group-hover:text-primary-600 transition-colors">
         {organization.name}
       </h3>
+
+      {/* Location */}
+      {(organization.city || organization.state) && (
+        <div className="flex items-center gap-1.5 text-sm text-gray-500 mb-2">
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          <span>{organization.city}{organization.state ? `, ${organization.state}` : ''}</span>
+        </div>
+      )}
+
       <p className="text-sm text-gray-600 mb-5 line-clamp-2 leading-relaxed">
         {organization.description || 'No description provided'}
       </p>

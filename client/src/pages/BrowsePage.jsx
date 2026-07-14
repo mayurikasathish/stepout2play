@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import EmptyState from '../components/EmptyState'
+import LocationButton from '../components/LocationButton'
+import { useAuth } from '../context/AuthContext'
+import { sortTournamentsByDistance } from '../utils/distance'
 import api from '../services/api'
 
 const SearchIcon = (props) => (
@@ -31,12 +34,14 @@ const LocationIcon = (props) => (
 
 const BrowsePage = () => {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const [tournaments, setTournaments] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [filterSport, setFilterSport] = useState('all')
   const [filterStatus, setFilterStatus] = useState('all')
+  const [filterDistance, setFilterDistance] = useState('all')
 
   useEffect(() => {
     fetchTournaments()
@@ -54,7 +59,14 @@ const BrowsePage = () => {
       const response = await api.get('/tournaments', { params })
 
       if (response.data.success) {
-        setTournaments(response.data.tournaments || [])
+        let tournamentsList = response.data.tournaments || []
+
+        // Sort by distance if user has GPS location
+        if (user?.latitude && user?.longitude) {
+          tournamentsList = sortTournamentsByDistance(tournamentsList, user)
+        }
+
+        setTournaments(tournamentsList)
       }
     } catch (err) {
       console.error('Error fetching tournaments:', err)
@@ -91,7 +103,17 @@ const BrowsePage = () => {
     const matchesSport = filterSport === 'all' || t.sport === filterSport
     // Exclude DRAFT tournaments unless specifically filtered
     const matchesStatus = filterStatus === 'DRAFT' || t.status !== 'DRAFT'
-    return matchesSearch && matchesSport && matchesStatus
+
+    // Distance filter
+    let matchesDistance = true
+    if (filterDistance !== 'all' && t.distance != null) {
+      if (filterDistance === '10') matchesDistance = t.distance <= 10
+      else if (filterDistance === '25') matchesDistance = t.distance <= 25
+      else if (filterDistance === '50') matchesDistance = t.distance <= 50
+      else if (filterDistance === '100') matchesDistance = t.distance <= 100
+    }
+
+    return matchesSearch && matchesSport && matchesStatus && matchesDistance
   })
 
   return (
@@ -112,6 +134,10 @@ const BrowsePage = () => {
         .browse-page option,
         .browse-page textarea {
           font-family: 'Barlow Condensed', sans-serif !important;
+        }
+
+        .browse-page .tournament-name {
+          color: #fff !important;
         }
 
         .content-wrapper {
@@ -154,6 +180,18 @@ const BrowsePage = () => {
             <div className="page-title browse-page">TOURNAMENTS</div>
             <div className="page-subtitle browse-page">FIND AND REGISTER FOR UPCOMING TOURNAMENTS.</div>
           </div>
+        </div>
+
+        {/* Location Buttons */}
+        <div className="mb-6" style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem' }}>
+          {!user?.latitude || !user?.longitude ? (
+            <LocationButton onLocationUpdate={fetchTournaments} />
+          ) : (
+            <>
+              <LocationButton onLocationUpdate={fetchTournaments} compact={false} />
+              <LocationButton onLocationUpdate={fetchTournaments} compact={false} removeMode={true} />
+            </>
+          )}
         </div>
 
         {/* Search and Filters */}
@@ -269,6 +307,46 @@ const BrowsePage = () => {
               </svg>
             </div>
           </div>
+
+          {/* Distance Filter - Only show if user has location */}
+          {user?.latitude && user?.longitude && (
+            <div className="relative">
+              <select
+                value={filterDistance}
+                onChange={(e) => setFilterDistance(e.target.value)}
+                style={{
+                  appearance: 'none',
+                  height: '100%',
+                  width: '100%',
+                  paddingLeft: '1rem',
+                  paddingRight: '2.5rem',
+                  paddingTop: '0.75rem',
+                  paddingBottom: '0.75rem',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  borderRadius: '12px',
+                  outline: 'none',
+                  transition: 'all 0.2s',
+                  color: '#fff',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  backgroundImage: 'none',
+                  minWidth: '12rem'
+                }}
+              >
+                <option value="all" style={{ background: '#0a1628', color: '#fff' }}>All Distances</option>
+                <option value="10" style={{ background: '#0a1628', color: '#fff' }}>Within 10 km</option>
+                <option value="25" style={{ background: '#0a1628', color: '#fff' }}>Within 25 km</option>
+                <option value="50" style={{ background: '#0a1628', color: '#fff' }}>Within 50 km</option>
+                <option value="100" style={{ background: '#0a1628', color: '#fff' }}>Within 100 km</option>
+              </select>
+              <div style={{ pointerEvents: 'none', position: 'absolute', insetY: 0, right: 0, display: 'flex', alignItems: 'center', paddingRight: '0.75rem', top: '50%', transform: 'translateY(-50%)' }}>
+                <svg style={{ width: '1.25rem', height: '1.25rem', color: 'rgba(255, 255, 255, 0.5)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Error Message */}
@@ -394,7 +472,7 @@ const TournamentCard = ({ tournament }) => {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '1rem' }}>
         <div style={{ flex: 1 }}>
-          <h3 style={{ fontSize: '1.125rem', fontWeight: '700', color: '#fff', marginBottom: '0.25rem', textTransform: 'uppercase', fontFamily: "'Barlow Condensed', sans-serif" }}>
+          <h3 className="tournament-name" style={{ fontSize: '1.125rem', fontWeight: '700', color: '#fff', marginBottom: '0.25rem', textTransform: 'uppercase', fontFamily: "'Barlow Condensed', sans-serif" }}>
             {tournament.name}
           </h3>
           <p style={{ fontSize: '0.875rem', color: 'rgba(255, 255, 255, 0.6)', fontFamily: "'Barlow Condensed', sans-serif" }}>{tournament.organization?.name || 'Unknown Organization'}</p>
@@ -408,7 +486,10 @@ const TournamentCard = ({ tournament }) => {
           <span style={{ fontWeight: '700', color: '#4fffb0', fontFamily: "'Barlow Condensed', sans-serif" }}>Date:</span> {formatDate(tournament.startDate)} - {formatDate(tournament.endDate)}
         </div>
         <div style={{ fontSize: '0.875rem', color: 'rgba(255, 255, 255, 0.8)', fontFamily: "'Barlow Condensed', sans-serif" }}>
-          <span style={{ fontWeight: '700', color: '#4fffb0', fontFamily: "'Barlow Condensed', sans-serif" }}>Venue:</span> {tournament.venueName}, {tournament.city}
+          <span style={{ fontWeight: '700', color: '#4fffb0', fontFamily: "'Barlow Condensed', sans-serif" }}>Venue:</span> {tournament.venueName}
+          {tournament.venueAddress && `, ${tournament.venueAddress}`}
+          {`, ${tournament.city}`}
+          {tournament.state && `, ${tournament.state}`}
         </div>
         <div style={{ fontSize: '0.875rem', color: 'rgba(255, 255, 255, 0.8)', fontFamily: "'Barlow Condensed', sans-serif" }}>
           <span style={{ fontWeight: '700', color: '#4fffb0', fontFamily: "'Barlow Condensed', sans-serif" }}>
@@ -446,15 +527,9 @@ const TournamentCard = ({ tournament }) => {
           )}
         </div>
         {tournament.events && tournament.events.length > 0 && (
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-600">
-              <span className="font-medium text-gray-700">Events:</span> {tournament.events.length}
-            </span>
-            {tournament.participantCount > 0 && (
-              <span className="text-primary-600 font-medium">
-                {tournament.participantCount} registered
-              </span>
-            )}
+          <div style={{ fontSize: '0.875rem', fontFamily: "'Barlow Condensed', sans-serif" }}>
+            <span style={{ fontWeight: '700', color: '#4fffb0', fontFamily: "'Barlow Condensed', sans-serif" }}>Events:</span>{' '}
+            <span style={{ color: '#fff', fontFamily: "'Barlow Condensed', sans-serif" }}>{tournament.events.map(e => e.name).join(', ')}</span>
           </div>
         )}
       </div>

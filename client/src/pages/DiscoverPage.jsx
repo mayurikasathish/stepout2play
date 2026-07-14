@@ -78,6 +78,23 @@ const DiscoverOrgCard = ({ org, onClick, setReadMoreModal, setJoinModal }) => {
               )}
               <div>
                 <div className="org-name">{org.name}</div>
+                {(org.city || org.state) && (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.375rem',
+                    marginTop: '0.25rem',
+                    fontSize: '0.875rem',
+                    color: 'rgba(255, 255, 255, 0.6)',
+                    fontFamily: "'Barlow Condensed', sans-serif"
+                  }}>
+                    <svg style={{ width: '1rem', height: '1rem' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <span>{org.city}{org.state ? `, ${org.state}` : ''}</span>
+                  </div>
+                )}
                 {org.owners && org.owners.length > 0 && (
                   <div className="org-owners">
                     {org.owners.map((owner, idx) => (
@@ -246,7 +263,6 @@ const DiscoverPage = () => {
   const [orgs, setOrgs] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [filter, setFilter] = useState('all') // all | public | private
   const [readMoreModal, setReadMoreModal] = useState(null)
   const [joinModal, setJoinModal] = useState(null)
   const [successToast, setSuccessToast] = useState(null)
@@ -294,11 +310,7 @@ const DiscoverPage = () => {
     const matchesSearch =
       o.name.toLowerCase().includes(search.toLowerCase()) ||
       (o.description || '').toLowerCase().includes(search.toLowerCase())
-    const matchesFilter =
-      filter === 'all' ||
-      (filter === 'public' && !o.isPrivate) ||
-      (filter === 'private' && o.isPrivate)
-    return matchesSearch && matchesFilter
+    return matchesSearch
   })
 
   return (
@@ -1137,7 +1149,7 @@ const DiscoverPage = () => {
             </p>
           </div>
 
-          {/* Search + Filter bar */}
+          {/* Search bar */}
           <div className="search-bar">
             <div className="search-input-wrapper">
               <SearchIcon className="search-icon" />
@@ -1148,18 +1160,6 @@ const DiscoverPage = () => {
                 onChange={(e) => setSearch(e.target.value)}
                 className="search-input"
               />
-            </div>
-
-            <div className="filter-buttons">
-              {['all', 'public', 'private'].map((f) => (
-                <button
-                  key={f}
-                  onClick={() => setFilter(f)}
-                  className={`filter-btn ${filter === f ? 'active' : ''}`}
-                >
-                  {f}
-                </button>
-              ))}
             </div>
           </div>
 
@@ -1230,7 +1230,7 @@ const DiscoverPage = () => {
 
       {/* Join Us Modal */}
       {joinModal && (
-        <div className="join-modal-overlay" onClick={() => setJoinModal(null)}>
+        <div className="join-modal-overlay">
           <div className="join-modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="join-modal-icon">🚀</div>
             <div className="join-modal-title">Join {joinModal.name}</div>

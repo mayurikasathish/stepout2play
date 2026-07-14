@@ -21,6 +21,9 @@ class TournamentController {
         venueName,
         venueAddress,
         city,
+        state,
+        latitude,
+        longitude,
         registrationDeadline,
         entryFee,
         description,
@@ -169,6 +172,9 @@ class TournamentController {
         venueName: venueName.trim(),
         venueAddress: venueAddress?.trim(),
         city: city.trim(),
+        state: state?.trim(),
+        latitude: latitude ? parseFloat(latitude) : null,
+        longitude: longitude ? parseFloat(longitude) : null,
         registrationDeadline,
         description: description?.trim(),
         rules: req.body.rules?.trim(),
@@ -288,6 +294,9 @@ class TournamentController {
         venueName,
         venueAddress,
         city,
+        state,
+        latitude,
+        longitude,
         registrationDeadline,
         description,
         rules,
@@ -317,6 +326,9 @@ class TournamentController {
       if (venueName !== undefined) updateData.venueName = venueName.trim();
       if (venueAddress !== undefined) updateData.venueAddress = venueAddress?.trim() || null;
       if (city !== undefined) updateData.city = city.trim();
+      if (state !== undefined) updateData.state = state?.trim() || null;
+      if (latitude !== undefined) updateData.latitude = latitude ? parseFloat(latitude) : null;
+      if (longitude !== undefined) updateData.longitude = longitude ? parseFloat(longitude) : null;
       if (registrationDeadline !== undefined) updateData.registrationDeadline = new Date(registrationDeadline);
       if (description !== undefined) updateData.description = description?.trim() || null;
       if (rules !== undefined) updateData.rules = rules?.trim() || null;

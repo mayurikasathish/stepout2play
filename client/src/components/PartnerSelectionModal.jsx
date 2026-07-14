@@ -136,7 +136,7 @@ const PartnerSelectionModal = ({ isOpen, onClose, eventId, eventName, eventForma
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm" onClick={handleClose} />
+      <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm" />
       <div className="flex min-h-full items-center justify-center p-4">
         <div className="relative rounded-2xl shadow-2xl w-full max-w-lg" style={{
           background: 'rgba(10, 22, 40, 0.95)',

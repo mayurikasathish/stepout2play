@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react'
 import Cropper from 'react-easy-crop'
+import LocationSelector from './LocationSelector'
 import api from '../services/api'
 
 const CreateOrganizationModal = ({ isOpen, onClose, onSuccess, editOrg = null }) => {
@@ -9,6 +10,8 @@ const CreateOrganizationModal = ({ isOpen, onClose, onSuccess, editOrg = null })
     contactEmail: '',
     contactPhone: '',
     location: '',
+    city: '',
+    state: '',
     description: '',
     sports: [],
     instagram: '',
@@ -60,6 +63,8 @@ const CreateOrganizationModal = ({ isOpen, onClose, onSuccess, editOrg = null })
         contactEmail: editOrg.contactEmail || '',
         contactPhone: editOrg.contactPhone || '',
         location: editOrg.location || '',
+        city: editOrg.city || '',
+        state: editOrg.state || '',
         description: editOrg.description || '',
         sports: Array.isArray(editOrg.sports) ? editOrg.sports : [],
         instagram,
@@ -77,6 +82,8 @@ const CreateOrganizationModal = ({ isOpen, onClose, onSuccess, editOrg = null })
         contactEmail: '',
         contactPhone: '',
         location: '',
+        city: '',
+        state: '',
         description: '',
         sports: [],
         instagram: '',
@@ -210,8 +217,12 @@ const CreateOrganizationModal = ({ isOpen, onClose, onSuccess, editOrg = null })
       setError('Contact person is required')
       return
     }
+    if (!formData.city.trim()) {
+      setError('City is required')
+      return
+    }
     if (!formData.location.trim()) {
-      setError('Location is required')
+      setError('Address is required')
       return
     }
 
@@ -242,6 +253,8 @@ const CreateOrganizationModal = ({ isOpen, onClose, onSuccess, editOrg = null })
           contactEmail: formData.contactEmail.trim() || null,
           contactPhone: formData.contactPhone.trim() || null,
           location: formData.location.trim(),
+          city: formData.city.trim(),
+          state: formData.state.trim() || null,
           description: formData.description.trim() || null,
           sports: formData.sports,
           socialLinks
@@ -266,6 +279,8 @@ const CreateOrganizationModal = ({ isOpen, onClose, onSuccess, editOrg = null })
           contactEmail: formData.contactEmail.trim() || null,
           contactPhone: formData.contactPhone.trim() || null,
           location: formData.location.trim(),
+          city: formData.city.trim(),
+          state: formData.state.trim() || null,
           description: formData.description.trim() || null,
           sports: formData.sports,
           socialLinks
@@ -798,7 +813,7 @@ const CreateOrganizationModal = ({ isOpen, onClose, onSuccess, editOrg = null })
         }
       `}</style>
 
-      <div className="modal-overlay" onClick={handleClose}>
+      <div className="modal-overlay">
         <div className="modal-content" onClick={(e) => e.stopPropagation()}>
           <div className="modal-header">
             <div className="modal-title">{editOrg ? 'EDIT ORGANIZATION' : 'READY TO LEAD?'}</div>
@@ -910,15 +925,32 @@ const CreateOrganizationModal = ({ isOpen, onClose, onSuccess, editOrg = null })
               />
             </div>
 
-            {/* Location */}
+            {/* Location Section */}
             <div className="form-group">
-              <label className="form-label required">Location</label>
+              <label className="form-label required" style={{ marginBottom: '1rem' }}>📍 Location</label>
+
+              <div style={{ marginBottom: '1rem' }}>
+                <LocationSelector
+                  city={formData.city}
+                  state={formData.state}
+                  onLocationChange={(locationData) => {
+                    setFormData({
+                      ...formData,
+                      city: locationData.city,
+                      state: locationData.state
+                    })
+                  }}
+                  darkMode={true}
+                />
+              </div>
+
+              <label className="form-label required">Address</label>
               <input
                 type="text"
                 className="form-input"
                 value={formData.location}
                 onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                placeholder="e.g. Mumbai, Maharashtra"
+                placeholder="e.g., 123 Main Street, Andheri West"
                 disabled={loading}
               />
             </div>
@@ -1058,7 +1090,7 @@ const CreateOrganizationModal = ({ isOpen, onClose, onSuccess, editOrg = null })
 
       {/* Crop Modal */}
       {cropModal && (
-        <div className="crop-modal-overlay" onClick={() => setCropModal(null)}>
+        <div className="crop-modal-overlay">
           <div className="crop-modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="crop-modal-title">✂ Crop {cropModal.type === 'logo' ? 'Logo' : 'Banner'}</div>
 

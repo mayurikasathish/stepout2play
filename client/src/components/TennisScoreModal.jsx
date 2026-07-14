@@ -199,7 +199,9 @@ const TennisScoreModal = ({ match, event, isRoundRobin, onClose, onSubmit }) => 
     const newScore = myScore + 1
     setMyScore(newScore)
 
-    // Tiebreak: first to 7 by 2
+    // Tiebreak: first to 7 OR MORE with 2 point difference
+    // Valid: 7-5, 8-6, 9-7, 10-8, etc.
+    // Invalid: 7-6, 8-7, 9-8 (only 1 point difference)
     if (newScore >= 7 && newScore >= oppScore + 2) {
       wonTiebreak(player)
     }
@@ -221,9 +223,16 @@ const TennisScoreModal = ({ match, event, isRoundRobin, onClose, onSubmit }) => 
     const newGames = myGames + 1
     setMyGames(newGames)
 
-    // Check for set win
-    if (newGames >= scoringRules.gamesPerSet && newGames >= oppGames + 2) {
-      wonSet(player)
+    // Check for set win - Tennis rules:
+    // 1. Must reach at least 6 games
+    // 2. Must win by at least 2 games (6-0, 6-1, 6-2, 6-3, 6-4, 7-5)
+    // 3. At 6-6, go to tiebreak
+    // 4. Cannot win at 6-5 (must play to 7-5)
+    if (newGames >= 6 && newGames >= oppGames + 2) {
+      // Pass the UPDATED game counts, not the state values
+      const finalP1Games = isP1 ? newGames : oppGames
+      const finalP2Games = isP1 ? oppGames : newGames
+      wonSet(player, `${finalP1Games}-${finalP2Games}`)
     } else if (newGames === 6 && oppGames === 6) {
       // Enter tiebreak at 6-6
       setIsTiebreak(true)

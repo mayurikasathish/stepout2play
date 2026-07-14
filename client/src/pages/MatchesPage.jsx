@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 import Navbar from '../components/Navbar'
 import EmptyState from '../components/EmptyState'
 import BracketViewModal from '../components/BracketViewModal'
@@ -24,6 +25,7 @@ const ClockIcon = (props) => (
 )
 
 const MatchesPage = () => {
+  const { user } = useAuth()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const [registrations, setRegistrations] = useState([])
@@ -390,6 +392,7 @@ const MatchesPage = () => {
                     navigate={navigate}
                     isUpcoming={activeTab === 'upcoming'}
                     highlightedEventId={highlightedEventId}
+                    user={user}
                     onViewBracket={() => {
                       setSelectedEvent(reg.event)
                       setShowBracketModal(true)
@@ -523,7 +526,7 @@ const MatchesPage = () => {
 }
 
 // Registration Card Component
-const RegistrationCard = ({ registration, navigate, isUpcoming, highlightedEventId, onViewBracket }) => {
+const RegistrationCard = ({ registration, navigate, isUpcoming, highlightedEventId, user, onViewBracket }) => {
   const [showWithdrawModal, setShowWithdrawModal] = useState(false)
   const [withdrawing, setWithdrawing] = useState(false)
   const [withdrawalReason, setWithdrawalReason] = useState('')
@@ -603,7 +606,10 @@ const RegistrationCard = ({ registration, navigate, isUpcoming, highlightedEvent
           padding: '1.25rem',
           transition: 'all 0.3s',
           cursor: 'pointer',
-          boxShadow: isHighlighted ? '0 0 15px rgba(79, 255, 176, 0.3), 0 0 30px rgba(79, 255, 176, 0.15)' : 'none'
+          boxShadow: isHighlighted ? '0 0 15px rgba(79, 255, 176, 0.3), 0 0 30px rgba(79, 255, 176, 0.15)' : 'none',
+          display: 'flex',
+          flexDirection: 'column',
+          minHeight: '320px'
         }}
         onMouseEnter={(e) => {
           e.currentTarget.style.borderColor = 'rgba(79, 255, 176, 0.3)';
@@ -616,61 +622,62 @@ const RegistrationCard = ({ registration, navigate, isUpcoming, highlightedEvent
           }
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '0.75rem', gap: '0.75rem' }}>
-          <div style={{ flex: 1 }}>
-            <h3 style={{
-              fontWeight: '900',
-              color: '#4fffb0',
-              marginBottom: '0.25rem',
-              fontSize: '1.125rem',
-              textTransform: 'uppercase',
-              letterSpacing: '-0.02em'
-            }}>
-              {registration.event.name}
-            </h3>
-            <p style={{ fontSize: '0.875rem', color: 'rgba(255, 255, 255, 0.7)', fontWeight: '600' }}>{registration.event.tournament.name}</p>
+        <div style={{ flex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '0.75rem', gap: '0.75rem' }}>
+            <div style={{ flex: 1 }}>
+              <h3 style={{
+                fontWeight: '900',
+                color: '#4fffb0',
+                marginBottom: '0.25rem',
+                fontSize: '1.125rem',
+                textTransform: 'uppercase',
+                letterSpacing: '-0.02em'
+              }}>
+                {registration.event.name}
+              </h3>
+              <p style={{ fontSize: '0.875rem', color: 'rgba(255, 255, 255, 0.7)', fontWeight: '600' }}>{registration.event.tournament.name}</p>
+              <span style={{
+                display: 'inline-block',
+                marginTop: '0.25rem',
+                padding: '0.25rem 0.5rem',
+                background: 'rgba(0, 212, 255, 0.15)',
+                color: '#00d4ff',
+                fontSize: '0.75rem',
+                fontWeight: '700',
+                borderRadius: '6px',
+                textTransform: 'uppercase'
+              }}>
+                {getFormatLabel(registration.event.format)}
+              </span>
+            </div>
             <span style={{
-              display: 'inline-block',
-              marginTop: '0.25rem',
               padding: '0.25rem 0.5rem',
-              background: 'rgba(0, 212, 255, 0.15)',
-              color: '#00d4ff',
               fontSize: '0.75rem',
               fontWeight: '700',
-              borderRadius: '6px',
+              borderRadius: '9999px',
+              border: registration.status === 'STANDBY'
+                ? '1px solid rgba(251, 146, 60, 0.3)'
+                : registration.status === 'WITHDRAWN'
+                ? '1px solid rgba(255, 255, 255, 0.2)'
+                : '1px solid rgba(79, 255, 176, 0.3)',
+              background: registration.status === 'STANDBY'
+                ? 'rgba(251, 146, 60, 0.15)'
+                : registration.status === 'WITHDRAWN'
+                ? 'rgba(255, 255, 255, 0.05)'
+                : 'rgba(79, 255, 176, 0.15)',
+              color: registration.status === 'STANDBY'
+                ? '#fb923c'
+                : registration.status === 'WITHDRAWN'
+                ? 'rgba(255, 255, 255, 0.6)'
+                : '#4fffb0',
               textTransform: 'uppercase'
             }}>
-              {getFormatLabel(registration.event.format)}
+              {registration.status === 'STANDBY' ? `Waitlist ${registration.standbyPosition ? `#${registration.standbyPosition}` : ''}` : registration.status}
             </span>
           </div>
-          <span style={{
-            padding: '0.25rem 0.5rem',
-            fontSize: '0.75rem',
-            fontWeight: '700',
-            borderRadius: '9999px',
-            border: registration.status === 'STANDBY'
-              ? '1px solid rgba(251, 146, 60, 0.3)'
-              : registration.status === 'WITHDRAWN'
-              ? '1px solid rgba(255, 255, 255, 0.2)'
-              : '1px solid rgba(79, 255, 176, 0.3)',
-            background: registration.status === 'STANDBY'
-              ? 'rgba(251, 146, 60, 0.15)'
-              : registration.status === 'WITHDRAWN'
-              ? 'rgba(255, 255, 255, 0.05)'
-              : 'rgba(79, 255, 176, 0.15)',
-            color: registration.status === 'STANDBY'
-              ? '#fb923c'
-              : registration.status === 'WITHDRAWN'
-              ? 'rgba(255, 255, 255, 0.6)'
-              : '#4fffb0',
-            textTransform: 'uppercase'
-          }}>
-            {registration.status === 'STANDBY' ? `Waitlist ${registration.standbyPosition ? `#${registration.standbyPosition}` : ''}` : registration.status}
-          </span>
-        </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem', marginBottom: '0.75rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: 'rgba(255, 255, 255, 0.7)' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem', marginBottom: '0.75rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: 'rgba(255, 255, 255, 0.7)' }}>
             <CalendarIcon style={{ width: '1rem', height: '1rem', color: '#4fffb0' }} />
             <span style={{ fontWeight: '600' }}>{formatDate(registration.event.tournament.startDate)}</span>
           </div>
@@ -681,26 +688,34 @@ const RegistrationCard = ({ registration, navigate, isUpcoming, highlightedEvent
             </svg>
             <span style={{ fontWeight: '600' }}>{registration.event.tournament.venueName}</span>
           </div>
-          {registration.partner && (
+          {registration.partner && registration.user && user && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: 'rgba(255, 255, 255, 0.7)' }}>
               <svg style={{ width: '1rem', height: '1rem', color: '#4fffb0' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
               </svg>
-              <span style={{ fontWeight: '600' }}>Partner: {registration.partner.firstName} {registration.partner.lastName}</span>
+              <span style={{ fontWeight: '600' }}>
+                Partner: {
+                  // If the partner is you, show the main registrant's name instead
+                  registration.partner.id === user.id
+                    ? `${registration.user.firstName} ${registration.user.lastName}`
+                    : `${registration.partner.firstName} ${registration.partner.lastName}`
+                }
+              </span>
+            </div>
+          )}
+          </div>
+
+          {registration.status === 'STANDBY' && (
+            <div style={{ marginTop: '0.75rem', padding: '0.75rem', background: 'rgba(251, 146, 60, 0.15)', border: '1px solid rgba(251, 146, 60, 0.3)', borderRadius: '12px' }}>
+              <p style={{ fontSize: '0.75rem', color: '#fb923c' }}>
+                <span style={{ fontWeight: '700' }}>You're on the waitlist!</span> You'll be automatically confirmed if someone withdraws before the event.
+              </p>
             </div>
           )}
         </div>
 
-        {registration.status === 'STANDBY' && (
-          <div style={{ marginTop: '0.75rem', padding: '0.75rem', background: 'rgba(251, 146, 60, 0.15)', border: '1px solid rgba(251, 146, 60, 0.3)', borderRadius: '12px' }}>
-            <p style={{ fontSize: '0.75rem', color: '#fb923c' }}>
-              <span style={{ fontWeight: '700' }}>You're on the waitlist!</span> You'll be automatically confirmed if someone withdraws before the event.
-            </p>
-          </div>
-        )}
-
         {hasBracket && (
-          <div style={{ display: 'flex', justifyContent: 'center', marginTop: '0.75rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '0.75rem 0' }}>
             <button
               onClick={handleViewBracket}
               style={{
@@ -751,14 +766,15 @@ const RegistrationCard = ({ registration, navigate, isUpcoming, highlightedEvent
         {isUpcoming && registration.status !== 'WITHDRAWN' && (
           <button
             onClick={handleWithdraw}
-            className="w-full mt-3 px-4 py-2 font-semibold text-sm rounded-lg transition-all"
+            className="w-full px-4 py-2 font-semibold text-sm rounded-lg transition-all"
             style={{
               background: 'linear-gradient(135deg, rgba(236, 72, 153, 0.15), rgba(219, 39, 119, 0.15))',
               color: '#ec4899',
               border: '1px solid rgba(236, 72, 153, 0.4)',
               fontFamily: "'Barlow Condensed', sans-serif",
               textTransform: 'uppercase',
-              letterSpacing: '0.05em'
+              letterSpacing: '0.05em',
+              marginTop: 'auto'
             }}
             onMouseEnter={(e) => {
               e.target.style.background = 'linear-gradient(135deg, rgba(236, 72, 153, 0.25), rgba(219, 39, 119, 0.25))'

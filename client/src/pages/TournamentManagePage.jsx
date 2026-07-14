@@ -5,6 +5,7 @@ import RegistrationsView from '../components/RegistrationsView'
 import BracketView from '../components/BracketView'
 import MatchScheduler from '../components/MatchScheduler'
 import Toast from '../components/Toast'
+import VenueLocationSelector from '../components/VenueLocationSelector'
 import api from '../services/api'
 import { getAllSports } from '../services/sports'
 
@@ -652,22 +653,26 @@ const TournamentManagePage = () => {
         {activeTab === 'overview' && (
           <div className="glass-card rounded-2xl p-8">
             <h2 className="text-2xl font-bold mb-6">Tournament Details</h2>
-            <div className="grid md:grid-cols-3 gap-x-8 gap-y-4">
+            <div className="grid md:grid-cols-2 gap-6">
               <div>
-                <label className="text-sm text-gray-600">Sport</label>
+                <label className="text-sm text-gray-600 block mb-1">Sport</label>
                 <p className="font-semibold capitalize">{tournament.sport}</p>
               </div>
               <div>
-                <label className="text-sm text-gray-600">Venue</label>
-                <p className="font-semibold">{tournament.venueName}</p>
-              </div>
-              <div>
-                <label className="text-sm text-gray-600">City</label>
-                <p className="font-semibold">{tournament.city}</p>
+                <label className="text-sm text-gray-600 block mb-1">Registration Deadline</label>
+                <p className="font-semibold">{new Date(tournament.registrationDeadline).toLocaleString()}</p>
               </div>
               <div className="md:col-span-2">
-                <label className="text-sm text-gray-600">Registration Deadline</label>
-                <p className="font-semibold">{new Date(tournament.registrationDeadline).toLocaleString()}</p>
+                <label className="text-sm text-gray-600 block mb-1">Venue</label>
+                <div className="space-y-1">
+                  <p className="font-semibold text-lg">{tournament.venueName}</p>
+                  {tournament.venueAddress && (
+                    <p className="text-sm text-gray-600">{tournament.venueAddress}</p>
+                  )}
+                  <p className="text-sm text-gray-600">
+                    {tournament.city}{tournament.state && `, ${tournament.state}`}
+                  </p>
+                </div>
               </div>
             </div>
             {tournament.description && (
@@ -1063,7 +1068,7 @@ const CreateEventModal = ({ tournament, onClose, onSubmit }) => {
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm" />
       <div className="flex min-h-full items-center justify-center p-4" style={{
         position: 'fixed',
         top: 0,
@@ -1446,6 +1451,9 @@ const EditTournamentModal = ({ tournament, onClose, onSubmit }) => {
     venueName: tournament.venueName || '',
     venueAddress: tournament.venueAddress || '',
     city: tournament.city || '',
+    state: tournament.state || '',
+    latitude: tournament.latitude || null,
+    longitude: tournament.longitude || null,
     registrationDeadline: tournament.registrationDeadline ? new Date(tournament.registrationDeadline).toISOString().slice(0, 16) : '',
     description: tournament.description || '',
     rules: tournament.rules || '',
@@ -1501,7 +1509,7 @@ const EditTournamentModal = ({ tournament, onClose, onSubmit }) => {
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm" />
       <div className="flex min-h-full items-center justify-center p-4" style={{
         position: 'fixed',
         top: 0,
@@ -1657,35 +1665,67 @@ const EditTournamentModal = ({ tournament, onClose, onSubmit }) => {
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-2">Venue Name *</label>
-              <input
-                type="text"
-                value={formData.venueName}
-                onChange={(e) => setFormData({ ...formData, venueName: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                required
-              />
-            </div>
+            {/* Venue Location Section */}
+            <div className="space-y-4 p-4 rounded-lg" style={{
+              background: 'rgba(79, 255, 176, 0.05)',
+              border: '1px solid rgba(79, 255, 176, 0.2)'
+            }}>
+              <h3 className="block text-sm font-medium mb-2" style={{ color: '#4fffb0', marginBottom: '1rem' }}>
+                📍 Venue Location
+              </h3>
 
-            <div>
-              <label className="block text-sm font-medium mb-2">Venue Address</label>
-              <input
-                type="text"
-                value={formData.venueAddress}
-                onChange={(e) => setFormData({ ...formData, venueAddress: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-              />
-            </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">Venue Name *</label>
+                <input
+                  type="text"
+                  value={formData.venueName}
+                  onChange={(e) => setFormData({ ...formData, venueName: e.target.value })}
+                  placeholder="e.g., Sports Complex Arena"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                  style={{
+                    background: 'rgba(6, 13, 31, 0.6)',
+                    color: '#fff',
+                    border: '1px solid rgba(255, 255, 255, 0.1)'
+                  }}
+                  required
+                />
+              </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-2">City *</label>
-              <input
-                type="text"
-                value={formData.city}
-                onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                required
+              <div>
+                <label className="block text-sm font-medium mb-2">Venue Address/Locality</label>
+                <input
+                  type="text"
+                  value={formData.venueAddress}
+                  onChange={(e) => setFormData({ ...formData, venueAddress: e.target.value })}
+                  placeholder="Street address or locality"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                  style={{
+                    background: 'rgba(6, 13, 31, 0.6)',
+                    color: '#fff',
+                    border: '1px solid rgba(255, 255, 255, 0.1)'
+                  }}
+                />
+              </div>
+
+              <VenueLocationSelector
+                city={formData.city}
+                state={formData.state}
+                venueName={formData.venueName}
+                venueAddress={formData.venueAddress}
+                latitude={formData.latitude}
+                longitude={formData.longitude}
+                onLocationChange={(locationData) => {
+                  setFormData({
+                    ...formData,
+                    city: locationData.city,
+                    state: locationData.state,
+                    venueName: locationData.venueName,
+                    venueAddress: locationData.venueAddress,
+                    latitude: locationData.latitude,
+                    longitude: locationData.longitude
+                  })
+                }}
+                darkMode={true}
               />
             </div>
 
@@ -1953,7 +1993,7 @@ const EditEventModal = ({ event, tournament, onClose, onSubmit }) => {
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm" />
       <div className="flex min-h-full items-center justify-center p-4" style={{
         position: 'fixed',
         top: 0,

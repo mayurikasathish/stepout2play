@@ -445,7 +445,7 @@ const SingleEliminationBracket = ({ matches, onMatchClick, onCaptureScorecard, o
   return (
     <div className="bracket-container relative">
       {/* Zoom Controls - Hidden in print */}
-      <div className="no-print sticky top-4 right-4 z-20 flex justify-end mb-4">
+      <div className="no-print sticky top-0 right-4 z-20 flex justify-end mb-4">
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(10, 22, 40, 0.8)', border: '1px solid rgba(255, 255, 255, 0.2)', borderRadius: '12px', padding: '0.5rem 0.75rem', backdropFilter: 'blur(10px)' }}>
           <button
             onClick={handleZoomOut}
@@ -644,16 +644,16 @@ const SingleEliminationBracket = ({ matches, onMatchClick, onCaptureScorecard, o
           {rounds.map((round, roundIndex) => (
             <div key={round.roundNumber} className="flex flex-col min-w-[260px] relative z-10 isolate">
               {/* Round Header - Compact */}
-              <div className="text-center mb-6 sticky top-0 bg-white z-10 pb-3 border-b-2 border-gray-200">
-                <div className="inline-block px-4 py-1.5 bg-primary-600 rounded-full">
-                  <h3 className="font-bold text-sm text-white">
+              <div style={{ textAlign: 'center', marginBottom: '1.5rem', position: 'sticky', top: 0, background: 'transparent', zIndex: 10, paddingBottom: '0.75rem' }}>
+                <div style={{ display: 'inline-block', padding: '0.375rem 1rem', background: 'linear-gradient(135deg, #4fffb0 0%, #00d4ff 100%)', borderRadius: '9999px' }}>
+                  <h3 style={{ fontWeight: '700', fontSize: '0.875rem', color: '#000', textTransform: 'uppercase', fontFamily: "'Barlow Condensed', sans-serif" }}>
                     {getRoundName(round.roundNumber, rounds.length)}
                   </h3>
                 </div>
-                <p className="text-[10px] text-gray-600 font-medium mt-1.5">
+                <p style={{ fontSize: '0.625rem', color: 'rgba(255, 255, 255, 0.7)', fontWeight: '600', marginTop: '0.375rem' }}>
                   {round.matches.filter(m => m.status !== 'BYE').length} match{round.matches.filter(m => m.status !== 'BYE').length !== 1 ? 'es' : ''}
                   {round.matches.filter(m => m.status === 'BYE').length > 0 && (
-                    <span className="text-green-600 ml-1">• {round.matches.filter(m => m.status === 'BYE').length} auto</span>
+                    <span style={{ color: '#4fffb0', marginLeft: '0.25rem' }}>• {round.matches.filter(m => m.status === 'BYE').length} auto</span>
                   )}
                 </p>
               </div>
