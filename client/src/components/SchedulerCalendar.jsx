@@ -3,7 +3,6 @@ import { useState, useMemo } from 'react'
 const SchedulerCalendar = ({
   schedule,
   tournament,
-  activeView,
   selectedDate,
   onDateChange,
   onMatchMove,
@@ -186,197 +185,6 @@ const SchedulerCalendar = ({
     )
   }
 
-  // Render Week View
-  const renderWeekView = () => {
-    const weekStart = getWeekStart(selectedDate)
-    const weekDays = [...Array(7)].map((_, i) => {
-      const date = new Date(weekStart)
-      date.setDate(weekStart.getDate() + i)
-      return date
-    })
-
-    return (
-      <div className="week-view">
-        <div className="week-navigator">
-          <button onClick={() => changeWeek(-1)} className="nav-btn">
-            ← Prev Week
-          </button>
-          <div className="week-range">
-            {weekDays[0].toLocaleDateString()} - {weekDays[6].toLocaleDateString()}
-          </div>
-          <button onClick={() => changeWeek(1)} className="nav-btn">
-            Next Week →
-          </button>
-        </div>
-
-        <div className="week-grid">
-          {weekDays.map((date, idx) => {
-            const dayMatches = schedule.filter(item => {
-              const itemDate = new Date(item.date)
-              return itemDate.toDateString() === date.toDateString()
-            })
-
-            return (
-              <div
-                key={idx}
-                className="week-day"
-                onClick={() => {
-                  onDateChange(date)
-                  // Note: This won't switch view automatically - user needs to click Day View
-                }}
-              >
-                <div className="day-header">
-                  <div className="day-name">{date.toLocaleDateString('en-US', { weekday: 'short' })}</div>
-                  <div className="day-date">{date.getDate()}</div>
-                </div>
-                <div className="day-matches">
-                  {dayMatches.length > 0 ? (
-                    <div className="matches-summary">
-                      {dayMatches.map(match => (
-                        <div
-                          key={match.matchId}
-                          className="mini-match"
-                          style={{ background: eventColors[match.eventId] }}
-                          title={`${match.eventName} ${match.startTime}`}
-                        />
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="no-matches">—</div>
-                  )}
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      </div>
-    )
-  }
-
-  // Render Event View
-  const renderEventView = () => {
-    const eventSchedules = {}
-
-    // Group matches by event
-    schedule.forEach(match => {
-      if (!eventSchedules[match.eventId]) {
-        eventSchedules[match.eventId] = {
-          eventName: match.eventName,
-          matches: []
-        }
-      }
-      eventSchedules[match.eventId].matches.push(match)
-    })
-
-    return (
-      <div className="event-view">
-        {Object.entries(eventSchedules).map(([eventId, data]) => (
-          <div key={eventId} className="event-schedule-card">
-            <div
-              className="event-schedule-header"
-              style={{
-                background: `linear-gradient(135deg, ${eventColors[eventId]}33, ${eventColors[eventId]}11)`,
-                borderLeft: `4px solid ${eventColors[eventId]}`
-              }}
-            >
-              <h3>{data.eventName}</h3>
-              <span className="matches-count">{data.matches.length} matches</span>
-            </div>
-
-            <div className="event-matches-list">
-              {data.matches
-                .sort((a, b) => {
-                  const dateA = new Date(`${a.date} ${a.startTime}`)
-                  const dateB = new Date(`${b.date} ${b.startTime}`)
-                  return dateA - dateB
-                })
-                .map(match => (
-                  <div key={match.matchId} className="event-match-item">
-                    <div className="match-info">
-                      <span className="match-label">R{match.roundNumber} M{match.matchNumber}</span>
-                      <span className="match-datetime">
-                        {new Date(match.date).toLocaleDateString()} • {match.startTime}
-                      </span>
-                    </div>
-                    <div className="match-location">
-                      {match.court}
-                    </div>
-                  </div>
-                ))}
-            </div>
-          </div>
-        ))}
-      </div>
-    )
-  }
-
-  // Render Court View
-  const renderCourtView = () => {
-    const courts = tournament.courtsAvailable || 4
-    const courtSchedules = {}
-
-    // Group matches by court
-    for (let i = 1; i <= courts; i++) {
-      courtSchedules[i] = {
-        courtName: `Court ${i}`,
-        matches: schedule.filter(m => m.courtNumber === i)
-      }
-    }
-
-    return (
-      <div className="court-view">
-        {Object.entries(courtSchedules).map(([courtNum, data]) => (
-          <div key={courtNum} className="court-schedule-card">
-            <div className="court-schedule-header">
-              <h3>{data.courtName}</h3>
-              <span className="matches-count">{data.matches.length} matches</span>
-            </div>
-
-            <div className="court-matches-list">
-              {data.matches
-                .sort((a, b) => {
-                  const dateA = new Date(`${a.date} ${a.startTime}`)
-                  const dateB = new Date(`${b.date} ${b.startTime}`)
-                  return dateA - dateB
-                })
-                .map(match => (
-                  <div
-                    key={match.matchId}
-                    className="court-match-item"
-                    style={{ borderLeft: `4px solid ${eventColors[match.eventId]}` }}
-                  >
-                    <div className="match-time-range">
-                      {match.startTime} - {match.endTime}
-                    </div>
-                    <div className="match-event-name">
-                      {match.eventName}
-                    </div>
-                    <div className="match-details-text">
-                      {new Date(match.date).toLocaleDateString()} • R{match.roundNumber} M{match.matchNumber}
-                    </div>
-                  </div>
-                ))}
-            </div>
-          </div>
-        ))}
-      </div>
-    )
-  }
-
-  // Render Player View
-  const renderPlayerView = () => {
-    // TODO: Need participant data to build this view
-    return (
-      <div className="player-view">
-        <div className="view-placeholder">
-          <div className="placeholder-icon">👤</div>
-          <div className="placeholder-text">Player View</div>
-          <div className="placeholder-subtext">Coming soon - requires participant data</div>
-        </div>
-      </div>
-    )
-  }
-
   // Helper functions
   const changeDate = (days) => {
     const newDate = new Date(selectedDate)
@@ -384,20 +192,8 @@ const SchedulerCalendar = ({
     onDateChange(newDate)
   }
 
-  const changeWeek = (weeks) => {
-    const newDate = new Date(selectedDate)
-    newDate.setDate(newDate.getDate() + (weeks * 7))
-    onDateChange(newDate)
-  }
-
-  const getWeekStart = (date) => {
-    const d = new Date(date)
-    const day = d.getDay()
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1)
-    return new Date(d.setDate(diff))
-  }
-
   const calculateDuration = (startTime, endTime) => {
+    if (!startTime || !endTime) return null
     const [startHour, startMin] = startTime.split(':').map(Number)
     const [endHour, endMin] = endTime.split(':').map(Number)
     return (endHour * 60 + endMin) - (startHour * 60 + startMin)
@@ -881,11 +677,8 @@ const SchedulerCalendar = ({
         }
       `}</style>
 
-      {activeView === 'day' && renderDayView()}
-      {activeView === 'week' && renderWeekView()}
-      {activeView === 'event' && renderEventView()}
-      {activeView === 'court' && renderCourtView()}
-      {activeView === 'player' && renderPlayerView()}
+      {/* Always show day view - simplified UI */}
+      {renderDayView()}
     </>
   )
 }

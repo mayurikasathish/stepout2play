@@ -108,7 +108,9 @@ class EventService {
           select: {
             id: true,
             userId: true,
-            partnerId: true
+            partnerId: true,
+            status: true,
+            isStandby: true
           }
         },
         _count: {

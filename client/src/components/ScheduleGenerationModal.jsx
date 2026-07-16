@@ -1,30 +1,54 @@
 import { useState, useEffect } from 'react'
 
 const ScheduleGenerationModal = ({ tournament, events, onGenerate, onClose }) => {
+  // Initialize courtsBySport from tournament data or create default structure
+  const initializeCourtsBySport = () => {
+    if (tournament?.courtsBySport) {
+      return tournament.courtsBySport
+    }
+
+    // Create default: equal courts for each sport
+    const courtsBySport = {}
+    const tournamentSports = tournament?.sportType === 'multi' && tournament?.sports?.length > 0
+      ? tournament.sports
+      : [tournament?.sport || 'badminton']
+
+    const defaultCourts = Number(tournament?.courtsAvailable) || 4
+    tournamentSports.forEach(sportId => {
+      const sportName = getSportName(sportId)
+      courtsBySport[sportId] = Array.from({ length: defaultCourts }, (_, i) => `${sportName} Court ${i + 1}`)
+    })
+
+    return courtsBySport
+  }
+
+  const getSportName = (sportId) => {
+    const names = {
+      'badminton': 'Badminton',
+      'table-tennis': 'Table Tennis',
+      'tennis': 'Tennis',
+      'squash': 'Squash',
+      'pickleball': 'Pickleball',
+      'padel': 'Padel'
+    }
+    return names[sportId] || sportId.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())
+  }
+
   const [settings, setSettings] = useState({
     startDate: tournament?.startDate?.split('T')[0] || '',
     endDate: tournament?.endDate?.split('T')[0] || '',
     dailyStartTime: tournament?.dailyStartTime || '09:00',
     dailyEndTime: tournament?.dailyEndTime || '18:00',
-    courtsAvailable: Number(tournament?.courtsAvailable) || 4,
+    courtsBySport: initializeCourtsBySport(),
     matchDuration: Number(tournament?.matchDuration) || 45,
     breakDuration: Number(tournament?.breakDuration) || 15,
-    minRestTime: Number(tournament?.minRestTime) || 30,
-    strategy: 'hybrid',
-    autoFix: true,
-    advancedOptions: {
-      avoidEarlyFinals: true,
-      reserveCourt1ForFinals: false,
-      separatePartnerMatches: true
-    }
+    minRestTime: Number(tournament?.minRestTime) || 30
   })
-
-  const [showAdvanced, setShowAdvanced] = useState(false)
   const [estimatedCapacity, setEstimatedCapacity] = useState(null)
 
   useEffect(() => {
     calculateCapacity()
-  }, [settings.startDate, settings.endDate, settings.dailyStartTime, settings.dailyEndTime, settings.courtsAvailable, settings.matchDuration, settings.breakDuration])
+  }, [settings.startDate, settings.endDate, settings.dailyStartTime, settings.dailyEndTime, settings.courtsBySport, settings.matchDuration, settings.breakDuration])
 
   const calculateCapacity = () => {
     if (!settings.startDate || !settings.endDate || !settings.dailyStartTime || !settings.dailyEndTime) return
@@ -40,14 +64,18 @@ const ScheduleGenerationModal = ({ tournament, events, onGenerate, onClose }) =>
 
       const slotDuration = (settings.matchDuration || 45) + (settings.breakDuration || 15)
       const slotsPerCourt = Math.floor(dailyMinutes / slotDuration)
-      const slotsPerDay = slotsPerCourt * (settings.courtsAvailable || 4)
+
+      // Count total courts across all sports
+      const totalCourts = Object.values(settings.courtsBySport || {}).reduce((sum, courts) => sum + courts.length, 0)
+      const slotsPerDay = slotsPerCourt * totalCourts
       const totalSlots = slotsPerDay * days
 
       setEstimatedCapacity({
         days,
         slotsPerDay,
         totalSlots,
-        dailyMinutes
+        dailyMinutes,
+        totalCourts
       })
     } catch (err) {
       console.error('Error calculating capacity:', err)
@@ -68,12 +96,26 @@ const ScheduleGenerationModal = ({ tournament, events, onGenerate, onClose }) =>
     }))
   }
 
-  const handleAdvancedChange = (field, value) => {
+
+  const handleCourtCountChange = (sportId, count) => {
+    const sportName = getSportName(sportId)
+    const courts = Array.from({ length: count }, (_, i) => `${sportName} Court ${i + 1}`)
+
     setSettings(prev => ({
       ...prev,
-      advancedOptions: {
-        ...prev.advancedOptions,
-        [field]: value
+      courtsBySport: {
+        ...prev.courtsBySport,
+        [sportId]: courts
+      }
+    }))
+  }
+
+  const handleCourtNameChange = (sportId, index, newName) => {
+    setSettings(prev => ({
+      ...prev,
+      courtsBySport: {
+        ...prev.courtsBySport,
+        [sportId]: prev.courtsBySport[sportId].map((name, i) => i === index ? newName : name)
       }
     }))
   }
@@ -90,7 +132,9 @@ const ScheduleGenerationModal = ({ tournament, events, onGenerate, onClose }) =>
       return
     }
 
-    if (settings.courtsAvailable < 1) {
+    // Validate each sport has at least 1 court
+    const totalCourts = Object.values(settings.courtsBySport || {}).reduce((sum, courts) => sum + courts.length, 0)
+    if (totalCourts < 1) {
       alert('At least 1 court is required')
       return
     }
@@ -98,10 +142,18 @@ const ScheduleGenerationModal = ({ tournament, events, onGenerate, onClose }) =>
     onGenerate(settings)
   }
 
-  // Use events prop which has matchCount from API
-  const totalMatches = events?.reduce((sum, event) =>
-    sum + (event.matchCount || 0), 0
-  ) || 0
+  // Calculate expected matches based on confirmed registrations
+  // For knockout: N participants = N-1 matches (each match eliminates 1)
+  const totalMatches = events?.reduce((sum, event) => {
+    // Count confirmed non-standby registrations
+    const confirmedCount = event.registrations?.filter(r => r.status === 'CONFIRMED' && !r.isStandby).length || 0
+
+    if (confirmedCount < 2) return sum // Need at least 2 to have matches
+
+    // For knockout format: N-1 matches needed
+    const expectedMatches = confirmedCount - 1
+    return sum + expectedMatches
+  }, 0) || 0
 
   const utilizationPercent = estimatedCapacity?.totalSlots > 0
     ? Math.round((totalMatches / estimatedCapacity.totalSlots) * 100)
@@ -232,55 +284,6 @@ const ScheduleGenerationModal = ({ tournament, events, onGenerate, onClose }) =>
           box-shadow: 0 0 0 3px rgba(79, 255, 176, 0.1);
         }
 
-        .strategy-options {
-          display: flex;
-          flex-direction: column;
-          gap: 0.75rem;
-        }
-
-        .strategy-option {
-          background: rgba(6, 13, 31, 0.6);
-          border: 2px solid rgba(255, 255, 255, 0.1);
-          border-radius: 8px;
-          padding: 1rem;
-          cursor: pointer;
-          transition: all 0.2s ease;
-        }
-
-        .strategy-option:hover {
-          border-color: rgba(79, 255, 176, 0.5);
-          background: rgba(6, 13, 31, 0.8);
-        }
-
-        .strategy-option.selected {
-          border-color: #4fffb0;
-          background: rgba(79, 255, 176, 0.1);
-        }
-
-        .strategy-option input[type="radio"] {
-          margin-right: 0.75rem;
-        }
-
-        .strategy-header {
-          display: flex;
-          align-items: center;
-          margin-bottom: 0.5rem;
-        }
-
-        .strategy-name {
-          font-family: 'Barlow Condensed', sans-serif;
-          font-weight: 700;
-          font-size: 1rem;
-          color: white;
-          text-transform: uppercase;
-        }
-
-        .strategy-description {
-          font-family: 'Barlow', sans-serif;
-          font-size: 0.85rem;
-          color: rgba(255, 255, 255, 0.7);
-          line-height: 1.5;
-        }
 
         .checkbox-group {
           display: flex;
@@ -505,18 +508,58 @@ const ScheduleGenerationModal = ({ tournament, events, onGenerate, onClose }) =>
 
             {/* Courts & Duration */}
             <div className="form-section">
-              <div className="section-title">🏟️ Courts & Duration</div>
+              <div className="section-title">🏟️ Courts per Sport</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}>
+                {Object.keys(settings.courtsBySport || {}).map(sportId => (
+                  <div key={sportId} style={{
+                    background: 'rgba(79, 255, 176, 0.05)',
+                    border: '1px solid rgba(79, 255, 176, 0.2)',
+                    borderRadius: '8px',
+                    padding: '1rem'
+                  }}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '1rem',
+                      marginBottom: '0.75rem'
+                    }}>
+                      <label className="form-label" style={{ margin: 0, flex: 1 }}>
+                        {getSportName(sportId)}
+                      </label>
+                      <input
+                        type="number"
+                        className="form-input"
+                        style={{ width: '80px' }}
+                        value={settings.courtsBySport[sportId]?.length || 0}
+                        onChange={e => handleCourtCountChange(sportId, parseInt(e.target.value) || 0)}
+                        min="0"
+                        max="20"
+                      />
+                      <span style={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: '0.9rem' }}>
+                        courts
+                      </span>
+                    </div>
+                    {settings.courtsBySport[sportId]?.length > 0 && (
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '0.5rem' }}>
+                        {settings.courtsBySport[sportId].map((courtName, index) => (
+                          <input
+                            key={index}
+                            type="text"
+                            className="form-input"
+                            style={{ fontSize: '0.85rem', padding: '0.4rem' }}
+                            value={courtName}
+                            onChange={e => handleCourtNameChange(sportId, index, e.target.value)}
+                            placeholder={`Court ${index + 1}`}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <div className="section-title" style={{ marginTop: '1.5rem' }}>⏱️ Match Timing</div>
               <div className="form-grid">
-                <div className="form-group">
-                  <label className="form-label">Courts Available</label>
-                  <input
-                    type="number"
-                    className="form-input"
-                    value={String(settings.courtsAvailable || 4)}
-                    onChange={e => handleChange('courtsAvailable', parseInt(e.target.value))}
-                    min="1"
-                  />
-                </div>
                 <div className="form-group">
                   <label className="form-label">Match Duration (mins)</label>
                   <input
@@ -553,125 +596,6 @@ const ScheduleGenerationModal = ({ tournament, events, onGenerate, onClose }) =>
               </div>
             </div>
 
-            {/* Scheduling Strategy */}
-            <div className="form-section">
-              <div className="section-title">🎯 Scheduling Strategy</div>
-              <div className="strategy-options">
-                <div
-                  className={`strategy-option ${settings.strategy === 'sequential' ? 'selected' : ''}`}
-                  onClick={() => handleChange('strategy', 'sequential')}
-                >
-                  <div className="strategy-header">
-                    <input
-                      type="radio"
-                      checked={settings.strategy === 'sequential'}
-                      onChange={() => {}}
-                    />
-                    <span className="strategy-name">Sequential</span>
-                  </div>
-                  <div className="strategy-description">
-                    Complete each event before starting the next. Clean separation, easier to manage.
-                  </div>
-                </div>
-
-                <div
-                  className={`strategy-option ${settings.strategy === 'interleaved' ? 'selected' : ''}`}
-                  onClick={() => handleChange('strategy', 'interleaved')}
-                >
-                  <div className="strategy-header">
-                    <input
-                      type="radio"
-                      checked={settings.strategy === 'interleaved'}
-                      onChange={() => {}}
-                    />
-                    <span className="strategy-name">Interleaved</span>
-                  </div>
-                  <div className="strategy-description">
-                    Mix all events to maximize court usage. Fastest tournament, but events are mixed.
-                  </div>
-                </div>
-
-                <div
-                  className={`strategy-option ${settings.strategy === 'hybrid' ? 'selected' : ''}`}
-                  onClick={() => handleChange('strategy', 'hybrid')}
-                >
-                  <div className="strategy-header">
-                    <input
-                      type="radio"
-                      checked={settings.strategy === 'hybrid'}
-                      onChange={() => {}}
-                    />
-                    <span className="strategy-name">Hybrid (Recommended)</span>
-                  </div>
-                  <div className="strategy-description">
-                    Priority events first, then fill gaps with others. Best of both worlds!
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Advanced Options Toggle */}
-            <div className="form-section">
-              <button
-                className="advanced-toggle"
-                onClick={() => setShowAdvanced(!showAdvanced)}
-              >
-                🔧 Advanced Options
-                <span>{showAdvanced ? '▲' : '▼'}</span>
-              </button>
-
-              {showAdvanced && (
-                <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  <div className="checkbox-group">
-                    <input
-                      type="checkbox"
-                      id="autoFix"
-                      checked={settings.autoFix}
-                      onChange={e => handleChange('autoFix', e.target.checked)}
-                    />
-                    <label htmlFor="autoFix" className="checkbox-label">
-                      ✓ Automatically fix conflicts
-                    </label>
-                  </div>
-
-                  <div className="checkbox-group">
-                    <input
-                      type="checkbox"
-                      id="avoidEarlyFinals"
-                      checked={settings.advancedOptions.avoidEarlyFinals}
-                      onChange={e => handleAdvancedChange('avoidEarlyFinals', e.target.checked)}
-                    />
-                    <label htmlFor="avoidEarlyFinals" className="checkbox-label">
-                      ✓ Avoid scheduling finals early in the day
-                    </label>
-                  </div>
-
-                  <div className="checkbox-group">
-                    <input
-                      type="checkbox"
-                      id="reserveCourt1"
-                      checked={settings.advancedOptions.reserveCourt1ForFinals}
-                      onChange={e => handleAdvancedChange('reserveCourt1ForFinals', e.target.checked)}
-                    />
-                    <label htmlFor="reserveCourt1" className="checkbox-label">
-                      ✓ Reserve Court 1 for finals/semis
-                    </label>
-                  </div>
-
-                  <div className="checkbox-group">
-                    <input
-                      type="checkbox"
-                      id="separatePartner"
-                      checked={settings.advancedOptions.separatePartnerMatches}
-                      onChange={e => handleAdvancedChange('separatePartnerMatches', e.target.checked)}
-                    />
-                    <label htmlFor="separatePartner" className="checkbox-label">
-                      ✓ Keep partner matches separate (30 min gap)
-                    </label>
-                  </div>
-                </div>
-              )}
-            </div>
 
             {/* Capacity Summary */}
             {estimatedCapacity && (
@@ -684,12 +608,12 @@ const ScheduleGenerationModal = ({ tournament, events, onGenerate, onClose }) =>
                       <div className="stat-label">Total Matches</div>
                     </div>
                     <div className="capacity-stat">
-                      <div className="stat-value">{estimatedCapacity?.days || 0}</div>
-                      <div className="stat-label">Days Required</div>
+                      <div className="stat-value">{estimatedCapacity?.totalCourts || 0}</div>
+                      <div className="stat-label">Total Courts</div>
                     </div>
                     <div className="capacity-stat">
-                      <div className="stat-value">{slotsPerDay}</div>
-                      <div className="stat-label">Slots Per Day</div>
+                      <div className="stat-value">{estimatedCapacity?.days || 0}</div>
+                      <div className="stat-label">Days</div>
                     </div>
                     <div className="capacity-stat">
                       <div className="stat-value">{totalSlots}</div>
@@ -705,9 +629,10 @@ const ScheduleGenerationModal = ({ tournament, events, onGenerate, onClose }) =>
                   </div>
                   <div className="utilization-text">
                     {utilizationPercent}% Utilization
+                    {utilizationPercent === 0 && ' ⚠️ Configure dates and courts first'}
+                    {utilizationPercent > 0 && utilizationPercent < 40 && ' ⚠️ Low utilization'}
+                    {utilizationPercent >= 40 && utilizationPercent <= 100 && ' ✓ Good utilization'}
                     {utilizationPercent > 100 && ' ⚠️ Not enough capacity!'}
-                    {utilizationPercent >= 90 && utilizationPercent <= 100 && ' ✓ Good utilization'}
-                    {utilizationPercent < 90 && ' Low utilization'}
                   </div>
                 </div>
               </div>

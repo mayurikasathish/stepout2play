@@ -39,7 +39,7 @@ class TournamentSchedulerController {
   async saveSchedule(req, res, next) {
     try {
       const { tournamentId } = req.params;
-      const { schedule } = req.body;
+      const { schedule, config, phase } = req.body;
 
       if (!schedule || !Array.isArray(schedule)) {
         return res.status(400).json({
@@ -48,7 +48,7 @@ class TournamentSchedulerController {
         });
       }
 
-      const result = await tournamentSchedulerService.saveSchedule(tournamentId, schedule);
+      const result = await tournamentSchedulerService.saveSchedule(tournamentId, schedule, config, phase);
 
       res.status(200).json({
         success: true,
@@ -203,11 +203,11 @@ class TournamentSchedulerController {
     const days = {};
 
     for (const match of matches) {
-      const dateKey = new Date(match.date).toISOString().split('T')[0];
+      const dateKey = new Date(match.scheduledAt).toISOString().split('T')[0];
 
       if (!days[dateKey]) {
         days[dateKey] = {
-          date: match.date,
+          date: match.scheduledAt,
           matches: []
         };
       }
@@ -223,7 +223,7 @@ class TournamentSchedulerController {
     const weeks = {};
 
     for (const match of matches) {
-      const date = new Date(match.date);
+      const date = new Date(match.scheduledAt);
       const weekStart = this._getWeekStart(date);
       const weekKey = weekStart.toISOString().split('T')[0];
 

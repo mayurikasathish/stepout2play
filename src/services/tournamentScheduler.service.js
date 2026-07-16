@@ -975,6 +975,7 @@ class TournamentSchedulerService {
 
     for (const event of events) {
       const hasLeaguePhase = event.bracketFormat === 'LEAGUE_CUM_KNOCKOUT';
+<<<<<<< HEAD
       const matchCount = event.matches?.length || 0;
 
       console.log(`  Event "${event.name}": ${matchCount} matches, bracketGenerated: ${event.bracketGenerated}`);
@@ -983,6 +984,8 @@ class TournamentSchedulerService {
         console.log(`    ⚠️ Skipping - no matches found`);
         continue;
       }
+=======
+>>>>>>> ec1c24c (cross-event scheduling)
 
       for (const match of event.matches) {
         // Determine if this is a league or knockout match

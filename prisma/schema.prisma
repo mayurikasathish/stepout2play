@@ -165,6 +165,7 @@ model Tournament {
   format               TournamentFormat @default(BRACKET)
   breakDuration        Int?             @default(15)
   courtsAvailable      Int?             @default(4)
+  courtsBySport        Json?            // { "badminton": ["Court 1", "Court 2"], "table-tennis": ["Table 1"] }
   dailyEndTime         String?
   dailyStartTime       String?
   firstMatchDate       DateTime?
@@ -212,6 +213,8 @@ model Event {
   bestOf           Int?           // Best of N (e.g., 3 or 5 sets/games) - kept for backward compatibility
   pointsPerSet     Int?           // Points to win a set (e.g., 21 for badminton, 11 for table tennis) - kept for backward compatibility
   priority         String?        @default("medium") // Scheduling priority: high, medium, low
+  leaguePhaseScheduled Boolean?   @default(false) // Whether league phase matches are scheduled
+  knockoutPhaseScheduled Boolean? @default(false) // Whether knockout phase matches are scheduled
   tournament       Tournament     @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
   matches          Match[]
   registrations    Registration[]

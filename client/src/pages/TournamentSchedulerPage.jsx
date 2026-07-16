@@ -4,9 +4,7 @@ import Navbar from '../components/Navbar'
 import api from '../services/api'
 import SchedulerCalendar from '../components/SchedulerCalendar'
 import ScheduleGenerationModal from '../components/ScheduleGenerationModal'
-import EventsListSidebar from '../components/EventsListSidebar'
 import ConflictPanel from '../components/ConflictPanel'
-import ScheduleAnalytics from '../components/ScheduleAnalytics'
 
 const TournamentSchedulerPage = () => {
   const { tournamentId } = useParams()
@@ -17,14 +15,13 @@ const TournamentSchedulerPage = () => {
   const [schedule, setSchedule] = useState([])
   const [conflicts, setConflicts] = useState([])
   const [analytics, setAnalytics] = useState(null)
+  const [config, setConfig] = useState(null) // Store scheduler config for saving
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
 
   // UI state
   const [showGenerationModal, setShowGenerationModal] = useState(false)
-  const [activeView, setActiveView] = useState('day') // day, week, event, court, player
   const [selectedDate, setSelectedDate] = useState(new Date())
-  const [selectedEvent, setSelectedEvent] = useState(null)
   const [showConflictPanel, setShowConflictPanel] = useState(true)
 
   useEffect(() => {
@@ -70,6 +67,7 @@ const TournamentSchedulerPage = () => {
         setSchedule(response.data.schedule || [])
         setConflicts(response.data.conflicts || [])
         setAnalytics(response.data.analytics || null)
+        setConfig(response.data.config || null) // Store config for saving
 
         // Show success message
         if (response.data.conflicts.length === 0) {
@@ -87,7 +85,7 @@ const TournamentSchedulerPage = () => {
     }
   }
 
-  const handleSaveSchedule = async () => {
+  const handleSaveSchedule = async (phase = null) => {
     if (conflicts.length > 0) {
       const confirm = window.confirm(
         `⚠️ There are ${conflicts.length} conflicts in the schedule. Save anyway?`
@@ -97,11 +95,14 @@ const TournamentSchedulerPage = () => {
 
     try {
       const response = await api.post(`/tournaments/${tournamentId}/save-schedule`, {
-        schedule
+        schedule,
+        config, // Pass config to save courtsBySport to tournament
+        phase // Pass phase to mark as scheduled
       })
 
       if (response.data.success) {
         alert(`✅ Schedule saved! ${response.data.matchesUpdated} matches updated.`)
+        loadTournamentData() // Reload to get updated phase flags
         loadSchedule()
       }
     } catch (err) {
@@ -391,40 +392,6 @@ const TournamentSchedulerPage = () => {
           align-items: start;
         }
 
-        .view-selector {
-          display: flex;
-          gap: 0.5rem;
-          background: rgba(6, 13, 31, 0.6);
-          padding: 0.5rem;
-          border-radius: 8px;
-          border: 1px solid rgba(79, 255, 176, 0.2);
-        }
-
-        .view-btn {
-          flex: 1;
-          padding: 0.5rem 1rem;
-          background: transparent;
-          color: rgba(255, 255, 255, 0.6);
-          border: none;
-          border-radius: 6px;
-          font-family: 'Barlow Condensed', sans-serif;
-          font-weight: 600;
-          font-size: 0.85rem;
-          text-transform: uppercase;
-          cursor: pointer;
-          transition: all 0.2s ease;
-        }
-
-        .view-btn:hover {
-          background: rgba(79, 255, 176, 0.05);
-          color: rgba(255, 255, 255, 0.9);
-        }
-
-        .view-btn.active {
-          background: rgba(79, 255, 176, 0.1);
-          color: #4fffb0;
-          border: 1px solid rgba(79, 255, 176, 0.3);
-        }
 
         .empty-state {
           background: rgba(6, 13, 31, 0.6);
@@ -556,71 +523,19 @@ const TournamentSchedulerPage = () => {
           </div>
         </div>
 
-        {/* Main Layout */}
+        {/* Main Layout - Simplified: Calendar + Conflicts Only */}
         {hasSchedule ? (
           <div className="scheduler-layout">
-            {/* Left Sidebar - Events List */}
-            <EventsListSidebar
-              events={tournament.events || []}
-              schedule={schedule}
-              selectedEvent={selectedEvent}
-              onEventSelect={setSelectedEvent}
-            />
-
-            {/* Center - Calendar View */}
-            <div>
-              {/* View Selector */}
-              <div className="view-selector" style={{ marginBottom: '1rem' }}>
-                <button
-                  className={`view-btn ${activeView === 'day' ? 'active' : ''}`}
-                  onClick={() => setActiveView('day')}
-                >
-                  Day
-                </button>
-                <button
-                  className={`view-btn ${activeView === 'week' ? 'active' : ''}`}
-                  onClick={() => setActiveView('week')}
-                >
-                  Week
-                </button>
-                <button
-                  className={`view-btn ${activeView === 'event' ? 'active' : ''}`}
-                  onClick={() => setActiveView('event')}
-                >
-                  Event
-                </button>
-                <button
-                  className={`view-btn ${activeView === 'court' ? 'active' : ''}`}
-                  onClick={() => setActiveView('court')}
-                >
-                  Court
-                </button>
-                <button
-                  className={`view-btn ${activeView === 'player' ? 'active' : ''}`}
-                  onClick={() => setActiveView('player')}
-                >
-                  Player
-                </button>
-              </div>
-
-              {/* Calendar */}
+            {/* Center - Day Calendar */}
+            <div style={{ flex: 1 }}>
               <SchedulerCalendar
                 schedule={schedule}
                 tournament={tournament}
-                activeView={activeView}
                 selectedDate={selectedDate}
                 onDateChange={setSelectedDate}
                 onMatchMove={handleMatchMove}
                 conflicts={conflicts}
               />
-
-              {/* Analytics */}
-              {analytics && (
-                <ScheduleAnalytics
-                  analytics={analytics}
-                  tournament={tournament}
-                />
-              )}
             </div>
 
             {/* Right Sidebar - Conflicts Panel */}
@@ -655,6 +570,7 @@ const TournamentSchedulerPage = () => {
         {showGenerationModal && (
           <ScheduleGenerationModal
             tournament={tournament}
+            events={tournament.events || []}
             onGenerate={handleGenerateSchedule}
             onClose={() => setShowGenerationModal(false)}
           />

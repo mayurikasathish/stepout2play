@@ -72,7 +72,7 @@ const TournamentManagePage = () => {
   const [schedule, setSchedule] = useState([])
   const [conflicts, setConflicts] = useState([])
   const [analytics, setAnalytics] = useState(null)
-  const [activeView, setActiveView] = useState('week')
+  const [activeView, setActiveView] = useState('day') // Simplified to day view only
   const [showGenerationModal, setShowGenerationModal] = useState(false)
   const [isLoadingSchedule, setIsLoadingSchedule] = useState(false)
 
@@ -138,9 +138,13 @@ const TournamentManagePage = () => {
 
   // Generate new schedule
   const handleGenerateSchedule = async (options) => {
+    console.log('🚀 Generate schedule called with options:', options)
     setIsLoadingSchedule(true)
     try {
+      console.log('📡 Sending request to:', `/tournaments/${id}/scheduler/generate`)
       const response = await api.post(`/tournaments/${id}/scheduler/generate`, options)
+      console.log('✅ Response received:', response.data)
+
       if (response.data.success) {
         // Transform schedule format to match UI expectations
         const transformedSchedule = (response.data.schedule || []).map(match => ({
@@ -151,6 +155,8 @@ const TournamentManagePage = () => {
           courtNumber: match.courtNumber || parseInt(match.court?.match(/\d+/)?.[0]) || 1,
           duration: match.duration || 45
         }))
+
+        console.log('📅 Transformed schedule:', transformedSchedule.length, 'matches')
 
         setSchedule(transformedSchedule)
         setConflicts(response.data.conflicts || [])
@@ -165,7 +171,8 @@ const TournamentManagePage = () => {
         showToastMessage(`Schedule generated! ${transformedSchedule.length} matches scheduled`, 'success')
       }
     } catch (err) {
-      console.error('Error generating schedule:', err)
+      console.error('❌ Error generating schedule:', err)
+      console.error('❌ Error response:', err.response?.data)
       showToastMessage(err.response?.data?.error || 'Failed to generate schedule', 'error')
     } finally {
       setIsLoadingSchedule(false)
@@ -921,22 +928,7 @@ const TournamentManagePage = () => {
                 </div>
               </div>
 
-              {/* View Mode Tabs */}
-              <div className="flex gap-2 border-b border-gray-200">
-                {['day', 'week', 'event', 'court', 'player'].map((view) => (
-                  <button
-                    key={view}
-                    onClick={() => setActiveView(view)}
-                    className={`px-4 py-2 font-medium capitalize transition-all ${
-                      activeView === view
-                        ? 'border-b-2 border-blue-600 text-blue-600'
-                        : 'text-gray-600 hover:text-gray-900'
-                    }`}
-                  >
-                    {view}
-                  </button>
-                ))}
-              </div>
+              {/* View Mode Tabs - REMOVED: Simplified to day view only */}
             </div>
 
             {isLoadingSchedule ? (
