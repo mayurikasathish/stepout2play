@@ -22,6 +22,7 @@ import AcceptSpotPage from './pages/AcceptSpotPage'
 import LiveMatchesPage3D from './pages/LiveMatchesPage3D'
 import NotificationsPage from './pages/NotificationsPage'
 import PlayerProfilePage from './pages/PlayerProfilePage'
+import TournamentSchedulerPage from './pages/TournamentSchedulerPage'
 
 function App() {
   return (
@@ -65,6 +66,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <TournamentManagePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/tournaments/:tournamentId/scheduler"
+            element={
+              <ProtectedRoute>
+                <TournamentSchedulerPage />
               </ProtectedRoute>
             }
           />

@@ -1,0 +1,893 @@
+import { useState, useMemo } from 'react'
+
+const SchedulerCalendar = ({
+  schedule,
+  tournament,
+  activeView,
+  selectedDate,
+  onDateChange,
+  onMatchMove,
+  conflicts
+}) => {
+
+  const [draggedMatch, setDraggedMatch] = useState(null)
+  const [hoveredSlot, setHoveredSlot] = useState(null)
+
+  // Event colors mapping
+  const eventColors = useMemo(() => {
+    const colors = ['#3b82f6', '#a855f7', '#eab308', '#22c55e', '#f97316']
+    const colorMap = {}
+
+    if (tournament.events) {
+      tournament.events.forEach((event, idx) => {
+        colorMap[event.id] = colors[idx % colors.length]
+      })
+    }
+
+    return colorMap
+  }, [tournament.events])
+
+  // Get conflicts for a specific match
+  const getMatchConflicts = (matchId) => {
+    return conflicts.filter(c =>
+      c.matches?.some(m => m.matchId === matchId)
+    )
+  }
+
+  // Check if any matches are scheduled
+  const scheduledMatches = schedule.filter(m => m.scheduledAt !== null || m.date !== null)
+
+  if (scheduledMatches.length === 0) {
+    return (
+      <div className="glass-card rounded-xl p-12 text-center">
+        <div className="text-6xl mb-4">📅</div>
+        <h3 className="text-xl font-bold text-gray-900 mb-2">No Schedule Generated Yet</h3>
+        <p className="text-gray-600">
+          Click "Generate Schedule" to create an intelligent schedule for all events
+        </p>
+      </div>
+    )
+  }
+
+  // Render Day View
+  const renderDayView = () => {
+    const daySchedule = schedule.filter(item => {
+      const itemDate = new Date(item.date)
+      return itemDate.toDateString() === selectedDate.toDateString()
+    })
+
+    if (daySchedule.length === 0) {
+      return (
+        <div className="empty-day">
+          <div className="empty-icon">📭</div>
+          <div>No matches scheduled for {selectedDate.toLocaleDateString()}</div>
+        </div>
+      )
+    }
+
+    // Get unique time slots
+    const timeSlots = []
+    const startHour = 9
+    const endHour = 18
+
+    for (let hour = startHour; hour <= endHour; hour++) {
+      for (let min = 0; min < 60; min += 15) {
+        const timeStr = `${hour.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`
+        timeSlots.push(timeStr)
+      }
+    }
+
+    const courts = tournament.courtsAvailable || 4
+
+    return (
+      <div className="calendar-container">
+        {/* Date Navigation */}
+        <div className="date-navigator">
+          <button onClick={() => changeDate(-1)} className="nav-btn">
+            ← Prev Day
+          </button>
+          <div className="current-date">
+            {selectedDate.toLocaleDateString('en-US', {
+              weekday: 'long',
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            })}
+          </div>
+          <button onClick={() => changeDate(1)} className="nav-btn">
+            Next Day →
+          </button>
+        </div>
+
+        {/* Calendar Grid */}
+        <div className="calendar-grid">
+          {/* Header Row */}
+          <div className="grid-header">
+            <div className="time-column-header">Time</div>
+            {[...Array(courts)].map((_, idx) => (
+              <div key={idx} className="court-header">
+                Court {idx + 1}
+              </div>
+            ))}
+          </div>
+
+          {/* Time Rows */}
+          <div className="grid-body">
+            {timeSlots.map(time => (
+              <div key={time} className="time-row">
+                <div className="time-label">{time}</div>
+                {[...Array(courts)].map((_, courtIdx) => {
+                  const courtNum = courtIdx + 1
+
+                  // Find match at this time/court
+                  const match = daySchedule.find(item =>
+                    item.startTime === time && item.courtNumber === courtNum
+                  )
+
+                  return (
+                    <div
+                      key={courtIdx}
+                      className={`time-slot ${hoveredSlot?.time === time && hoveredSlot?.court === courtNum ? 'hovered' : ''}`}
+                      onDragOver={(e) => {
+                        e.preventDefault()
+                        setHoveredSlot({ time, court: courtNum })
+                      }}
+                      onDrop={(e) => handleDrop(e, time, courtNum)}
+                    >
+                      {match && renderMatchBlock(match, time, courtNum)}
+                    </div>
+                  )
+                })}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Render match block
+  const renderMatchBlock = (match, time, court) => {
+    const eventColor = eventColors[match.eventId] || '#666'
+    const matchConflicts = getMatchConflicts(match.matchId)
+    const hasConflict = matchConflicts.length > 0
+
+    // Calculate height based on duration
+    const duration = calculateDuration(match.startTime, match.endTime)
+    const height = (duration / 15) * 60 // 60px per 15min slot
+
+    return (
+      <div
+        key={match.matchId}
+        className={`match-block ${hasConflict ? 'conflict' : ''}`}
+        draggable
+        onDragStart={(e) => handleDragStart(e, match)}
+        onDragEnd={handleDragEnd}
+        style={{
+          background: `linear-gradient(135deg, ${eventColor}dd, ${eventColor}aa)`,
+          height: `${height}px`,
+          borderLeft: `4px solid ${eventColor}`
+        }}
+        title={`${match.eventName} - Round ${match.roundNumber} Match ${match.matchNumber}`}
+      >
+        <div className="match-content">
+          <div className="match-header">
+            <span className="event-badge" style={{ background: eventColor }}>
+              {match.eventName}
+            </span>
+            {hasConflict && <span className="conflict-icon">⚠️</span>}
+          </div>
+          <div className="match-details">
+            <div className="match-round">R{match.roundNumber} M{match.matchNumber}</div>
+            <div className="match-time">{match.startTime} - {match.endTime}</div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Render Week View
+  const renderWeekView = () => {
+    const weekStart = getWeekStart(selectedDate)
+    const weekDays = [...Array(7)].map((_, i) => {
+      const date = new Date(weekStart)
+      date.setDate(weekStart.getDate() + i)
+      return date
+    })
+
+    return (
+      <div className="week-view">
+        <div className="week-navigator">
+          <button onClick={() => changeWeek(-1)} className="nav-btn">
+            ← Prev Week
+          </button>
+          <div className="week-range">
+            {weekDays[0].toLocaleDateString()} - {weekDays[6].toLocaleDateString()}
+          </div>
+          <button onClick={() => changeWeek(1)} className="nav-btn">
+            Next Week →
+          </button>
+        </div>
+
+        <div className="week-grid">
+          {weekDays.map((date, idx) => {
+            const dayMatches = schedule.filter(item => {
+              const itemDate = new Date(item.date)
+              return itemDate.toDateString() === date.toDateString()
+            })
+
+            return (
+              <div
+                key={idx}
+                className="week-day"
+                onClick={() => {
+                  onDateChange(date)
+                  // Note: This won't switch view automatically - user needs to click Day View
+                }}
+              >
+                <div className="day-header">
+                  <div className="day-name">{date.toLocaleDateString('en-US', { weekday: 'short' })}</div>
+                  <div className="day-date">{date.getDate()}</div>
+                </div>
+                <div className="day-matches">
+                  {dayMatches.length > 0 ? (
+                    <div className="matches-summary">
+                      {dayMatches.map(match => (
+                        <div
+                          key={match.matchId}
+                          className="mini-match"
+                          style={{ background: eventColors[match.eventId] }}
+                          title={`${match.eventName} ${match.startTime}`}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="no-matches">—</div>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    )
+  }
+
+  // Render Event View
+  const renderEventView = () => {
+    const eventSchedules = {}
+
+    // Group matches by event
+    schedule.forEach(match => {
+      if (!eventSchedules[match.eventId]) {
+        eventSchedules[match.eventId] = {
+          eventName: match.eventName,
+          matches: []
+        }
+      }
+      eventSchedules[match.eventId].matches.push(match)
+    })
+
+    return (
+      <div className="event-view">
+        {Object.entries(eventSchedules).map(([eventId, data]) => (
+          <div key={eventId} className="event-schedule-card">
+            <div
+              className="event-schedule-header"
+              style={{
+                background: `linear-gradient(135deg, ${eventColors[eventId]}33, ${eventColors[eventId]}11)`,
+                borderLeft: `4px solid ${eventColors[eventId]}`
+              }}
+            >
+              <h3>{data.eventName}</h3>
+              <span className="matches-count">{data.matches.length} matches</span>
+            </div>
+
+            <div className="event-matches-list">
+              {data.matches
+                .sort((a, b) => {
+                  const dateA = new Date(`${a.date} ${a.startTime}`)
+                  const dateB = new Date(`${b.date} ${b.startTime}`)
+                  return dateA - dateB
+                })
+                .map(match => (
+                  <div key={match.matchId} className="event-match-item">
+                    <div className="match-info">
+                      <span className="match-label">R{match.roundNumber} M{match.matchNumber}</span>
+                      <span className="match-datetime">
+                        {new Date(match.date).toLocaleDateString()} • {match.startTime}
+                      </span>
+                    </div>
+                    <div className="match-location">
+                      {match.court}
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  // Render Court View
+  const renderCourtView = () => {
+    const courts = tournament.courtsAvailable || 4
+    const courtSchedules = {}
+
+    // Group matches by court
+    for (let i = 1; i <= courts; i++) {
+      courtSchedules[i] = {
+        courtName: `Court ${i}`,
+        matches: schedule.filter(m => m.courtNumber === i)
+      }
+    }
+
+    return (
+      <div className="court-view">
+        {Object.entries(courtSchedules).map(([courtNum, data]) => (
+          <div key={courtNum} className="court-schedule-card">
+            <div className="court-schedule-header">
+              <h3>{data.courtName}</h3>
+              <span className="matches-count">{data.matches.length} matches</span>
+            </div>
+
+            <div className="court-matches-list">
+              {data.matches
+                .sort((a, b) => {
+                  const dateA = new Date(`${a.date} ${a.startTime}`)
+                  const dateB = new Date(`${b.date} ${b.startTime}`)
+                  return dateA - dateB
+                })
+                .map(match => (
+                  <div
+                    key={match.matchId}
+                    className="court-match-item"
+                    style={{ borderLeft: `4px solid ${eventColors[match.eventId]}` }}
+                  >
+                    <div className="match-time-range">
+                      {match.startTime} - {match.endTime}
+                    </div>
+                    <div className="match-event-name">
+                      {match.eventName}
+                    </div>
+                    <div className="match-details-text">
+                      {new Date(match.date).toLocaleDateString()} • R{match.roundNumber} M{match.matchNumber}
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  // Render Player View
+  const renderPlayerView = () => {
+    // TODO: Need participant data to build this view
+    return (
+      <div className="player-view">
+        <div className="view-placeholder">
+          <div className="placeholder-icon">👤</div>
+          <div className="placeholder-text">Player View</div>
+          <div className="placeholder-subtext">Coming soon - requires participant data</div>
+        </div>
+      </div>
+    )
+  }
+
+  // Helper functions
+  const changeDate = (days) => {
+    const newDate = new Date(selectedDate)
+    newDate.setDate(newDate.getDate() + days)
+    onDateChange(newDate)
+  }
+
+  const changeWeek = (weeks) => {
+    const newDate = new Date(selectedDate)
+    newDate.setDate(newDate.getDate() + (weeks * 7))
+    onDateChange(newDate)
+  }
+
+  const getWeekStart = (date) => {
+    const d = new Date(date)
+    const day = d.getDay()
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1)
+    return new Date(d.setDate(diff))
+  }
+
+  const calculateDuration = (startTime, endTime) => {
+    const [startHour, startMin] = startTime.split(':').map(Number)
+    const [endHour, endMin] = endTime.split(':').map(Number)
+    return (endHour * 60 + endMin) - (startHour * 60 + startMin)
+  }
+
+  // Drag and Drop handlers
+  const handleDragStart = (e, match) => {
+    setDraggedMatch(match)
+    e.dataTransfer.effectAllowed = 'move'
+  }
+
+  const handleDragEnd = () => {
+    setDraggedMatch(null)
+    setHoveredSlot(null)
+  }
+
+  const handleDrop = (e, time, court) => {
+    e.preventDefault()
+
+    if (draggedMatch) {
+      onMatchMove(draggedMatch.matchId, selectedDate, time, court)
+      setDraggedMatch(null)
+      setHoveredSlot(null)
+    }
+  }
+
+  return (
+    <>
+      <style>{`
+        .calendar-container {
+          background: rgba(6, 13, 31, 0.6);
+          backdrop-filter: blur(20px);
+          border: 1px solid rgba(79, 255, 176, 0.2);
+          border-radius: 16px;
+          padding: 1.5rem;
+          overflow: hidden;
+        }
+
+        .date-navigator {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 1.5rem;
+          padding-bottom: 1rem;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .nav-btn {
+          background: rgba(79, 255, 176, 0.1);
+          color: #4fffb0;
+          border: 1px solid rgba(79, 255, 176, 0.3);
+          padding: 0.5rem 1rem;
+          border-radius: 6px;
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 600;
+          font-size: 0.9rem;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .nav-btn:hover {
+          background: rgba(79, 255, 176, 0.2);
+          transform: translateY(-1px);
+        }
+
+        .current-date, .week-range {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 700;
+          font-size: 1.2rem;
+          color: #fff;
+          text-transform: uppercase;
+        }
+
+        .calendar-grid {
+          overflow-x: auto;
+        }
+
+        .grid-header {
+          display: grid;
+          grid-template-columns: 80px repeat(auto-fit, minmax(150px, 1fr));
+          gap: 1px;
+          background: rgba(255, 255, 255, 0.05);
+          border-radius: 8px 8px 0 0;
+          overflow: hidden;
+        }
+
+        .time-column-header, .court-header {
+          background: rgba(6, 13, 31, 0.8);
+          padding: 0.75rem;
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 700;
+          font-size: 0.9rem;
+          text-transform: uppercase;
+          color: #4fffb0;
+          text-align: center;
+        }
+
+        .grid-body {
+          max-height: 600px;
+          overflow-y: auto;
+        }
+
+        .time-row {
+          display: grid;
+          grid-template-columns: 80px repeat(auto-fit, minmax(150px, 1fr));
+          gap: 1px;
+          background: rgba(255, 255, 255, 0.05);
+        }
+
+        .time-label {
+          background: rgba(6, 13, 31, 0.6);
+          padding: 0.5rem;
+          font-family: 'Barlow', sans-serif;
+          font-size: 0.75rem;
+          color: rgba(255, 255, 255, 0.6);
+          text-align: center;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .time-slot {
+          background: rgba(6, 13, 31, 0.4);
+          min-height: 60px;
+          position: relative;
+          transition: all 0.2s ease;
+        }
+
+        .time-slot:hover {
+          background: rgba(79, 255, 176, 0.05);
+        }
+
+        .time-slot.hovered {
+          background: rgba(79, 255, 176, 0.1);
+          border: 2px dashed #4fffb0;
+        }
+
+        .match-block {
+          padding: 0.75rem;
+          border-radius: 6px;
+          cursor: move;
+          transition: all 0.2s ease;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .match-block:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+        }
+
+        .match-block.conflict {
+          border: 2px solid #fbbf24 !important;
+          animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.8; }
+        }
+
+        .match-content {
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+        }
+
+        .match-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 0.5rem;
+        }
+
+        .event-badge {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 700;
+          font-size: 0.7rem;
+          padding: 0.25rem 0.5rem;
+          border-radius: 4px;
+          color: white;
+          text-transform: uppercase;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .conflict-icon {
+          font-size: 1rem;
+        }
+
+        .match-details {
+          display: flex;
+          flex-direction: column;
+          gap: 0.25rem;
+        }
+
+        .match-round {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 700;
+          font-size: 0.85rem;
+          color: white;
+        }
+
+        .match-time {
+          font-family: 'Barlow', sans-serif;
+          font-size: 0.75rem;
+          color: rgba(255, 255, 255, 0.8);
+        }
+
+        .empty-day {
+          padding: 4rem 2rem;
+          text-align: center;
+          color: rgba(255, 255, 255, 0.5);
+        }
+
+        .empty-icon {
+          font-size: 3rem;
+          margin-bottom: 1rem;
+        }
+
+        /* Week View */
+        .week-view {
+          background: rgba(6, 13, 31, 0.6);
+          backdrop-filter: blur(20px);
+          border: 1px solid rgba(79, 255, 176, 0.2);
+          border-radius: 16px;
+          padding: 1.5rem;
+        }
+
+        .week-navigator {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 1.5rem;
+          padding-bottom: 1rem;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .week-grid {
+          display: grid;
+          grid-template-columns: repeat(7, 1fr);
+          gap: 1rem;
+        }
+
+        .week-day {
+          background: rgba(6, 13, 31, 0.6);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 8px;
+          padding: 1rem;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .week-day:hover {
+          border-color: rgba(79, 255, 176, 0.5);
+          transform: translateY(-2px);
+        }
+
+        .day-header {
+          text-align: center;
+          margin-bottom: 1rem;
+          padding-bottom: 0.75rem;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .day-name {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 700;
+          font-size: 0.85rem;
+          color: #4fffb0;
+          text-transform: uppercase;
+        }
+
+        .day-date {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 900;
+          font-size: 1.5rem;
+          color: white;
+        }
+
+        .day-matches {
+          min-height: 80px;
+        }
+
+        .matches-summary {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.25rem;
+        }
+
+        .mini-match {
+          width: 8px;
+          height: 8px;
+          border-radius: 2px;
+        }
+
+        .no-matches {
+          text-align: center;
+          padding: 2rem 0;
+          color: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Event View */
+        .event-view {
+          display: flex;
+          flex-direction: column;
+          gap: 1.5rem;
+        }
+
+        .event-schedule-card {
+          background: rgba(6, 13, 31, 0.6);
+          backdrop-filter: blur(20px);
+          border: 1px solid rgba(79, 255, 176, 0.2);
+          border-radius: 12px;
+          overflow: hidden;
+        }
+
+        .event-schedule-header {
+          padding: 1rem 1.5rem;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+
+        .event-schedule-header h3 {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 900;
+          font-size: 1.2rem;
+          text-transform: uppercase;
+          color: white;
+          margin: 0;
+        }
+
+        .matches-count {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 600;
+          font-size: 0.85rem;
+          color: rgba(255, 255, 255, 0.7);
+        }
+
+        .event-matches-list {
+          padding: 1rem 1.5rem;
+        }
+
+        .event-match-item {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 0.75rem 0;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .event-match-item:last-child {
+          border-bottom: none;
+        }
+
+        .match-info {
+          display: flex;
+          flex-direction: column;
+          gap: 0.25rem;
+        }
+
+        .match-label {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 700;
+          font-size: 0.9rem;
+          color: white;
+        }
+
+        .match-datetime {
+          font-family: 'Barlow', sans-serif;
+          font-size: 0.8rem;
+          color: rgba(255, 255, 255, 0.6);
+        }
+
+        .match-location {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 600;
+          font-size: 0.85rem;
+          color: #4fffb0;
+        }
+
+        /* Court View */
+        .court-view {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+          gap: 1.5rem;
+        }
+
+        .court-schedule-card {
+          background: rgba(6, 13, 31, 0.6);
+          backdrop-filter: blur(20px);
+          border: 1px solid rgba(79, 255, 176, 0.2);
+          border-radius: 12px;
+          overflow: hidden;
+        }
+
+        .court-schedule-header {
+          padding: 1rem 1.5rem;
+          background: rgba(79, 255, 176, 0.05);
+          border-bottom: 1px solid rgba(79, 255, 176, 0.2);
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+
+        .court-schedule-header h3 {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 900;
+          font-size: 1.2rem;
+          text-transform: uppercase;
+          color: #4fffb0;
+          margin: 0;
+        }
+
+        .court-matches-list {
+          padding: 1rem 1.5rem;
+          max-height: 500px;
+          overflow-y: auto;
+        }
+
+        .court-match-item {
+          padding: 0.75rem;
+          margin-bottom: 0.75rem;
+          background: rgba(6, 13, 31, 0.6);
+          border-radius: 6px;
+          border-left-width: 4px;
+          border-left-style: solid;
+        }
+
+        .match-time-range {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 700;
+          font-size: 0.95rem;
+          color: white;
+          margin-bottom: 0.25rem;
+        }
+
+        .match-event-name {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 600;
+          font-size: 0.85rem;
+          color: #4fffb0;
+          margin-bottom: 0.25rem;
+        }
+
+        .match-details-text {
+          font-family: 'Barlow', sans-serif;
+          font-size: 0.75rem;
+          color: rgba(255, 255, 255, 0.6);
+        }
+
+        /* Player View Placeholder */
+        .view-placeholder {
+          background: rgba(6, 13, 31, 0.6);
+          backdrop-filter: blur(20px);
+          border: 2px dashed rgba(79, 255, 176, 0.3);
+          border-radius: 16px;
+          padding: 4rem 2rem;
+          text-align: center;
+        }
+
+        .placeholder-icon {
+          font-size: 4rem;
+          margin-bottom: 1rem;
+        }
+
+        .placeholder-text {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 900;
+          font-size: 2rem;
+          text-transform: uppercase;
+          color: #4fffb0;
+          margin-bottom: 0.5rem;
+        }
+
+        .placeholder-subtext {
+          font-family: 'Barlow', sans-serif;
+          font-size: 1rem;
+          color: rgba(255, 255, 255, 0.6);
+        }
+      `}</style>
+
+      {activeView === 'day' && renderDayView()}
+      {activeView === 'week' && renderWeekView()}
+      {activeView === 'event' && renderEventView()}
+      {activeView === 'court' && renderCourtView()}
+      {activeView === 'player' && renderPlayerView()}
+    </>
+  )
+}
+
+export default SchedulerCalendar

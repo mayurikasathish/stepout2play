@@ -69,6 +69,7 @@ const OrganizationDetailPage = () => {
   const [showEditOrgModal, setShowEditOrgModal] = useState(false)
   const [showCreateTournamentModal, setShowCreateTournamentModal] = useState(false)
   const [deleteConfirmModal, setDeleteConfirmModal] = useState(false)
+  const [deleteTournamentModal, setDeleteTournamentModal] = useState(null) // stores tournament to delete
 
   const getRoleColor = (role) => {
     switch (role) {
@@ -114,15 +115,17 @@ const OrganizationDetailPage = () => {
     }
   }
 
-  const handleDeleteTournament = async (tournamentId) => {
-    if (!window.confirm('Are you sure you want to delete this tournament?')) return
+  const handleDeleteTournament = async () => {
+    if (!deleteTournamentModal) return
 
     try {
-      await api.delete(`/tournaments/${tournamentId}`)
+      await api.delete(`/tournaments/${deleteTournamentModal.id}`)
+      setDeleteTournamentModal(null)
       loadData()
     } catch (err) {
       console.error('Error deleting tournament:', err)
       alert('Failed to delete tournament')
+      setDeleteTournamentModal(null)
     }
   }
 
@@ -895,7 +898,7 @@ const OrganizationDetailPage = () => {
                           </button>
                           {canManage && (
                             <button
-                              onClick={() => handleDeleteTournament(tournament.id)}
+                              onClick={() => setDeleteTournamentModal(tournament)}
                               className="btn-delete"
                             >
                               <TrashIcon className="w-4 h-4" style={{ width: '16px', height: '16px' }} />
@@ -921,7 +924,7 @@ const OrganizationDetailPage = () => {
             />
           )}
 
-          {/* Delete Confirmation Modal */}
+          {/* Delete Organization Confirmation Modal */}
           {deleteConfirmModal && (
             <div className="delete-modal-overlay" onClick={() => setDeleteConfirmModal(false)}>
               <div className="delete-modal-content" onClick={(e) => e.stopPropagation()}>
@@ -944,6 +947,37 @@ const OrganizationDetailPage = () => {
                   <button
                     className="btn-confirm-delete"
                     onClick={handleDeleteOrg}
+                  >
+                    Yes, Delete Forever
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Delete Tournament Confirmation Modal */}
+          {deleteTournamentModal && (
+            <div className="delete-modal-overlay" onClick={() => setDeleteTournamentModal(null)}>
+              <div className="delete-modal-content" onClick={(e) => e.stopPropagation()}>
+                <div className="delete-modal-icon">🏆</div>
+                <div className="delete-modal-title">DELETE TOURNAMENT?</div>
+                <div className="delete-modal-text">
+                  You're about to permanently delete this tournament.
+                </div>
+                <div className="delete-modal-org-name">{deleteTournamentModal.name}</div>
+                <div className="delete-modal-warning">
+                  ⚠ This action can't be reversed. All events, registrations, and match data will be lost.
+                </div>
+                <div className="delete-modal-actions">
+                  <button
+                    className="btn-cancel"
+                    onClick={() => setDeleteTournamentModal(null)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="btn-confirm-delete"
+                    onClick={handleDeleteTournament}
                   >
                     Yes, Delete Forever
                   </button>

@@ -75,10 +75,11 @@ const ProfilePage = () => {
 
   const fetchRatings = async () => {
     try {
-      const response = await api.get(`/ratings/${authUser.id}`)
+      // Use profile-stats endpoint to get ratings with rank info
+      const response = await api.get(`/users/${authUser.id}/profile-stats`)
       if (response.data.success) {
-        console.log('✅ Ratings:', response.data.ratings)
-        const ratingsData = response.data.ratings || []
+        console.log('✅ Sports Stats:', response.data.sportsStats)
+        const ratingsData = response.data.sportsStats || []
         setRatings(ratingsData)
 
         // Auto-select first sport with matches for graph
@@ -1570,6 +1571,15 @@ const ProfilePage = () => {
                       <div className="rating-display">
                         <div className="rating-number">{Math.round(rating.rating)}</div>
                         <div className="rating-label">Rating</div>
+                      </div>
+
+                      <div className="rating-display" style={{ marginTop: '0.5rem' }}>
+                        <div className="rating-number" style={{ fontSize: '1.5rem', color: '#4fffb0' }}>
+                          {rating.rank && rating.totalRankedPlayers
+                            ? `#${rating.rank} of ${rating.totalRankedPlayers}`
+                            : 'Unranked'}
+                        </div>
+                        <div className="rating-label">Ranking</div>
                       </div>
 
                       <div className="rating-stats">

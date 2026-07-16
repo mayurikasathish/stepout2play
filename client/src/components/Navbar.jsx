@@ -162,9 +162,13 @@ const Navbar = () => {
           margin: 0 auto;
           padding: 0 2rem;
           height: 100%;
-          display: flex;
+          display: grid;
+          grid-template-columns: 1fr auto 1fr;
           align-items: center;
-          justify-content: space-between;
+        }
+
+        .nav-right {
+          justify-self: end;
         }
 
         .nav-logo {

@@ -67,28 +67,36 @@ class PlayerProfileController {
             }
           }
 
-          // Get rank (count how many players have higher rating)
-          // Only show rank if there are players with different ratings (not all at 1200)
-          const higherRatedCount = await prisma.playerRating.count({
-            where: {
-              sportId: rating.sportId,
-              rating: { gt: rating.rating }
+          // Calculate rank based on new requirements:
+          // 1. Player must have played at least 1 match
+          // 2. At least 2 players must have played matches in this sport
+          let rank = null;
+          let totalRankedPlayers = null;
+
+          if (rating.matchCount > 0) {
+            // Count total players who have played at least 1 match in this sport
+            const playersWithMatches = await prisma.playerRating.count({
+              where: {
+                sportId: rating.sportId,
+                matchCount: { gt: 0 }
+              }
+            });
+
+            // Only rank if at least 2 players have played
+            if (playersWithMatches >= 2) {
+              // Count how many players have higher rating (among those who played)
+              const higherRatedCount = await prisma.playerRating.count({
+                where: {
+                  sportId: rating.sportId,
+                  matchCount: { gt: 0 },
+                  rating: { gt: rating.rating }
+                }
+              });
+
+              rank = higherRatedCount + 1;
+              totalRankedPlayers = playersWithMatches;
             }
-          });
-
-          const totalPlayersInSport = await prisma.playerRating.count({
-            where: { sportId: rating.sportId }
-          });
-
-          const playersWithDifferentRatings = await prisma.playerRating.count({
-            where: {
-              sportId: rating.sportId,
-              rating: { not: 1200 }
-            }
-          });
-
-          // Only assign rank if at least one player has deviated from 1200
-          const rank = playersWithDifferentRatings > 0 ? higherRatedCount + 1 : null;
+          }
 
           return {
             sportId: rating.sportId,
@@ -96,6 +104,7 @@ class PlayerProfileController {
             wins,
             losses,
             rank,
+            totalRankedPlayers,
             streak: currentStreak > 0 ? `${streakType}${currentStreak}` : null,
             matchCount: rating.matchCount
           };
@@ -187,6 +196,9 @@ class PlayerProfileController {
       const totalMatches = totalWins + totalLosses;
       const winRate = totalMatches > 0 ? ((totalWins / totalMatches) * 100).toFixed(1) : 0;
 
+      // Count sports played (sports with at least 1 match)
+      const sportsPlayed = sportsStats.filter(s => s.matchCount > 0).length;
+
       const careerStats = {
         totalMatches,
         wins: totalWins,
@@ -196,7 +208,8 @@ class PlayerProfileController {
         tournamentsPlayed: uniqueTournaments.size,
         currentStreak: currentStreak > 0 ? `${streakType}${currentStreak}` : null,
         highestRating,
-        bestRank: bestRank || null
+        bestRank: bestRank || null,
+        sportsPlayed
       };
 
       res.status(200).json({

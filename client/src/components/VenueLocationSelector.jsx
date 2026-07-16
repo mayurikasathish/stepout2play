@@ -377,7 +377,7 @@ const VenueLocationSelector = ({
             </button>
           </div>
           <div className="text-xs" style={{ color: darkMode ? 'rgba(79, 255, 176, 0.8)' : '#059669' }}>
-            Lat: {latitude.toFixed(6)}, Lon: {longitude.toFixed(6)}
+            Lat: {latitude ? latitude.toFixed(6) : 'N/A'}, Lon: {longitude ? longitude.toFixed(6) : 'N/A'}
           </div>
 
           {showMap && (

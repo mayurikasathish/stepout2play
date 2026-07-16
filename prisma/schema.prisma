@@ -211,6 +211,7 @@ model Event {
   goldenPoint      Boolean?       @default(false) // Padel only: use golden point rule instead of deuce (40-40 → next point wins)
   bestOf           Int?           // Best of N (e.g., 3 or 5 sets/games) - kept for backward compatibility
   pointsPerSet     Int?           // Points to win a set (e.g., 21 for badminton, 11 for table tennis) - kept for backward compatibility
+  priority         String?        @default("medium") // Scheduling priority: high, medium, low
   tournament       Tournament     @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
   matches          Match[]
   registrations    Registration[]

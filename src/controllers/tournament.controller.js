@@ -398,16 +398,16 @@ class TournamentController {
 
   /**
    * Delete tournament
-   * DELETE /tournaments/:id
+   * DELETE /tournaments/:tournamentId
    */
   async deleteTournament(req, res, next) {
     try {
-      const { id } = req.params;
+      const { tournamentId } = req.params;
 
       // Delete tournament (cascades to events and registrations)
       const prisma = require('../lib/prisma');
       await prisma.tournament.delete({
-        where: { id }
+        where: { id: tournamentId }
       });
 
       res.status(200).json({

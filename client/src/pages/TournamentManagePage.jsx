@@ -6,6 +6,11 @@ import BracketView from '../components/BracketView'
 import MatchScheduler from '../components/MatchScheduler'
 import Toast from '../components/Toast'
 import VenueLocationSelector from '../components/VenueLocationSelector'
+import SchedulerCalendar from '../components/SchedulerCalendar'
+import ScheduleGenerationModal from '../components/ScheduleGenerationModal'
+import EventsListSidebar from '../components/EventsListSidebar'
+import ConflictPanel from '../components/ConflictPanel'
+import ScheduleAnalytics from '../components/ScheduleAnalytics'
 import api from '../services/api'
 import { getAllSports } from '../services/sports'
 
@@ -63,6 +68,27 @@ const TournamentManagePage = () => {
   const [toastMessage, setToastMessage] = useState('')
   const [toastType, setToastType] = useState('success')
 
+  // Cross-event scheduler state
+  const [schedule, setSchedule] = useState([])
+  const [conflicts, setConflicts] = useState([])
+  const [analytics, setAnalytics] = useState(null)
+  const [activeView, setActiveView] = useState('week')
+  const [showGenerationModal, setShowGenerationModal] = useState(false)
+  const [isLoadingSchedule, setIsLoadingSchedule] = useState(false)
+
+  // Calculate initial calendar date from tournament start or first match
+  const getInitialCalendarDate = () => {
+    if (schedule.length > 0 && schedule[0].date) {
+      return new Date(schedule[0].date)
+    }
+    if (tournament?.startDate) {
+      return new Date(tournament.startDate)
+    }
+    return new Date()
+  }
+
+  const [selectedDate, setSelectedDate] = useState(getInitialCalendarDate())
+
   useEffect(() => {
     loadTournament()
     loadEvents()
@@ -90,6 +116,104 @@ const TournamentManagePage = () => {
     } catch (err) {
       console.error('Error loading events:', err)
     }
+  }
+
+  // Load existing schedule
+  const loadSchedule = async () => {
+    if (!tournament) return
+    setIsLoadingSchedule(true)
+    try {
+      const response = await api.get(`/tournaments/${id}/scheduler/schedule`)
+      if (response.data.success) {
+        setSchedule(response.data.schedule || [])
+        setConflicts(response.data.conflicts || [])
+        setAnalytics(response.data.analytics || null)
+      }
+    } catch (err) {
+      console.error('Error loading schedule:', err)
+    } finally {
+      setIsLoadingSchedule(false)
+    }
+  }
+
+  // Generate new schedule
+  const handleGenerateSchedule = async (options) => {
+    setIsLoadingSchedule(true)
+    try {
+      const response = await api.post(`/tournaments/${id}/scheduler/generate`, options)
+      if (response.data.success) {
+        // Transform schedule format to match UI expectations
+        const transformedSchedule = (response.data.schedule || []).map(match => ({
+          ...match,
+          // Keep both date and scheduledAt for compatibility
+          date: match.date || match.scheduledAt,
+          scheduledAt: match.date || match.scheduledAt,
+          courtNumber: match.courtNumber || parseInt(match.court?.match(/\d+/)?.[0]) || 1,
+          duration: match.duration || 45
+        }))
+
+        setSchedule(transformedSchedule)
+        setConflicts(response.data.conflicts || [])
+        setAnalytics(response.data.analytics || null)
+
+        // Jump calendar to first match date
+        if (transformedSchedule.length > 0 && transformedSchedule[0].date) {
+          setSelectedDate(new Date(transformedSchedule[0].date))
+        }
+
+        setShowGenerationModal(false)
+        showToastMessage(`Schedule generated! ${transformedSchedule.length} matches scheduled`, 'success')
+      }
+    } catch (err) {
+      console.error('Error generating schedule:', err)
+      showToastMessage(err.response?.data?.error || 'Failed to generate schedule', 'error')
+    } finally {
+      setIsLoadingSchedule(false)
+    }
+  }
+
+  // Save schedule to database
+  const handleSaveSchedule = async () => {
+    try {
+      const response = await api.post(`/tournaments/${id}/scheduler/save`, { schedule })
+      if (response.data.success) {
+        showToastMessage(`Saved ${response.data.updatedCount} matches`, 'success')
+      }
+    } catch (err) {
+      console.error('Error saving schedule:', err)
+      showToastMessage('Failed to save schedule', 'error')
+    }
+  }
+
+  // Delete schedule
+  const handleDeleteSchedule = async () => {
+    if (!confirm('Delete entire schedule? This will clear all scheduled times.')) return
+    try {
+      const response = await api.delete(`/tournaments/${id}/scheduler/schedule`)
+      if (response.data.success) {
+        setSchedule([])
+        setConflicts([])
+        setAnalytics(null)
+        showToastMessage(`Cleared ${response.data.clearedCount} matches`, 'success')
+      }
+    } catch (err) {
+      console.error('Error deleting schedule:', err)
+      showToastMessage('Failed to delete schedule', 'error')
+    }
+  }
+
+  // Load schedule when tab changes to schedule
+  useEffect(() => {
+    if (activeTab === 'schedule' && tournament) {
+      loadSchedule()
+    }
+  }, [activeTab, tournament])
+
+  // Helper to show toast messages
+  const showToastMessage = (message, type = 'success') => {
+    setToastMessage(message)
+    setToastType(type)
+    setShowToast(true)
   }
 
   const handleCreateEvent = async (eventData) => {
@@ -763,58 +887,138 @@ const TournamentManagePage = () => {
         )}
 
         {activeTab === 'schedule' && (
-          <div className="space-y-6">
-            {/* Event Selection for Scheduling */}
+          <div className="space-y-4">
+            {/* Header with Actions */}
             <div className="glass-card rounded-xl p-6">
-              <label className="block text-sm font-medium text-gray-900 mb-3">
-                Select Event to Schedule Matches
-              </label>
-              {events.length === 0 ? (
-                <p className="text-gray-600">No events created yet. Create events first.</p>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {events.map((event) => (
-                    <button
-                      key={event.id}
-                      onClick={() => {
-                        const element = document.getElementById(`schedule-${event.id}`)
-                        if (element) {
-                          const yOffset = -100
-                          const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset
-                          window.scrollTo({ top: y, behavior: 'smooth' })
-                        }
-                      }}
-                      className="p-4 border-2 border-gray-200 hover:border-blue-400 rounded-xl text-left transition-all hover:shadow-md"
-                    >
-                      <h3 className="font-semibold text-gray-900 mb-1">{event.name}</h3>
-                      <p className="text-sm text-gray-600 capitalize">
-                        {event.format.replace('_', ' ')}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-2">
-                        {event.bracketGenerated ? '✅ Bracket Generated' : '⚠️ Generate bracket first'}
-                      </p>
-                    </button>
-                  ))}
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className="text-2xl font-bold gradient-text">🗓️ Tournament Scheduler</h2>
+                  <p className="text-gray-600 mt-1">Intelligent cross-event match scheduling</p>
                 </div>
-              )}
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowGenerationModal(true)}
+                    className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:shadow-lg transition-all"
+                  >
+                    ✨ Generate Schedule
+                  </button>
+                  {schedule.length > 0 && (
+                    <>
+                      <button
+                        onClick={handleSaveSchedule}
+                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all"
+                      >
+                        💾 Save
+                      </button>
+                      <button
+                        onClick={handleDeleteSchedule}
+                        className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all"
+                      >
+                        🗑️ Clear
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* View Mode Tabs */}
+              <div className="flex gap-2 border-b border-gray-200">
+                {['day', 'week', 'event', 'court', 'player'].map((view) => (
+                  <button
+                    key={view}
+                    onClick={() => setActiveView(view)}
+                    className={`px-4 py-2 font-medium capitalize transition-all ${
+                      activeView === view
+                        ? 'border-b-2 border-blue-600 text-blue-600'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    {view}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            {/* Schedule Views for Each Event */}
-            {events.filter(e => e.bracketGenerated).map((event) => (
-              <div key={event.id} id={`schedule-${event.id}`}>
-                <MatchScheduler
-                  eventId={event.id}
-                  tournament={tournament}
-                />
+            {isLoadingSchedule ? (
+              <div className="glass-card rounded-xl p-12 text-center">
+                <div className="animate-spin w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
+                <p className="text-gray-600">Loading schedule...</p>
               </div>
-            ))}
-
-            {events.filter(e => !e.bracketGenerated).length > 0 && (
-              <div className="glass-card rounded-xl p-6 bg-yellow-50 border-2 border-yellow-300">
-                <p className="text-yellow-900 font-medium">
-                  ⚠️ Some events don't have brackets yet. Generate brackets first in the "Brackets" tab.
+            ) : schedule.length === 0 ? (
+              <div className="glass-card rounded-xl p-12 text-center">
+                <div className="text-6xl mb-4">📅</div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">No Schedule Yet</h3>
+                <p className="text-gray-600 mb-6">
+                  Generate an intelligent schedule across all events with conflict detection
                 </p>
+                <button
+                  onClick={() => setShowGenerationModal(true)}
+                  className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:shadow-lg transition-all"
+                >
+                  ✨ Generate Schedule
+                </button>
               </div>
+            ) : schedule.filter(m => m.scheduledAt || m.date).length === 0 ? (
+              <div className="glass-card rounded-xl p-12 text-center">
+                <div className="text-6xl mb-4">📅</div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">No Schedule Yet</h3>
+                <p className="text-gray-600 mb-6">
+                  Generate an intelligent schedule across all events with conflict detection
+                </p>
+                <button
+                  onClick={() => setShowGenerationModal(true)}
+                  className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:shadow-lg transition-all"
+                >
+                  ✨ Generate Schedule
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+                {/* Left Sidebar - Events List */}
+                <div className="lg:col-span-1">
+                  <EventsListSidebar
+                    events={events}
+                    schedule={schedule}
+                  />
+                </div>
+
+                {/* Main Calendar View */}
+                <div className="lg:col-span-2">
+                  <SchedulerCalendar
+                    schedule={schedule}
+                    tournament={tournament}
+                    events={events}
+                    activeView={activeView}
+                    selectedDate={selectedDate}
+                    conflicts={conflicts}
+                    onDateChange={setSelectedDate}
+                    onMatchMove={(matchId, newTime, newCourt) => {
+                      const updated = schedule.map(s =>
+                        s.matchId === matchId
+                          ? { ...s, scheduledAt: newTime, courtNumber: newCourt }
+                          : s
+                      )
+                      setSchedule(updated)
+                    }}
+                  />
+                </div>
+
+                {/* Right Sidebar - Conflicts & Analytics */}
+                <div className="lg:col-span-1 space-y-4">
+                  <ConflictPanel conflicts={conflicts} />
+                  <ScheduleAnalytics analytics={analytics} tournament={tournament} />
+                </div>
+              </div>
+            )}
+
+            {/* Generation Modal */}
+            {showGenerationModal && (
+              <ScheduleGenerationModal
+                tournament={tournament}
+                events={events}
+                onGenerate={handleGenerateSchedule}
+                onClose={() => setShowGenerationModal(false)}
+              />
             )}
           </div>
         )}
@@ -1381,7 +1585,7 @@ const CreateEventModal = ({ tournament, onClose, onSubmit }) => {
 
               <div>
                 <label className="block text-sm font-medium mb-2">
-                  {formData.format === 'MIXED_DOUBLES' ? 'Max Teams' : 'Max Participants'}
+                  {(formData.format === 'DOUBLES' || formData.format === 'MIXED_DOUBLES') ? 'Max Teams' : 'Max Participants'}
                 </label>
                 <input
                   type="number"
@@ -1452,8 +1656,8 @@ const EditTournamentModal = ({ tournament, onClose, onSubmit }) => {
     venueAddress: tournament.venueAddress || '',
     city: tournament.city || '',
     state: tournament.state || '',
-    latitude: tournament.latitude || null,
-    longitude: tournament.longitude || null,
+    latitude: tournament.latitude ? parseFloat(tournament.latitude) : null,
+    longitude: tournament.longitude ? parseFloat(tournament.longitude) : null,
     registrationDeadline: tournament.registrationDeadline ? new Date(tournament.registrationDeadline).toISOString().slice(0, 16) : '',
     description: tournament.description || '',
     rules: tournament.rules || '',
@@ -1509,7 +1713,7 @@ const EditTournamentModal = ({ tournament, onClose, onSubmit }) => {
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm" />
+      <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm" onClick={onClose} />
       <div className="flex min-h-full items-center justify-center p-4" style={{
         position: 'fixed',
         top: 0,
@@ -1526,7 +1730,29 @@ const EditTournamentModal = ({ tournament, onClose, onSubmit }) => {
           border: '1px solid rgba(79, 255, 176, 0.3)',
           maxHeight: '90vh',
           overflowY: 'auto'
-        }}>
+        }} onClick={(e) => e.stopPropagation()}>
+          {/* Close button */}
+          <button
+            type="button"
+            onClick={onClose}
+            style={{
+              position: 'absolute',
+              top: '1rem',
+              right: '1rem',
+              background: 'transparent',
+              border: 'none',
+              color: 'rgba(255, 255, 255, 0.6)',
+              fontSize: '1.5rem',
+              cursor: 'pointer',
+              padding: '0.25rem 0.5rem',
+              lineHeight: 1,
+              transition: 'color 0.2s'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.color = '#ec4899'}
+            onMouseLeave={(e) => e.currentTarget.style.color = 'rgba(255, 255, 255, 0.6)'}
+          >
+            ×
+          </button>
           <h2 className="text-2xl font-bold mb-6" style={{
             fontFamily: "'Barlow Condensed', sans-serif",
             textTransform: 'uppercase',
@@ -2250,7 +2476,7 @@ const EditEventModal = ({ event, tournament, onClose, onSubmit }) => {
 
               <div>
                 <label className="block text-sm font-medium mb-2">
-                  {formData.format === 'MIXED_DOUBLES' ? 'Max Teams' : 'Max Participants'}
+                  {(formData.format === 'DOUBLES' || formData.format === 'MIXED_DOUBLES') ? 'Max Teams' : 'Max Participants'}
                 </label>
                 <input
                   type="number"

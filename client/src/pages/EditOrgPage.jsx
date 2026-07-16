@@ -735,10 +735,18 @@ const EditOrgPage = () => {
                 <input
                   type="text"
                   value={formData.tagline}
-                  onChange={(e) => setFormData({ ...formData, tagline: e.target.value })}
+                  onChange={(e) => {
+                    if (e.target.value.length <= 100) {
+                      setFormData({ ...formData, tagline: e.target.value })
+                    }
+                  }}
                   placeholder="e.g., Building champions on and off the court"
                   className="form-input"
+                  maxLength={100}
                 />
+                <div style={{ textAlign: 'right', fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', marginTop: '0.25rem' }}>
+                  {formData.tagline.length}/100
+                </div>
               </div>
 
               <div className="form-group">
@@ -747,11 +755,19 @@ const EditOrgPage = () => {
                 </label>
                 <textarea
                   value={formData.description || ''}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  onChange={(e) => {
+                    if (e.target.value.length <= 250) {
+                      setFormData({ ...formData, description: e.target.value })
+                    }
+                  }}
                   placeholder="A quick summary of your organization..."
                   rows={3}
                   className="form-textarea"
+                  maxLength={250}
                 />
+                <div style={{ textAlign: 'right', fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', marginTop: '0.25rem' }}>
+                  {(formData.description || '').length}/250
+                </div>
               </div>
             </div>
 
@@ -850,22 +866,38 @@ const EditOrgPage = () => {
                 <label className="form-label">About Us</label>
                 <textarea
                   value={formData.aboutUs}
-                  onChange={(e) => setFormData({ ...formData, aboutUs: e.target.value })}
+                  onChange={(e) => {
+                    if (e.target.value.length <= 1000) {
+                      setFormData({ ...formData, aboutUs: e.target.value })
+                    }
+                  }}
                   placeholder="Tell people about your organization's history, mission, achievements..."
                   rows={6}
                   className="form-textarea"
+                  maxLength={1000}
                 />
+                <div style={{ textAlign: 'right', fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', marginTop: '0.25rem' }}>
+                  {formData.aboutUs.length}/1000
+                </div>
               </div>
 
               <div className="form-group">
                 <label className="form-label">Motto / Culture / Rules</label>
                 <textarea
                   value={formData.motto}
-                  onChange={(e) => setFormData({ ...formData, motto: e.target.value })}
+                  onChange={(e) => {
+                    if (e.target.value.length <= 500) {
+                      setFormData({ ...formData, motto: e.target.value })
+                    }
+                  }}
                   placeholder="Describe your organization's values, culture, or rules..."
                   rows={4}
                   className="form-textarea"
+                  maxLength={500}
                 />
+                <div style={{ textAlign: 'right', fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', marginTop: '0.25rem' }}>
+                  {formData.motto.length}/500
+                </div>
               </div>
             </div>
 
@@ -879,11 +911,19 @@ const EditOrgPage = () => {
                 <label className="form-label">Join Us Information</label>
                 <textarea
                   value={formData.joinUsInfo}
-                  onChange={(e) => setFormData({ ...formData, joinUsInfo: e.target.value })}
+                  onChange={(e) => {
+                    if (e.target.value.length <= 500) {
+                      setFormData({ ...formData, joinUsInfo: e.target.value })
+                    }
+                  }}
                   placeholder="How can people join? Requirements, process, etc..."
                   rows={4}
                   className="form-textarea"
+                  maxLength={500}
                 />
+                <div style={{ textAlign: 'right', fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', marginTop: '0.25rem' }}>
+                  {formData.joinUsInfo.length}/500
+                </div>
               </div>
 
               <div className="form-group">
@@ -893,10 +933,18 @@ const EditOrgPage = () => {
                 <input
                   type="text"
                   value={formData.membershipFee || ''}
-                  onChange={(e) => setFormData({ ...formData, membershipFee: e.target.value })}
+                  onChange={(e) => {
+                    if (e.target.value.length <= 50) {
+                      setFormData({ ...formData, membershipFee: e.target.value })
+                    }
+                  }}
                   placeholder="e.g., ₹500/month or Free"
                   className="form-input"
+                  maxLength={50}
                 />
+                <div style={{ textAlign: 'right', fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', marginTop: '0.25rem' }}>
+                  {(formData.membershipFee || '').length}/50
+                </div>
               </div>
             </div>
 
@@ -913,11 +961,19 @@ const EditOrgPage = () => {
                 <input
                   type="text"
                   value={formData.location || ''}
-                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                  onChange={(e) => {
+                    if (e.target.value.length <= 100) {
+                      setFormData({ ...formData, location: e.target.value })
+                    }
+                  }}
                   placeholder="e.g., Bengaluru, Karnataka"
                   className="form-input"
                   required
+                  maxLength={100}
                 />
+                <div style={{ textAlign: 'right', fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', marginTop: '0.25rem' }}>
+                  {(formData.location || '').length}/100
+                </div>
               </div>
 
               <div className="grid-2">

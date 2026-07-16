@@ -122,12 +122,13 @@ const PlayerProfilePage = () => {
         }))
       }
 
-      // Fetch ratings
+      // Fetch career stats and ratings with rank info
       try {
-        const ratingsResponse = await api.get(`/ratings/${userId}`)
-        if (ratingsResponse.data.success) {
-          const ratingsData = ratingsResponse.data.ratings || []
+        const statsResponse = await api.get(`/users/${userId}/profile-stats`)
+        if (statsResponse.data.success) {
+          const ratingsData = statsResponse.data.sportsStats || []
           setRatings(ratingsData)
+          setCareerStats(statsResponse.data.careerStats)
 
           // Auto-select first sport with matches for graph
           if (ratingsData.length > 0 && !selectedGraphSport) {
@@ -140,18 +141,8 @@ const PlayerProfilePage = () => {
           }
         }
       } catch (err) {
-        console.log('Ratings not available:', err)
+        console.log('Stats not available:', err)
         setRatings([])
-      }
-
-      // Fetch career stats
-      try {
-        const statsResponse = await api.get(`/users/${userId}/profile-stats`)
-        if (statsResponse.data.success) {
-          setCareerStats(statsResponse.data.careerStats)
-        }
-      } catch (err) {
-        console.log('Career stats not available:', err)
       }
 
       // Fetch recent matches
@@ -1246,7 +1237,7 @@ const PlayerProfilePage = () => {
                   </div>
                 ) : (
                   ratings.map((rating) => (
-                    <div key={rating.id} className="rating-card">
+                    <div key={rating.sportId} className="rating-card">
                       <div className="rating-header">
                         <div className="sport-name">{getSportDisplayName(rating.sportId)}</div>
                         <div className="rating-badge">
@@ -1259,18 +1250,23 @@ const PlayerProfilePage = () => {
                         <div className="rating-label">Rating</div>
                       </div>
 
+                      <div className="rating-display" style={{ marginTop: '0.5rem' }}>
+                        <div className="rating-number" style={{ fontSize: '1.5rem', color: '#4fffb0' }}>
+                          {rating.rank && rating.totalRankedPlayers
+                            ? `#${rating.rank} of ${rating.totalRankedPlayers}`
+                            : 'Unranked'}
+                        </div>
+                        <div className="rating-label">Ranking</div>
+                      </div>
+
                       <div className="rating-stats">
                         <div className="stat-item">
-                          <div className="stat-value">±{Math.round(rating.rd)}</div>
-                          <div className="stat-label">Uncertainty</div>
+                          <div className="stat-value">{rating.wins || 0}W - {rating.losses || 0}L</div>
+                          <div className="stat-label">Record</div>
                         </div>
                         <div className="stat-item">
-                          <div className="stat-value">
-                            {rating.lastMatchDate
-                              ? new Date(rating.lastMatchDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-                              : '—'}
-                          </div>
-                          <div className="stat-label">Last Match</div>
+                          <div className="stat-value">{rating.streak || '—'}</div>
+                          <div className="stat-label">Streak</div>
                         </div>
                       </div>
                     </div>

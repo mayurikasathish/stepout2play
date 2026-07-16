@@ -79,13 +79,13 @@ const TournamentDetailPage = () => {
     try {
       const response = await api.get('/users/me/registrations')
       if (response.data.success) {
-        // Create a map of eventId -> registration for easy lookup
+        // Create a map of eventId -> registration for easy lookup (include both CONFIRMED and STANDBY)
         const eventRegistrationMap = new Map(
           response.data.registrations
-            .filter(reg => reg.status === 'CONFIRMED')
+            .filter(reg => reg.status === 'CONFIRMED' || reg.status === 'STANDBY')
             .map(reg => [reg.eventId, reg])
         )
-        // Also maintain the set for backward compatibility
+        // Also maintain the set for backward compatibility (only CONFIRMED for registration check)
         const eventIds = new Set(
           response.data.registrations
             .filter(reg => reg.status === 'CONFIRMED')
@@ -123,9 +123,39 @@ const TournamentDetailPage = () => {
       return
     }
 
-    // Show confirmation modal first
-    setPendingRegistration({ eventId, eventName, eventFormat })
-    setShowRegistrationConfirm(true)
+    // Check eligibility FIRST before showing any modal
+    try {
+      setRegistering(true)
+      const eligibilityCheck = await api.get(`/events/${eventId}/check-eligibility`)
+
+      if (!eligibilityCheck.data.eligible) {
+        // Show not eligible modal - don't proceed to confirmation
+        setEligibilityData({
+          reasons: eligibilityCheck.data.reasons || [],
+          userAge: eligibilityCheck.data.userAge,
+          eventCategory: eligibilityCheck.data.eventCategory,
+          eventGender: eligibilityCheck.data.eventGender
+        })
+        setShowNotEligibleModal(true)
+        setRegistering(false)
+        return
+      }
+
+      // User is eligible, now show confirmation modal
+      setRegistering(false)
+      setPendingRegistration({ eventId, eventName, eventFormat })
+      setShowRegistrationConfirm(true)
+    } catch (err) {
+      console.error('Error checking eligibility:', err)
+      setRegistering(false)
+
+      // Show error
+      setSuccessMessage({
+        title: 'Error',
+        message: 'Failed to verify eligibility. Please try again.'
+      })
+      setShowSuccessModal(true)
+    }
   }
 
   const handleRegistrationConfirmed = async () => {
@@ -135,50 +165,15 @@ const TournamentDetailPage = () => {
 
     const { eventId, eventName, eventFormat } = pendingRegistration
 
-    // For doubles/mixed doubles, check user's eligibility first
+    // For doubles/mixed doubles, show partner selection modal (eligibility already checked)
     if (eventFormat === 'DOUBLES' || eventFormat === 'MIXED_DOUBLES') {
-      try {
-        setRegistering(true)
-
-        // Check if the user themselves is eligible
-        const eligibilityCheck = await api.get(`/events/${eventId}/check-eligibility`)
-
-        if (!eligibilityCheck.data.eligible) {
-          // Show not eligible modal - don't proceed to partner selection
-          setEligibilityData({
-            reasons: eligibilityCheck.data.reasons || [],
-            userAge: eligibilityCheck.data.userAge,
-            eventCategory: eligibilityCheck.data.eventCategory,
-            eventGender: eligibilityCheck.data.eventGender
-          })
-          setShowNotEligibleModal(true)
-          setRegistering(false)
-          setPendingRegistration(null)
-          return
-        }
-
-        // User is eligible, now show partner selection modal
-        setRegistering(false)
-        setCurrentEvent({ id: eventId, name: eventName, format: eventFormat })
-        setShowPartnerModal(true)
-        setPendingRegistration(null)
-        return
-      } catch (err) {
-        console.error('Error checking eligibility:', err)
-        setRegistering(false)
-
-        // Show error
-        setSuccessMessage({
-          title: 'Error',
-          message: 'Failed to verify eligibility. Please try again.'
-        })
-        setShowSuccessModal(true)
-        setPendingRegistration(null)
-        return
-      }
+      setCurrentEvent({ id: eventId, name: eventName, format: eventFormat })
+      setShowPartnerModal(true)
+      setPendingRegistration(null)
+      return
     }
 
-    // For singles, proceed directly
+    // For singles, proceed directly (eligibility already checked)
     registerForEvent(eventId, eventName, null)
     setPendingRegistration(null)
   }
@@ -187,25 +182,7 @@ const TournamentDetailPage = () => {
     try {
       setRegistering(true)
 
-      // First check eligibility for singles
-      if (!partnerId) {
-        const eligibilityCheck = await api.get(`/events/${eventId}/check-eligibility`)
-
-        if (!eligibilityCheck.data.eligible) {
-          // Show not eligible modal
-          setEligibilityData({
-            reasons: eligibilityCheck.data.reasons || [],
-            userAge: eligibilityCheck.data.userAge,
-            eventCategory: eligibilityCheck.data.eventCategory,
-            eventGender: eligibilityCheck.data.eventGender
-          })
-          setShowNotEligibleModal(true)
-          setRegistering(false)
-          return
-        }
-      }
-
-      // Proceed with registration (with or without partner)
+      // Eligibility already checked in handleRegister, so proceed with registration
       const response = await api.post(`/events/${eventId}/register`, {
         partnerId: partnerId || undefined,
         teamName: teamName || undefined

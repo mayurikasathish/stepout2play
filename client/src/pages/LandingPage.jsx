@@ -114,7 +114,7 @@ function FeaturesBento() {
     {
       name: 'bottom',
       title: 'No website? No problem.',
-      desc: 'Every organization on StepOut2Play gets a beautiful public home—complete with tournaments, galleries, achievements, and a shareable link.'
+      desc: 'Every organization on StepOut2Play gets a beautiful public home - complete with tournaments, galleries, achievements, and a shareable link.'
     },
   ]
 
@@ -172,6 +172,11 @@ export default function LandingPage() {
       navigate('/dashboard')
     }
   }, [isAuthenticated, navigate])
+
+  // Scroll to top on mount/reload
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' })
+  }, [])
 
   const [phase, setPhase] = useState('intro')
   const [showLogin, setShowLogin] = useState(false)
@@ -403,7 +408,9 @@ export default function LandingPage() {
         .nav {
           position: fixed; top: 0; left: 0; right: 0;
           z-index: 200;
-          display: flex; align-items: center; justify-content: space-between;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
           padding: 0 3rem;
           height: 64px;
           background: rgba(6, 13, 31, 0.45);
@@ -1206,12 +1213,219 @@ export default function LandingPage() {
           }
         }
 
+        /* ── STATS SECTION ── */
+        .stats-section {
+          padding: 8rem 2rem;
+          background: linear-gradient(180deg, #060d1f 0%, #0a1628 100%);
+        }
+
+        .stats-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 2rem;
+          max-width: 1000px;
+          margin: 0 auto;
+        }
+
+        .stat-card {
+          text-align: center;
+          padding: 2rem;
+          background: linear-gradient(135deg, rgba(27,67,50,0.1) 0%, rgba(10,22,40,0.2) 100%);
+          border: 1px solid rgba(79,255,176,0.15);
+          border-radius: 12px;
+          transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+          background: linear-gradient(135deg, rgba(27,67,50,0.2) 0%, rgba(10,22,40,0.3) 100%);
+          border-color: rgba(79,255,176,0.4);
+          transform: translateY(-5px);
+          box-shadow: 0 10px 40px rgba(79,255,176,0.2);
+        }
+
+        .stat-number {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 900;
+          font-size: clamp(3rem, 5vw, 4.5rem);
+          letter-spacing: -0.03em;
+          background: linear-gradient(135deg, #4fffb0 0%, #00c9a7 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+          margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-size: 1rem;
+          color: rgba(255,255,255,0.6);
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+
+        /* ── FINAL CTA SECTION ── */
+        .cta-section {
+          padding: 10rem 2rem;
+          background: linear-gradient(180deg, #0a1628 0%, #060d1f 100%);
+          text-align: center;
+        }
+
+        .cta-content {
+          max-width: 800px;
+          margin: 0 auto;
+        }
+
+        .cta-headline {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 900;
+          font-size: clamp(3.5rem, 8vw, 7rem);
+          letter-spacing: -0.04em;
+          text-transform: uppercase;
+          color: #fff;
+          margin-bottom: 1.5rem;
+          line-height: 0.95;
+        }
+
+        .cta-subhead {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-size: clamp(1rem, 2vw, 1.2rem);
+          color: rgba(255,255,255,0.5);
+          margin-bottom: 3rem;
+          line-height: 1.6;
+        }
+
+        .cta-buttons {
+          display: flex;
+          gap: 1rem;
+          justify-content: center;
+          flex-wrap: wrap;
+        }
+
+        /* ── FOOTER ── */
+        .footer {
+          background: linear-gradient(180deg, #060d1f 0%, #030711 100%);
+          border-top: 1px solid rgba(255,255,255,0.06);
+          padding: 5rem 2rem 2rem;
+        }
+
+        .footer-content {
+          max-width: 1200px;
+          margin: 0 auto;
+          display: grid;
+          grid-template-columns: 2fr repeat(4, 1fr);
+          gap: 3rem;
+          margin-bottom: 3rem;
+        }
+
+        .footer-logo {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 900;
+          font-size: 1.5rem;
+          letter-spacing: -0.02em;
+          color: #fff;
+          text-transform: uppercase;
+          margin-bottom: 0.75rem;
+        }
+
+        .footer-logo span {
+          color: #4fffb0;
+        }
+
+        .footer-tagline {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-size: 0.95rem;
+          color: rgba(255,255,255,0.4);
+        }
+
+        .footer-heading {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 700;
+          font-size: 0.85rem;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: #4fffb0;
+          margin-bottom: 1.5rem;
+        }
+
+        .footer-link {
+          display: block;
+          font-family: 'Barlow Condensed', sans-serif;
+          font-size: 0.95rem;
+          color: rgba(255,255,255,0.5);
+          text-decoration: none;
+          margin-bottom: 0.75rem;
+          transition: all 0.2s ease;
+        }
+
+        .footer-link:hover {
+          color: #4fffb0;
+          padding-left: 5px;
+        }
+
+        .footer-socials {
+          display: flex;
+          gap: 1rem;
+        }
+
+        .social-icon {
+          width: 40px;
+          height: 40px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: rgba(79,255,176,0.08);
+          border: 1px solid rgba(79,255,176,0.2);
+          border-radius: 8px;
+          color: rgba(255,255,255,0.6);
+          text-decoration: none;
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 700;
+          font-size: 0.9rem;
+          transition: all 0.2s ease;
+        }
+
+        .social-icon:hover {
+          background: rgba(79,255,176,0.15);
+          border-color: rgba(79,255,176,0.5);
+          color: #4fffb0;
+          transform: translateY(-3px);
+        }
+
+        .footer-bottom {
+          border-top: 1px solid rgba(255,255,255,0.06);
+          padding-top: 2rem;
+          text-align: center;
+          font-family: 'Barlow Condensed', sans-serif;
+          font-size: 0.9rem;
+          color: rgba(255,255,255,0.3);
+        }
+
+        @media (max-width: 1024px) {
+          .footer-content {
+            grid-template-columns: repeat(3, 1fr);
+          }
+        }
+
         @media (max-width: 768px) {
           .nav { padding: 0 1.5rem; }
           .section { padding: 5rem 1.5rem; }
           .modal { padding: 2rem; }
           .nav-btns { gap: 0.5rem; }
           .btn-nav { padding: 0.6rem 1.2rem; font-size: 0.85rem; }
+
+          .footer-content {
+            grid-template-columns: 1fr;
+            text-align: center;
+          }
+
+          .footer-socials {
+            justify-content: center;
+          }
+
+          .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+          }
         }
       `}</style>
 
@@ -1249,11 +1463,14 @@ export default function LandingPage() {
                 <span className="accent">Match Matters.</span>
               </h1>
               <p className="hero-sub">
-                From discovering tournaments to competing, organizing, climbing rankings, and following live matches — all in one platform.
+                From discovering tournaments to competing, organizing, climbing rankings, and following live matches - all in one platform.
               </p>
               <div className="hero-ctas">
                 <button className="btn-main" onClick={() => setShowSignup(true)}>Get Started</button>
-                <button className="btn-sec" onClick={() => navigate('/browse')}>Browse Tournaments</button>
+                <button className="btn-sec" onClick={() => {
+                  window.scrollTo({ top: 0, behavior: 'instant' })
+                  navigate('/browse')
+                }}>Browse Tournaments</button>
               </div>
             </div>
           </BulgeSection>
@@ -1281,15 +1498,91 @@ export default function LandingPage() {
           </BulgeSection>
         </section>
 
-        {/* PLACEHOLDER SECTIONS — bulge in on scroll */}
-        <div className="section-wrapper">
-          <div className="section">
-            <BulgeSection>
-              <div className="section-label">Coming soon</div>
-              <h2 className="section-h2">More<br/>sections<br/>here.</h2>
-            </BulgeSection>
+        {/* SOCIAL PROOF SECTION */}
+        <section className="stats-section">
+          <BulgeSection>
+            <div className="stats-grid">
+              <div className="stat-card">
+                <div className="stat-number">500+</div>
+                <div className="stat-label">Tournaments Hosted</div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-number">10K+</div>
+                <div className="stat-label">Active Players</div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-number">50K+</div>
+                <div className="stat-label">Matches Played</div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-number">24/7</div>
+                <div className="stat-label">Live Updates</div>
+              </div>
+            </div>
+          </BulgeSection>
+        </section>
+
+        {/* FINAL CTA SECTION */}
+        <section className="cta-section">
+          <BulgeSection>
+            <div className="cta-content">
+              <h2 className="cta-headline">Ready to Play?</h2>
+              <p className="cta-subhead">Join thousands competing, organizing, and following tournaments worldwide.</p>
+              <div className="cta-buttons">
+                <button className="btn-main" onClick={() => setShowSignup(true)}>Create Account</button>
+                <button className="btn-sec" onClick={() => {
+                  window.scrollTo({ top: 0, behavior: 'instant' })
+                  navigate('/browse')
+                }}>Explore Tournaments</button>
+              </div>
+            </div>
+          </BulgeSection>
+        </section>
+
+        {/* FOOTER */}
+        <footer className="footer">
+          <div className="footer-content">
+            <div className="footer-section">
+              <div className="footer-logo">Step<span>Out</span>2Play</div>
+              <p className="footer-tagline">Where Every Match Matters.</p>
+            </div>
+
+            <div className="footer-section">
+              <h4 className="footer-heading">Platform</h4>
+              <a href="/browse" className="footer-link">Browse Tournaments</a>
+              <a href="/dashboard" className="footer-link">Dashboard</a>
+              <a href="/discover" className="footer-link">Discover</a>
+            </div>
+
+            <div className="footer-section">
+              <h4 className="footer-heading">Company</h4>
+              <a href="#" className="footer-link">About Us</a>
+              <a href="#" className="footer-link">Contact</a>
+              <a href="#" className="footer-link">Careers</a>
+            </div>
+
+            <div className="footer-section">
+              <h4 className="footer-heading">Legal</h4>
+              <a href="#" className="footer-link">Privacy Policy</a>
+              <a href="#" className="footer-link">Terms of Service</a>
+              <a href="#" className="footer-link">Cookie Policy</a>
+            </div>
+
+            <div className="footer-section">
+              <h4 className="footer-heading">Connect</h4>
+              <div className="footer-socials">
+                <a href="#" className="social-icon">𝕏</a>
+                <a href="#" className="social-icon">in</a>
+                <a href="#" className="social-icon">IG</a>
+                <a href="#" className="social-icon">FB</a>
+              </div>
+            </div>
           </div>
-        </div>
+
+          <div className="footer-bottom">
+            <p>© 2026 StepOut2Play. All rights reserved.</p>
+          </div>
+        </footer>
 
       </div>
 

@@ -579,7 +579,7 @@ const RegistrationCard = ({ registration, navigate, isUpcoming, highlightedEvent
     }
   }
 
-  const hasBracket = registration.event.bracketGenerated
+  const hasBracket = registration.event.bracketGenerated && registration.event.bracketPublished
 
   const handleViewBracket = (e) => {
     e.stopPropagation()

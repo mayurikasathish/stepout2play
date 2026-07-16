@@ -190,6 +190,11 @@ class TournamentService {
     // Filter by computed status after calculation
     if (filters.status) {
       tournamentsWithCounts = tournamentsWithCounts.filter(t => t.status === filters.status);
+    } else {
+      // By default, exclude DRAFT and COMPLETED tournaments from browse page
+      tournamentsWithCounts = tournamentsWithCounts.filter(t =>
+        t.status !== 'COMPLETED' && t.status !== 'DRAFT'
+      );
     }
 
     return tournamentsWithCounts;

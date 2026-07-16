@@ -110,6 +110,9 @@ class EventService {
             userId: true,
             partnerId: true
           }
+        },
+        _count: {
+          select: { matches: true }
         }
       },
       orderBy: {
@@ -146,7 +149,8 @@ class EventService {
         participantCount,
         spotsRemaining: event.maxParticipants
           ? event.maxParticipants - participantCount
-          : null
+          : null,
+        matchCount: event._count?.matches || 0
       };
     });
 

@@ -23,9 +23,9 @@ router.patch(
   tournamentController.updateTournament.bind(tournamentController)
 );
 
-// DELETE /tournaments/:id - Delete tournament (organizer only)
+// DELETE /tournaments/:tournamentId - Delete tournament (organizer only)
 router.delete(
-  '/:id',
+  '/:tournamentId',
   authenticate,
   requireTournamentOrgRole(['OWNER', 'ADMIN']),
   tournamentController.deleteTournament.bind(tournamentController)

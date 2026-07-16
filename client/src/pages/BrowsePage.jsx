@@ -101,8 +101,6 @@ const BrowsePage = () => {
       tournamentSports.toLowerCase().includes(query)
 
     const matchesSport = filterSport === 'all' || t.sport === filterSport
-    // Exclude DRAFT tournaments unless specifically filtered
-    const matchesStatus = filterStatus === 'DRAFT' || t.status !== 'DRAFT'
 
     // Distance filter
     let matchesDistance = true
@@ -113,7 +111,7 @@ const BrowsePage = () => {
       else if (filterDistance === '100') matchesDistance = t.distance <= 100
     }
 
-    return matchesSearch && matchesSport && matchesStatus && matchesDistance
+    return matchesSearch && matchesSport && matchesDistance
   })
 
   return (
@@ -296,10 +294,8 @@ const BrowsePage = () => {
             >
               <option value="all" style={{ background: '#0a1628', color: '#fff' }}>All Status</option>
               <option value="OPEN" style={{ background: '#0a1628', color: '#fff' }}>Open</option>
-              <option value="DRAFT" style={{ background: '#0a1628', color: '#fff' }}>Draft</option>
               <option value="CLOSED" style={{ background: '#0a1628', color: '#fff' }}>Closed</option>
               <option value="ONGOING" style={{ background: '#0a1628', color: '#fff' }}>Ongoing</option>
-              <option value="COMPLETED" style={{ background: '#0a1628', color: '#fff' }}>Completed</option>
             </select>
             <div style={{ pointerEvents: 'none', position: 'absolute', insetY: 0, right: 0, display: 'flex', alignItems: 'center', paddingRight: '0.75rem', top: '50%', transform: 'translateY(-50%)' }}>
               <svg style={{ width: '1.25rem', height: '1.25rem', color: 'rgba(255, 255, 255, 0.5)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
