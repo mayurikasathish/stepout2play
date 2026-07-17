@@ -4,6 +4,7 @@ import Navbar from '../components/Navbar'
 import ImageUpload from '../components/ImageUpload'
 import Toast from '../components/Toast'
 import LocationSelector from '../components/LocationSelector'
+import PlayerRadarCard from '../components/PlayerRadarCard'
 import api from '../services/api'
 
 const ProfilePage = () => {
@@ -28,6 +29,9 @@ const ProfilePage = () => {
   const [activityHeatmap, setActivityHeatmap] = useState({})
   const [showAllMatches, setShowAllMatches] = useState(false)
   const [allMatches, setAllMatches] = useState([])
+  const [achievementSummary, setAchievementSummary] = useState({ gold: 0, silver: 0, bronze: 0, total: 0 })
+  const [achievements, setAchievements] = useState([])
+  const [activeTab, setActiveTab] = useState('overview') // 'overview' or 'achievements'
 
   const sportsList = ['Badminton', 'Tennis', 'Table Tennis', 'Squash', 'Pickleball', 'Padel']
   const BIO_CHAR_LIMIT = 150
@@ -39,8 +43,12 @@ const ProfilePage = () => {
       fetchCareerStats()
       fetchRecentMatches('all')
       fetchActivityHeatmap()
+      fetchAchievementSummary()
+      if (activeTab === 'achievements') {
+        fetchAchievements()
+      }
     }
-  }, [authUser?.id])
+  }, [authUser?.id, activeTab])
 
   const fetchProfile = async () => {
     try {
@@ -165,6 +173,28 @@ const ProfilePage = () => {
       }
     } catch (err) {
       console.error('Error fetching activity heatmap:', err)
+    }
+  }
+
+  const fetchAchievementSummary = async () => {
+    try {
+      const response = await api.get(`/users/${authUser.id}/achievements/summary`)
+      if (response.data.success) {
+        setAchievementSummary(response.data.summary)
+      }
+    } catch (err) {
+      console.error('Error fetching achievement summary:', err)
+    }
+  }
+
+  const fetchAchievements = async () => {
+    try {
+      const response = await api.get(`/users/${authUser.id}/achievements`)
+      if (response.data.success) {
+        setAchievements(response.data.achievements)
+      }
+    } catch (err) {
+      console.error('Error fetching achievements:', err)
     }
   }
 
@@ -340,9 +370,16 @@ const ProfilePage = () => {
 
         .profile-layout {
           display: grid;
-          grid-template-columns: 400px 1fr;
-          gap: 2rem;
+          grid-template-columns: 380px 1fr;
+          gap: 1.5rem;
           align-items: start;
+        }
+
+        @media (max-width: 1024px) {
+          .profile-layout {
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+          }
         }
 
         .profile-box {
@@ -350,7 +387,7 @@ const ProfilePage = () => {
           backdrop-filter: blur(20px);
           border: 1px solid rgba(79, 255, 176, 0.15);
           border-radius: 20px;
-          padding: 2rem;
+          padding: 1.5rem;
         }
 
         .profile-pic-section {
@@ -420,18 +457,18 @@ const ProfilePage = () => {
         .profile-field-label {
           font-family: 'Barlow Condensed', sans-serif;
           font-weight: 700;
-          font-size: 0.8rem;
+          font-size: 0.7rem;
           color: rgba(255, 255, 255, 0.5);
           text-transform: uppercase;
           letter-spacing: 0.05em;
-          margin-bottom: 0.4rem;
+          margin-bottom: 0.3rem;
         }
 
         .profile-field-value {
           font-family: 'Barlow', sans-serif;
-          font-size: 1rem;
+          font-size: 0.9rem;
           color: rgba(255, 255, 255, 0.9);
-          line-height: 1.5;
+          line-height: 1.4;
         }
 
         /* Bio Section - Enhanced Visual Hierarchy */
@@ -442,7 +479,7 @@ const ProfilePage = () => {
         }
 
         .bio-section .profile-field-label {
-          font-size: 1rem;
+          font-size: 0.85rem;
           background: linear-gradient(135deg, #ec4899, #a855f7);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
@@ -747,8 +784,26 @@ const ProfilePage = () => {
         /* Premium Rating Cards */
         .ratings-container {
           display: grid;
-          grid-template-columns: repeat(2, 1fr);
+          grid-template-columns: 1fr;
           gap: 1.25rem;
+        }
+
+        .ratings-grid-3col {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 1rem;
+        }
+
+        @media (max-width: 1200px) {
+          .ratings-grid-3col {
+            grid-template-columns: repeat(2, 1fr);
+          }
+        }
+
+        @media (max-width: 768px) {
+          .ratings-grid-3col {
+            grid-template-columns: 1fr;
+          }
         }
 
         .rating-card {
@@ -1532,6 +1587,13 @@ const ProfilePage = () => {
                 >
                   Edit Profile
                 </button>
+
+                {/* Performance Diamond */}
+                {profile && (
+                  <div style={{ marginTop: '1.5rem' }}>
+                    <PlayerRadarCard userId={profile.id} />
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1540,7 +1602,7 @@ const ProfilePage = () => {
               <h2 style={{
                 fontFamily: "'Barlow Condensed', sans-serif",
                 fontWeight: 900,
-                fontSize: '1.8rem',
+                fontSize: '1.5rem',
                 background: 'linear-gradient(135deg, #4fffb0, #00d4ff)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
@@ -1554,46 +1616,102 @@ const ProfilePage = () => {
               </h2>
 
               <div className="ratings-container">
-                {ratings.length === 0 ? (
+                {!ratings || ratings.length === 0 ? (
                   <div className="no-ratings">
                     No ratings yet. Play matches to build your rating!
                   </div>
                 ) : (
-                  ratings.map((rating) => (
-                    <div key={rating.id} className="rating-card">
-                      <div className="rating-header">
-                        <div className="sport-name">{getSportDisplayName(rating.sportId)}</div>
-                        <div className="rating-badge">
-                          {rating.matchCount === 0 ? 'Unranked' : `${rating.matchCount} Matches`}
-                        </div>
-                      </div>
+                  ratings.map((sport) => (
+                    <div key={sport.sportId} className="sport-rating-card" style={{
+                      background: 'rgba(6, 13, 31, 0.6)',
+                      backdropFilter: 'blur(20px)',
+                      border: '1px solid rgba(79, 255, 176, 0.2)',
+                      borderRadius: '16px',
+                      padding: '1.5rem',
+                      marginBottom: '1.5rem'
+                    }}>
+                      <h3 style={{
+                        fontFamily: "'Barlow Condensed', sans-serif",
+                        fontWeight: 700,
+                        fontSize: '1.3rem',
+                        color: '#4fffb0',
+                        textTransform: 'uppercase',
+                        marginBottom: '1rem'
+                      }}>
+                        {getSportDisplayName(sport.sportId)}
+                      </h3>
 
-                      <div className="rating-display">
-                        <div className="rating-number">{Math.round(rating.rating)}</div>
-                        <div className="rating-label">Rating</div>
-                      </div>
-
-                      <div className="rating-display" style={{ marginTop: '0.5rem' }}>
-                        <div className="rating-number" style={{ fontSize: '1.5rem', color: '#4fffb0' }}>
-                          {rating.rank && rating.totalRankedPlayers
-                            ? `#${rating.rank} of ${rating.totalRankedPlayers}`
-                            : 'Unranked'}
-                        </div>
-                        <div className="rating-label">Ranking</div>
-                      </div>
-
-                      <div className="rating-stats">
-                        <div className="stat-item">
-                          <div className="stat-value">±{Math.round(rating.rd)}</div>
-                          <div className="stat-label">Uncertainty</div>
-                        </div>
-                        <div className="stat-item">
-                          <div className="stat-value">
-                            {rating.lastMatchDate
-                              ? new Date(rating.lastMatchDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-                              : '—'}
+                      <div className="ratings-grid-3col">
+                        {/* Singles */}
+                        <div className="category-card" style={{
+                          background: 'rgba(79, 255, 176, 0.05)',
+                          border: '1px solid rgba(79, 255, 176, 0.2)',
+                          borderRadius: '12px',
+                          padding: '1rem'
+                        }}>
+                          <div style={{ fontSize: '0.9rem', color: 'rgba(255, 255, 255, 0.6)', marginBottom: '0.5rem' }}>
+                            SINGLES
                           </div>
-                          <div className="stat-label">Last Match</div>
+                          <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#fff', marginBottom: '0.25rem' }}>
+                            {sport.singles.rating}
+                          </div>
+                          <div style={{ fontSize: '1rem', color: '#4fffb0', marginBottom: '0.5rem' }}>
+                            {sport.singles.rank && sport.singles.totalRankedPlayers
+                              ? `#${sport.singles.rank} of ${sport.singles.totalRankedPlayers}`
+                              : 'Unranked'}
+                          </div>
+                          <div style={{ fontSize: '0.85rem', color: 'rgba(255, 255, 255, 0.5)' }}>
+                            {sport.singles.wins}W-{sport.singles.losses}L
+                            {sport.singles.streak && ` • ${sport.singles.streak}`}
+                          </div>
+                        </div>
+
+                        {/* Doubles */}
+                        <div className="category-card" style={{
+                          background: 'rgba(79, 255, 176, 0.05)',
+                          border: '1px solid rgba(79, 255, 176, 0.2)',
+                          borderRadius: '12px',
+                          padding: '1rem'
+                        }}>
+                          <div style={{ fontSize: '0.9rem', color: 'rgba(255, 255, 255, 0.6)', marginBottom: '0.5rem' }}>
+                            DOUBLES
+                          </div>
+                          <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#fff', marginBottom: '0.25rem' }}>
+                            {sport.doubles.rating}
+                          </div>
+                          <div style={{ fontSize: '1.1rem', color: '#4fffb0', marginBottom: '0.5rem' }}>
+                            {sport.doubles.rank && sport.doubles.totalRankedPlayers
+                              ? `#${sport.doubles.rank} of ${sport.doubles.totalRankedPlayers}`
+                              : 'Unranked'}
+                          </div>
+                          <div style={{ fontSize: '0.85rem', color: 'rgba(255, 255, 255, 0.5)' }}>
+                            {sport.doubles.wins}W-{sport.doubles.losses}L
+                            {sport.doubles.streak && ` • ${sport.doubles.streak}`}
+                          </div>
+                        </div>
+
+                        {/* Mixed Doubles */}
+                        <div className="category-card" style={{
+                          background: 'rgba(79, 255, 176, 0.05)',
+                          border: '1px solid rgba(79, 255, 176, 0.2)',
+                          borderRadius: '12px',
+                          padding: '1rem'
+                        }}>
+                          <div style={{ fontSize: '0.9rem', color: 'rgba(255, 255, 255, 0.6)', marginBottom: '0.5rem' }}>
+                            MIXED DOUBLES
+                          </div>
+                          <div style={{ fontSize: '1.75rem', fontWeight: 900, color: '#fff', marginBottom: '0.25rem' }}>
+                            {sport.mixedDoubles.rating}
+                          </div>
+                          <div style={{ fontSize: '1.1rem', color: '#4fffb0', marginBottom: '0.5rem' }}>
+                            {sport.mixedDoubles.rank && sport.mixedDoubles.totalRankedPlayers
+                              ? `#${sport.mixedDoubles.rank} of ${sport.mixedDoubles.totalRankedPlayers}`
+                              : 'Unranked'}
+                          </div>
+                          <div style={{ fontSize: '0.85rem', color: 'rgba(255, 255, 255, 0.5)' }}>
+                            {sport.mixedDoubles.wins}W-{sport.mixedDoubles.losses}L
+                            {sport.mixedDoubles.streak && ` • ${sport.mixedDoubles.streak}`}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -1745,7 +1863,12 @@ const ProfilePage = () => {
                   <div className="stat-label-compact">Win Rate</div>
                 </div>
                 <div className="stat-card-compact">
-                  <div className="stat-value-large">{careerStats.titles}</div>
+                  <div className="stat-value-large" style={{ display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem' }}>
+                    {achievementSummary.gold > 0 && <span>🥇 {achievementSummary.gold}</span>}
+                    {achievementSummary.silver > 0 && <span>🥈 {achievementSummary.silver}</span>}
+                    {achievementSummary.bronze > 0 && <span>🥉 {achievementSummary.bronze}</span>}
+                    {achievementSummary.total === 0 && <span>—</span>}
+                  </div>
                   <div className="stat-label-compact">Titles</div>
                 </div>
                 <div className="stat-card-compact">
@@ -1766,8 +1889,49 @@ const ProfilePage = () => {
             </div>
           )}
 
-          {/* Activity Heatmap - Compact */}
-          <div className="heatmap-section profile-box" style={{ marginTop: '2rem' }}>
+          {/* Tab Navigation */}
+          <div className="profile-tabs" style={{ marginTop: '2rem', borderBottom: '2px solid #e5e7eb' }}>
+            <button
+              className={`tab-btn ${activeTab === 'overview' ? 'active' : ''}`}
+              onClick={() => setActiveTab('overview')}
+              style={{
+                padding: '12px 24px',
+                border: 'none',
+                background: 'none',
+                cursor: 'pointer',
+                fontSize: '1rem',
+                fontWeight: activeTab === 'overview' ? '600' : '400',
+                color: activeTab === 'overview' ? '#1B4332' : '#6b7280',
+                borderBottom: activeTab === 'overview' ? '3px solid #1B4332' : '3px solid transparent',
+                transition: 'all 0.2s'
+              }}
+            >
+              Overview
+            </button>
+            <button
+              className={`tab-btn ${activeTab === 'achievements' ? 'active' : ''}`}
+              onClick={() => setActiveTab('achievements')}
+              style={{
+                padding: '12px 24px',
+                border: 'none',
+                background: 'none',
+                cursor: 'pointer',
+                fontSize: '1rem',
+                fontWeight: activeTab === 'achievements' ? '600' : '400',
+                color: activeTab === 'achievements' ? '#1B4332' : '#6b7280',
+                borderBottom: activeTab === 'achievements' ? '3px solid #1B4332' : '3px solid transparent',
+                transition: 'all 0.2s'
+              }}
+            >
+              Achievements 🏆
+            </button>
+          </div>
+
+          {/* Overview Tab Content */}
+          {activeTab === 'overview' && (
+            <>
+              {/* Activity Heatmap - Compact */}
+              <div className="heatmap-section profile-box" style={{ marginTop: '2rem' }}>
             <h3 className="section-title">Activity Heatmap</h3>
             <div className="heatmap-container">
               <div className="heatmap-grid">
@@ -1904,6 +2068,99 @@ const ProfilePage = () => {
               </div>
             )}
           </div>
+            </>
+          )}
+
+          {/* Achievements Tab Content */}
+          {activeTab === 'achievements' && (
+            <div className="achievements-section profile-box" style={{ marginTop: '2rem' }}>
+              <h3 className="section-title">🏆 My Achievements</h3>
+
+              {/* Summary Cards */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '2rem' }}>
+                <div style={{ background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)', padding: '20px', borderRadius: '12px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '3rem' }}>🥇</div>
+                  <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#fff', marginTop: '8px' }}>{achievementSummary.gold}</div>
+                  <div style={{ fontSize: '0.9rem', color: '#fff', opacity: 0.9 }}>Gold Medals</div>
+                </div>
+                <div style={{ background: 'linear-gradient(135deg, #C0C0C0 0%, #A8A8A8 100%)', padding: '20px', borderRadius: '12px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '3rem' }}>🥈</div>
+                  <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#fff', marginTop: '8px' }}>{achievementSummary.silver}</div>
+                  <div style={{ fontSize: '0.9rem', color: '#fff', opacity: 0.9 }}>Silver Medals</div>
+                </div>
+                <div style={{ background: 'linear-gradient(135deg, #CD7F32 0%, #A0522D 100%)', padding: '20px', borderRadius: '12px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '3rem' }}>🥉</div>
+                  <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#fff', marginTop: '8px' }}>{achievementSummary.bronze}</div>
+                  <div style={{ fontSize: '0.9rem', color: '#fff', opacity: 0.9 }}>Bronze Medals</div>
+                </div>
+              </div>
+
+              {/* Achievement List */}
+              {achievements.length === 0 ? (
+                <div className="no-history" style={{ padding: '3rem', textAlign: 'center' }}>
+                  <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🏅</div>
+                  <p>No achievements yet. Win tournaments to earn medals!</p>
+                </div>
+              ) : (
+                <div>
+                  {Object.entries(
+                    achievements.reduce((acc, achievement) => {
+                      const year = new Date(achievement.wonAt).getFullYear()
+                      if (!acc[year]) acc[year] = []
+                      acc[year].push(achievement)
+                      return acc
+                    }, {})
+                  )
+                    .sort(([yearA], [yearB]) => yearB - yearA)
+                    .map(([year, yearAchievements]) => (
+                      <div key={year} style={{ marginBottom: '2rem' }}>
+                        <h4 style={{ fontSize: '1.3rem', fontWeight: '600', color: '#1B4332', marginBottom: '1rem', borderBottom: '2px solid #e5e7eb', paddingBottom: '8px' }}>
+                          {year}
+                        </h4>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                          {yearAchievements
+                            .sort((a, b) => a.position - b.position)
+                            .map((achievement) => {
+                              const medal = achievement.position === 1 ? '🥇' : achievement.position === 2 ? '🥈' : '🥉'
+                              const sportName = achievement.event.sportId.charAt(0).toUpperCase() + achievement.event.sportId.slice(1).replace('-', ' ')
+                              const category = achievement.event.format.replace('_', ' ')
+                              const date = new Date(achievement.wonAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+
+                              return (
+                                <div
+                                  key={achievement.id}
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '16px',
+                                    padding: '16px',
+                                    background: '#f9fafb',
+                                    borderRadius: '8px',
+                                    border: '1px solid #e5e7eb'
+                                  }}
+                                >
+                                  <div style={{ fontSize: '2.5rem' }}>{medal}</div>
+                                  <div style={{ flex: 1 }}>
+                                    <div style={{ fontSize: '1.1rem', fontWeight: '600', color: '#1f2937' }}>
+                                      {achievement.tournament.name}
+                                    </div>
+                                    <div style={{ fontSize: '0.9rem', color: '#6b7280', marginTop: '4px' }}>
+                                      {achievement.event.name} • {sportName} • {category}
+                                    </div>
+                                  </div>
+                                  <div style={{ fontSize: '0.85rem', color: '#9ca3af', whiteSpace: 'nowrap' }}>
+                                    {date}, {year}
+                                  </div>
+                                </div>
+                              )
+                            })}
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* View All Matches Modal */}

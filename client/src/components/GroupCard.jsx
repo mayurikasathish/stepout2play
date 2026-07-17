@@ -81,13 +81,13 @@ const GroupCard = ({ group, isOrganizer, onMatchClick, onCaptureScorecard }) => 
               {standings.map((standing, idx) => (
                 <tr
                   key={standing.id}
-                  className={`transition-colors ${idx === 0 && group.status === 'COMPLETED' ? 'bg-green-50' : 'hover:bg-gray-50'}`}
+                  className={idx === 0 && group.status === 'COMPLETED' ? 'bg-green-50' : ''}
                 >
                   <td className="px-3 py-2.5 text-gray-400 text-xs font-medium">{idx + 1}</td>
                   <td className="px-3 py-2.5">
                     <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0">
-                        <span className="text-primary-700 font-semibold text-xs">
+                      <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                        <span className="text-blue-700 font-semibold text-xs">
                           {getInitials(standing.registration)}
                         </span>
                       </div>

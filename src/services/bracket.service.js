@@ -1,6 +1,7 @@
 const prisma = require('../lib/prisma');
 const { parseScore } = require('../utils/scoreParser');
 const glickoService = require('./glicko.service');
+const achievementService = require('./achievement.service');
 
 class BracketService {
   // ─────────────────────────────────────────────────────────────────
@@ -717,6 +718,39 @@ class BracketService {
           data: { status: 'COMPLETED' }
         });
 
+        // ✅ CREATE ACHIEVEMENTS FOR ROUND ROBIN (not hybrid)
+        const eventCheck = await tx.event.findUnique({
+          where: { id: match.eventId },
+          select: { bracketFormat: true }
+        });
+
+        if (eventCheck && eventCheck.bracketFormat === 'ROUND_ROBIN') {
+          // Get top 3 from standings
+          const standings = await tx.groupStanding.findMany({
+            where: { groupId: match.groupId },
+            include: { registration: { select: { userId: true } } },
+            orderBy: [
+              { points: 'desc' },
+              { wins: 'desc' },
+              { gamesWon: 'desc' }
+            ],
+            take: 3
+          });
+
+          const placements = standings.map((standing, idx) => ({
+            userId: standing.registration.userId,
+            position: idx + 1 // 1st, 2nd, 3rd
+          }));
+
+          if (placements.length > 0) {
+            // Create achievements outside transaction (non-blocking)
+            setImmediate(() => {
+              achievementService.createAchievements(match.eventId, placements)
+                .catch(err => console.error('⚠️ Achievement creation failed:', err.message));
+            });
+          }
+        }
+
         // Check if ALL groups are now completed → advance qualifiers to knockout!
         const event = await tx.event.findUnique({
           where: { id: match.eventId },
@@ -751,6 +785,8 @@ class BracketService {
         } else {
           const isDoubles = match.event.format === 'DOUBLES' || match.event.format === 'MIXED_DOUBLES';
           const matchType = isDoubles ? 'doubles' : 'singles';
+          // Map to DB category: singles, doubles, mixedDoubles
+          const category = match.event.format === 'MIXED_DOUBLES' ? 'MIXED_DOUBLES' : (matchType === 'doubles' ? 'DOUBLES' : 'SINGLES');
 
           const loserRegId = actualWinnerId === match.participant1Id ? match.participant2Id : match.participant1Id;
 
@@ -770,6 +806,7 @@ class BracketService {
             eventId: match.eventId,
             sportId: match.event.sportId,
             matchType,
+            category,  // singles, doubles, or mixedDoubles for DB storage
             winner: {
               userId: winnerUserId,
               partnerId: winnerPartnerId
@@ -1210,6 +1247,8 @@ class BracketService {
 
       const isDoubles = match.event.format === 'DOUBLES' || match.event.format === 'MIXED_DOUBLES';
       const matchType = isDoubles ? 'doubles' : 'singles';
+      // Map to DB category: SINGLES, DOUBLES, MIXED_DOUBLES (uppercase)
+      const category = match.event.format === 'MIXED_DOUBLES' ? 'MIXED_DOUBLES' : (matchType === 'doubles' ? 'DOUBLES' : 'SINGLES');
 
       const loserRegId = winnerId === match.participant1Id ? match.participant2Id : match.participant1Id;
 
@@ -1229,6 +1268,7 @@ class BracketService {
         eventId: match.eventId,
         sportId: match.event.sportId,
         matchType,
+        category,  // singles, doubles, or mixedDoubles for DB storage
         winner: {
           userId: winnerUserId,
           partnerId: winnerPartnerId
@@ -1247,6 +1287,13 @@ class BracketService {
       console.error('⚠️ Error updating ratings (non-blocking):', err.message);
       console.error('⚠️ Full error:', err);
       // Don't throw - rating update failure shouldn't block match result
+    }
+
+    // ✅ CREATE ACHIEVEMENTS FOR FINAL MATCHES
+    try {
+      await this.checkAndCreateAchievements(matchId, match, winnerId);
+    } catch (err) {
+      console.error('⚠️ Error creating achievements (non-blocking):', err.message);
     }
 
     return await prisma.match.findUnique({
@@ -1304,6 +1351,45 @@ class BracketService {
       )
     );
     return { updated: seeds.length };
+  }
+
+  /**
+   * Check if this match completion should create achievements
+   * and create them for gold/silver/bronze winners
+   */
+  async checkAndCreateAchievements(matchId, match, winnerId) {
+    const isFinal = match.roundNumber === match.event.totalRounds && !match.nextMatchId;
+    const isBronze = match.event.hasBronzeMatch && match.bracketPosition?.includes('bronze');
+
+    if (!isFinal && !isBronze) {
+      return; // Not a medal match
+    }
+
+    const placements = [];
+
+    if (isFinal) {
+      // Gold: winner, Silver: loser
+      const loserId = winnerId === match.participant1Id ? match.participant2Id : match.participant1Id;
+      const winnerReg = await prisma.registration.findUnique({ where: { id: winnerId }, select: { userId: true } });
+      const loserReg = await prisma.registration.findUnique({ where: { id: loserId }, select: { userId: true } });
+
+      if (winnerReg && loserReg) {
+        placements.push({ userId: winnerReg.userId, position: 1 }); // Gold
+        placements.push({ userId: loserReg.userId, position: 2 }); // Silver
+      }
+    }
+
+    if (isBronze) {
+      // Bronze: winner of bronze match
+      const winnerReg = await prisma.registration.findUnique({ where: { id: winnerId }, select: { userId: true } });
+      if (winnerReg) {
+        placements.push({ userId: winnerReg.userId, position: 3 }); // Bronze
+      }
+    }
+
+    if (placements.length > 0) {
+      await achievementService.createAchievements(match.eventId, placements);
+    }
   }
 }
 

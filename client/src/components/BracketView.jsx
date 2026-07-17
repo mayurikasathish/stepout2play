@@ -8,6 +8,7 @@ import Toast from './Toast'
 import TennisScoreModal from './TennisScoreModal'
 import UniversalScoreModal from './UniversalScoreModal'
 import ScorecardUploadModal from './ScorecardUploadModal'
+import MatchScheduler from './MatchScheduler'
 import { validateGameScore, getSportValidationHelp, getExampleScores } from '../utils/scoreValidator'
 
 const BracketView = ({ eventId, eventName, eventFormat, registrationCount, isOrganizer, tournament }) => {
@@ -26,6 +27,7 @@ const BracketView = ({ eventId, eventName, eventFormat, registrationCount, isOrg
   const [pendingMatchToEdit, setPendingMatchToEdit] = useState(null)
   const [publishing, setPublishing] = useState(false)
   const [showPublishConfirm, setShowPublishConfirm] = useState(false)
+  const [showScheduler, setShowScheduler] = useState(false)
 
   // Debug logging
   useEffect(() => {
@@ -42,6 +44,13 @@ const BracketView = ({ eventId, eventName, eventFormat, registrationCount, isOrg
       setError('')
       const response = await api.get(`/events/${eventId}/bracket`)
       if (response.data.success) {
+        console.log('🎯 Bracket loaded:', {
+          format: response.data.event?.bracketFormat,
+          hasGroups: !!response.data.groups,
+          groupCount: response.data.groups?.length || 0,
+          hasMatches: !!response.data.matches,
+          matchCount: response.data.matches?.length || 0
+        })
         setBracket(response.data)
       }
     } catch (err) {
@@ -272,6 +281,12 @@ const BracketView = ({ eventId, eventName, eventFormat, registrationCount, isOrg
                 <p className="text-sm text-gray-500 mt-1">Delete it to start fresh.</p>
               </div>
               <div className="flex gap-3">
+                <button
+                  onClick={() => setShowScheduler(true)}
+                  className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:shadow-lg text-white font-medium rounded-lg transition-all"
+                >
+                  📅 Schedule Matches
+                </button>
                 <button
                   onClick={() => window.open(`/events/${eventId}/scorecards`, '_blank')}
                   className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-all"
@@ -2021,6 +2036,29 @@ const MatchResultModal = ({ match, event, isRoundRobin, onClose, onSubmit }) => 
             >
               {statusActionLoading ? 'Cancelling...' : 'Yes, Cancel Match'}
             </button>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* Match Scheduler Modal */}
+    {showScheduler && (
+      <div className="fixed inset-0 z-[9999] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowScheduler(false)} />
+        <div className="relative min-h-screen flex items-center justify-center p-4">
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b p-4 flex items-center justify-between z-10">
+              <h2 className="text-2xl font-bold">Schedule Matches - {eventName}</h2>
+              <button
+                onClick={() => setShowScheduler(false)}
+                className="text-gray-400 hover:text-gray-600 text-2xl font-bold"
+              >
+                ×
+              </button>
+            </div>
+            <div className="p-6">
+              <MatchScheduler eventId={eventId} tournament={tournament} />
+            </div>
           </div>
         </div>
       </div>

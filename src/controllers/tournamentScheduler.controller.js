@@ -134,6 +134,25 @@ class TournamentSchedulerController {
       const allMatches = [];
       for (const event of tournament.events) {
         for (const match of event.matches) {
+          const duration = match.duration || tournament.matchDuration || 45;
+
+          // Derive date/startTime/endTime/court from scheduledAt so this endpoint
+          // returns the same shape as a freshly-generated (not-yet-saved) schedule.
+          // Without this, matches loaded on page refresh don't match what
+          // SchedulerCalendar and other components expect (item.date, item.startTime,
+          // item.endTime, item.court), and previously-scheduled matches silently
+          // disappear from the calendar until a new schedule is generated.
+          let date = null, startTime = null, endTime = null;
+          if (match.scheduledAt) {
+            const scheduledDate = new Date(match.scheduledAt);
+            date = scheduledDate;
+            const hh = String(scheduledDate.getUTCHours()).padStart(2, '0');
+            const mm = String(scheduledDate.getUTCMinutes()).padStart(2, '0');
+            startTime = `${hh}:${mm}`;
+            const endMinutes = scheduledDate.getUTCHours() * 60 + scheduledDate.getUTCMinutes() + duration;
+            endTime = `${String(Math.floor(endMinutes / 60)).padStart(2, '0')}:${String(endMinutes % 60).padStart(2, '0')}`;
+          }
+
           allMatches.push({
             matchId: match.id,
             eventId: event.id,
@@ -142,8 +161,13 @@ class TournamentSchedulerController {
             matchNumber: match.matchNumber,
             roundNumber: match.roundNumber,
             scheduledAt: match.scheduledAt,
+            date,
+            startTime,
+            endTime,
             courtNumber: match.courtNumber,
-            duration: match.duration || tournament.matchDuration || 45,
+            court: match.courtName,
+            courtName: match.courtName,
+            duration,
             participant1Id: match.participant1Id,
             participant2Id: match.participant2Id,
             participant1: match.participant1,
@@ -166,7 +190,7 @@ class TournamentSchedulerController {
           formattedSchedule = this._formatEventView(allMatches, tournament.events);
           break;
         case 'court':
-          formattedSchedule = this._formatCourtView(allMatches, tournament.courtsAvailable);
+          formattedSchedule = this._formatCourtView(allMatches, this._getTotalCourts(tournament));
           break;
         case 'player':
           formattedSchedule = this._formatPlayerView(allMatches);
@@ -328,6 +352,13 @@ class TournamentSchedulerController {
     }
 
     return Object.values(players);
+  }
+
+  _getTotalCourts(tournament) {
+    if (tournament.courtsBySport) {
+      return Object.values(tournament.courtsBySport).reduce((sum, courts) => sum + courts.length, 0);
+    }
+    return tournament.courtsAvailable || 0;
   }
 
   _getWeekStart(date) {

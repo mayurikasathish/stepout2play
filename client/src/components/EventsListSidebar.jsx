@@ -1,4 +1,4 @@
-const EventsListSidebar = ({ events, schedule, selectedEvent, onEventSelect }) => {
+const EventsListSidebar = ({ events, schedule, selectedEvent, onEventSelect, onGenerateKnockout }) => {
 
   const eventColors = {
     0: '#3b82f6', // Blue
@@ -139,16 +139,60 @@ const EventsListSidebar = ({ events, schedule, selectedEvent, onEventSelect }) =
           align-items: center;
           justify-content: space-between;
           font-family: 'Barlow', sans-serif;
-          font-size: 0.8rem;
+          font-size: 0.9rem;
         }
 
         .stat-label {
-          color: rgba(255, 255, 255, 0.6);
+          color: rgba(255, 255, 255, 0.7);
+          font-weight: 500;
         }
 
         .stat-value {
           font-weight: 600;
-          color: rgba(255, 255, 255, 0.9);
+          color: rgba(255, 255, 255, 0.95);
+          font-size: 0.95rem;
+        }
+
+        .knockout-btn {
+          width: 100%;
+          margin-top: 0.75rem;
+          padding: 0.6rem 1rem;
+          background: linear-gradient(135deg, #3b82f6, #2563eb);
+          color: white;
+          border: none;
+          border-radius: 8px;
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 700;
+          font-size: 0.9rem;
+          text-transform: uppercase;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+        }
+
+        .knockout-btn:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(59, 130, 246, 0.5);
+        }
+
+        .knockout-btn:active {
+          transform: translateY(0);
+        }
+
+        .knockout-btn:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        .knockout-helper {
+          margin-top: 0.5rem;
+          font-size: 0.75rem;
+          color: rgba(255, 255, 255, 0.5);
+          font-family: 'Barlow', sans-serif;
+          font-style: italic;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
         }
 
         .progress-bar {
@@ -251,14 +295,14 @@ const EventsListSidebar = ({ events, schedule, selectedEvent, onEventSelect }) =
                 <div className="event-details">
                   <div className="event-stat">
                     <span className="stat-label">Players:</span>
-                    <span className="stat-value" style={{ fontSize: '0.875rem' }}>
+                    <span className="stat-value">
                       {event.participantCount || 0} / {event.maxParticipants || '∞'}
                     </span>
                   </div>
 
                   <div className="event-stat">
                     <span className="stat-label">Matches:</span>
-                    <span className="stat-value" style={{ fontSize: '0.875rem' }}>
+                    <span className="stat-value">
                       {scheduleInfo.scheduled} / {scheduleInfo.total} scheduled
                     </span>
                   </div>
@@ -280,6 +324,15 @@ const EventsListSidebar = ({ events, schedule, selectedEvent, onEventSelect }) =
                       {scheduleInfo.status === 'complete' && '✓ Complete'}
                     </span>
                   </div>
+
+                  {/* Show phase status for LEAGUE_CUM_KNOCKOUT events */}
+                  {event.bracketFormat === 'LEAGUE_CUM_KNOCKOUT' && (
+                    <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: 'rgba(255, 255, 255, 0.6)' }}>
+                      {!event.leaguePhaseScheduled && '📋 League phase pending'}
+                      {event.leaguePhaseScheduled && !event.knockoutPhaseScheduled && '✅ League done • Knockout pending'}
+                      {event.leaguePhaseScheduled && event.knockoutPhaseScheduled && '✅ All phases complete'}
+                    </div>
+                  )}
                 </div>
               </div>
             )

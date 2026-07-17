@@ -177,12 +177,13 @@ class GlickoService {
    * @param {Object} newRatings - { newRating, newRd, newVolatility }
    * @returns {Promise<PlayerRating>}
    */
-  async updatePlayerRating(userId, sportId, { newRating, newRd, newVolatility }) {
+  async updatePlayerRating(userId, sportId, category, { newRating, newRd, newVolatility }) {
     const updated = await prisma.playerRating.update({
       where: {
-        userId_sportId: {
+        userId_sportId_category: {
           userId,
-          sportId
+          sportId,
+          category
         }
       },
       data: {
@@ -194,7 +195,7 @@ class GlickoService {
       }
     });
 
-    console.log(`✅ Updated rating for user ${userId} in ${sportId}: ${Math.round(newRating)} (±${Math.round(newRd)})`);
+    console.log(`✅ Updated rating for user ${userId} in ${sportId} (${category}): ${Math.round(newRating)} (±${Math.round(newRd)})`);
 
     return updated;
   }
@@ -202,12 +203,13 @@ class GlickoService {
   /**
    * Save rating change to database
    */
-  async saveRatingChange(matchId, userId, sportId, ratingData) {
+  async saveRatingChange(matchId, userId, sportId, category, ratingData) {
     await prisma.matchRatingChange.create({
       data: {
         matchId,
         userId,
         sportId,
+        category,
         oldRating: ratingData.oldRating,
         newRating: ratingData.newRating,
         ratingChange: ratingData.ratingChange,
@@ -231,17 +233,18 @@ class GlickoService {
       eventId,
       sportId,
       matchType, // 'singles' or 'doubles'
+      category,  // 'singles', 'doubles', or 'mixedDoubles' for DB storage
       winner,    // { userId, partnerId? }
       loser,     // { userId, partnerId? }
       score      // For future: weight matches by score difference
     } = matchData;
 
-    console.log(`🎾 Processing ${matchType} match result for event ${eventId}`);
+    console.log(`🎾 Processing ${matchType} match result for event ${eventId} (category: ${category})`);
 
     if (matchType === 'singles') {
       // Singles match: 1v1
-      const winnerRating = await this.getOrCreateRating(winner.userId, sportId);
-      const loserRating = await this.getOrCreateRating(loser.userId, sportId);
+      const winnerRating = await this.getOrCreateRating(winner.userId, sportId, category);
+      const loserRating = await this.getOrCreateRating(loser.userId, sportId, category);
 
       const result = await this.calculateMatchRatings(
         { ...winnerRating, userId: winner.userId, isWinner: true },
@@ -250,21 +253,21 @@ class GlickoService {
       );
 
       // Update both players in database
-      await this.updatePlayerRating(winner.userId, sportId, {
+      await this.updatePlayerRating(winner.userId, sportId, category, {
         newRating: result.player1.newRating,
         newRd: result.player1.newRd,
         newVolatility: result.player1.newVolatility
       });
 
-      await this.updatePlayerRating(loser.userId, sportId, {
+      await this.updatePlayerRating(loser.userId, sportId, category, {
         newRating: result.player2.newRating,
         newRd: result.player2.newRd,
         newVolatility: result.player2.newVolatility
       });
 
       // Save rating changes
-      await this.saveRatingChange(matchId, winner.userId, sportId, result.player1);
-      await this.saveRatingChange(matchId, loser.userId, sportId, result.player2);
+      await this.saveRatingChange(matchId, winner.userId, sportId, category, result.player1);
+      await this.saveRatingChange(matchId, loser.userId, sportId, category, result.player2);
 
       return {
         matchType: 'singles',
@@ -274,10 +277,10 @@ class GlickoService {
 
     } else if (matchType === 'doubles') {
       // Doubles match: 2v2
-      const team1Player1Rating = await this.getOrCreateRating(winner.userId, sportId);
-      const team1Player2Rating = await this.getOrCreateRating(winner.partnerId, sportId);
-      const team2Player1Rating = await this.getOrCreateRating(loser.userId, sportId);
-      const team2Player2Rating = await this.getOrCreateRating(loser.partnerId, sportId);
+      const team1Player1Rating = await this.getOrCreateRating(winner.userId, sportId, category);
+      const team1Player2Rating = await this.getOrCreateRating(winner.partnerId, sportId, category);
+      const team2Player1Rating = await this.getOrCreateRating(loser.userId, sportId, category);
+      const team2Player2Rating = await this.getOrCreateRating(loser.partnerId, sportId, category);
 
       const result = await this.calculateDoublesRatings(
         {
@@ -294,35 +297,35 @@ class GlickoService {
       );
 
       // Update all 4 players in database
-      await this.updatePlayerRating(winner.userId, sportId, {
+      await this.updatePlayerRating(winner.userId, sportId, category, {
         newRating: result.team1.player1.newRating,
         newRd: result.team1.player1.newRd,
         newVolatility: result.team1.player1.newVolatility
       });
 
-      await this.updatePlayerRating(winner.partnerId, sportId, {
+      await this.updatePlayerRating(winner.partnerId, sportId, category, {
         newRating: result.team1.player2.newRating,
         newRd: result.team1.player2.newRd,
         newVolatility: result.team1.player2.newVolatility
       });
 
-      await this.updatePlayerRating(loser.userId, sportId, {
+      await this.updatePlayerRating(loser.userId, sportId, category, {
         newRating: result.team2.player1.newRating,
         newRd: result.team2.player1.newRd,
         newVolatility: result.team2.player1.newVolatility
       });
 
-      await this.updatePlayerRating(loser.partnerId, sportId, {
+      await this.updatePlayerRating(loser.partnerId, sportId, category, {
         newRating: result.team2.player2.newRating,
         newRd: result.team2.player2.newRd,
         newVolatility: result.team2.player2.newVolatility
       });
 
       // Save rating changes for all 4 players
-      await this.saveRatingChange(matchId, winner.userId, sportId, result.team1.player1);
-      await this.saveRatingChange(matchId, winner.partnerId, sportId, result.team1.player2);
-      await this.saveRatingChange(matchId, loser.userId, sportId, result.team2.player1);
-      await this.saveRatingChange(matchId, loser.partnerId, sportId, result.team2.player2);
+      await this.saveRatingChange(matchId, winner.userId, sportId, category, result.team1.player1);
+      await this.saveRatingChange(matchId, winner.partnerId, sportId, category, result.team1.player2);
+      await this.saveRatingChange(matchId, loser.userId, sportId, category, result.team2.player1);
+      await this.saveRatingChange(matchId, loser.partnerId, sportId, category, result.team2.player2);
 
       return {
         matchType: 'doubles',
@@ -337,10 +340,10 @@ class GlickoService {
   /**
    * Get or create player rating (helper method)
    */
-  async getOrCreateRating(userId, sportId) {
+  async getOrCreateRating(userId, sportId, category) {
     let rating = await prisma.playerRating.findUnique({
       where: {
-        userId_sportId: { userId, sportId }
+        userId_sportId_category: { userId, sportId, category }
       }
     });
 
@@ -349,6 +352,7 @@ class GlickoService {
         data: {
           userId,
           sportId,
+          category,
           rating: 1200.0,
           rd: 350.0,
           volatility: 0.06,

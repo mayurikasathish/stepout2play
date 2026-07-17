@@ -5,6 +5,8 @@ import api from '../services/api'
 import SchedulerCalendar from '../components/SchedulerCalendar'
 import ScheduleGenerationModal from '../components/ScheduleGenerationModal'
 import ConflictPanel from '../components/ConflictPanel'
+import ConfirmationModal from '../components/ConfirmationModal'
+import EventsListSidebar from '../components/EventsListSidebar'
 
 const TournamentSchedulerPage = () => {
   const { tournamentId } = useParams()
@@ -23,6 +25,12 @@ const TournamentSchedulerPage = () => {
   const [showGenerationModal, setShowGenerationModal] = useState(false)
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [showConflictPanel, setShowConflictPanel] = useState(true)
+
+  // Confirmation modals state
+  const [showSaveConfirm, setShowSaveConfirm] = useState(false)
+  const [showClearConfirm, setShowClearConfirm] = useState(false)
+  const [pendingGeneration, setPendingGeneration] = useState(null)
+  const [selectedEvent, setSelectedEvent] = useState(null)
 
   useEffect(() => {
     loadTournamentData()
@@ -55,13 +63,20 @@ const TournamentSchedulerPage = () => {
   }
 
   const handleGenerateSchedule = async (settings) => {
+    // Store settings and show confirmation
+    setPendingGeneration(settings)
+    setShowGenerationModal(false)
+  }
+
+  const confirmGeneration = async () => {
+    if (!pendingGeneration) return
+
     try {
       setGenerating(true)
-      setShowGenerationModal(false)
 
-      console.log('Generating schedule with settings:', settings)
+      console.log('Generating schedule with settings:', pendingGeneration)
 
-      const response = await api.post(`/tournaments/${tournamentId}/generate-schedule`, settings)
+      const response = await api.post(`/tournaments/${tournamentId}/generate-schedule`, pendingGeneration)
 
       if (response.data.success) {
         setSchedule(response.data.schedule || [])
@@ -82,22 +97,20 @@ const TournamentSchedulerPage = () => {
       alert(err.response?.data?.error || 'Failed to generate schedule')
     } finally {
       setGenerating(false)
+      setPendingGeneration(null)
     }
   }
 
   const handleSaveSchedule = async (phase = null) => {
-    if (conflicts.length > 0) {
-      const confirm = window.confirm(
-        `⚠️ There are ${conflicts.length} conflicts in the schedule. Save anyway?`
-      )
-      if (!confirm) return
-    }
+    setShowSaveConfirm(true)
+  }
 
+  const confirmSave = async () => {
     try {
       const response = await api.post(`/tournaments/${tournamentId}/save-schedule`, {
         schedule,
         config, // Pass config to save courtsBySport to tournament
-        phase // Pass phase to mark as scheduled
+        phase: null // Pass phase to mark as scheduled
       })
 
       if (response.data.success) {
@@ -112,11 +125,10 @@ const TournamentSchedulerPage = () => {
   }
 
   const handleClearSchedule = async () => {
-    const confirm = window.confirm(
-      '⚠️ This will clear ALL scheduling data for this tournament. Are you sure?'
-    )
-    if (!confirm) return
+    setShowClearConfirm(true)
+  }
 
+  const confirmClear = async () => {
     try {
       const response = await api.delete(`/tournaments/${tournamentId}/schedule`)
       if (response.data.success) {
@@ -124,10 +136,43 @@ const TournamentSchedulerPage = () => {
         setSchedule([])
         setConflicts([])
         setAnalytics(null)
+        loadTournamentData() // Reload to reset phase flags
       }
     } catch (err) {
       console.error('Error clearing schedule:', err)
       alert('Failed to clear schedule')
+    }
+  }
+
+  const handleGeneratePhase = async (phase) => {
+    // This schedules ALL events for the given phase
+    try {
+      setGenerating(true)
+
+      const response = await api.post(`/tournaments/${tournamentId}/generate-schedule`, {
+        phase: phase
+      })
+
+      if (response.data.success) {
+        if (phase === 'league') {
+          setSchedule(response.data.schedule || [])
+        } else {
+          setSchedule(prev => [...prev, ...(response.data.schedule || [])])
+        }
+        setConflicts(response.data.conflicts || [])
+        setAnalytics(response.data.analytics || null)
+        setConfig(response.data.config || config)
+
+        const phaseName = phase === 'league' ? 'League' : 'Knockout'
+        alert(`✅ ${phaseName} schedule generated successfully for all events!`)
+        loadTournamentData()
+        loadSchedule()
+      }
+    } catch (err) {
+      console.error(`Error generating ${phase} schedule:`, err)
+      alert(err.response?.data?.error || `Failed to generate ${phase} schedule`)
+    } finally {
+      setGenerating(false)
     }
   }
 
@@ -155,16 +200,18 @@ const TournamentSchedulerPage = () => {
     try {
       setGenerating(true)
 
-      // Re-generate with autoFix enabled
+      // Re-generate with autoFix enabled using existing config
       const response = await api.post(`/tournaments/${tournamentId}/generate-schedule`, {
+        ...config, // Use existing configuration
         autoFix: true,
-        strategy: 'hybrid' // Use last strategy or default
+        strategy: 'hybrid'
       })
 
       if (response.data.success) {
         setSchedule(response.data.schedule || [])
         setConflicts(response.data.conflicts || [])
         setAnalytics(response.data.analytics || null)
+        setConfig(response.data.config || config)
 
         if (response.data.conflicts.length === 0) {
           alert('✅ All conflicts fixed!')
@@ -248,7 +295,7 @@ const TournamentSchedulerPage = () => {
         .scheduler-page {
           min-height: 100vh;
           background: linear-gradient(180deg, #060d1f 0%, #0a1628 50%, #071a2e 100%);
-          padding-top: 80px;
+          padding-top: 70px;
           font-family: 'Barlow Condensed', sans-serif;
         }
 
@@ -256,8 +303,8 @@ const TournamentSchedulerPage = () => {
           background: rgba(6, 13, 31, 0.8);
           backdrop-filter: blur(20px);
           border-bottom: 1px solid rgba(79, 255, 176, 0.2);
-          padding: 1.5rem 2rem;
-          margin-bottom: 1.5rem;
+          padding: 1rem 1.5rem;
+          margin-bottom: 0.5rem;
         }
 
         .header-content {
@@ -383,13 +430,13 @@ const TournamentSchedulerPage = () => {
         }
 
         .scheduler-layout {
-          max-width: 1600px;
+          max-width: 100%;
           margin: 0 auto;
-          padding: 0 2rem 2rem 2rem;
-          display: grid;
-          grid-template-columns: 280px 1fr 320px;
-          gap: 1.5rem;
-          align-items: start;
+          padding: 0 1rem 0.5rem 1rem;
+          display: flex;
+          gap: 1rem;
+          align-items: stretch;
+          height: calc(100vh - 200px);
         }
 
 
@@ -491,13 +538,41 @@ const TournamentSchedulerPage = () => {
               )}
 
               <div className="header-actions">
-                <button
-                  className="btn btn-primary"
-                  onClick={() => setShowGenerationModal(true)}
-                  disabled={generating}
-                >
-                  ⚡ Generate Schedule
-                </button>
+                {/* Check if we have league-cum-knockout events */}
+                {tournament.events?.some(e => e.bracketFormat === 'LEAGUE_CUM_KNOCKOUT') ? (
+                  <>
+                    {/* Show league button if not all leagues are scheduled */}
+                    {tournament.events?.some(e => e.bracketFormat === 'LEAGUE_CUM_KNOCKOUT' && !e.leaguePhaseScheduled) && (
+                      <button
+                        className="btn btn-primary"
+                        onClick={() => setShowGenerationModal(true)}
+                        disabled={generating}
+                        style={{ background: 'linear-gradient(135deg, #22c55e, #16a34a)' }}
+                      >
+                        📅 Generate League Schedule
+                      </button>
+                    )}
+
+                    {/* Show knockout button if leagues are done but knockouts aren't */}
+                    {tournament.events?.some(e => e.bracketFormat === 'LEAGUE_CUM_KNOCKOUT' && e.leaguePhaseScheduled && !e.knockoutPhaseScheduled) && (
+                      <button
+                        className="btn btn-primary"
+                        onClick={() => handleGeneratePhase('knockout')}
+                        disabled={generating}
+                      >
+                        ⚡ Generate Knockout Schedule
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  <button
+                    className="btn btn-primary"
+                    onClick={() => setShowGenerationModal(true)}
+                    disabled={generating}
+                  >
+                    ⚡ Generate Schedule
+                  </button>
+                )}
 
                 {hasSchedule && (
                   <>
@@ -523,20 +598,49 @@ const TournamentSchedulerPage = () => {
           </div>
         </div>
 
-        {/* Main Layout - Simplified: Calendar + Conflicts Only */}
-        {hasSchedule ? (
+        {/* Main Layout - Events List + Calendar + Conflicts */}
+        {hasSchedule || tournament.events.length > 0 ? (
           <div className="scheduler-layout">
-            {/* Center - Day Calendar */}
-            <div style={{ flex: 1 }}>
-              <SchedulerCalendar
+            {/* Left Sidebar - Events List */}
+            <div style={{ width: '300px', flexShrink: 0 }}>
+              <EventsListSidebar
+                events={tournament.events || []}
                 schedule={schedule}
-                tournament={tournament}
-                selectedDate={selectedDate}
-                onDateChange={setSelectedDate}
-                onMatchMove={handleMatchMove}
-                conflicts={conflicts}
+                selectedEvent={selectedEvent}
+                onEventSelect={setSelectedEvent}
+                onGenerateKnockout={handleGenerateKnockout}
               />
             </div>
+
+            {/* Center - Day Calendar */}
+            {hasSchedule ? (
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <SchedulerCalendar
+                  schedule={schedule}
+                  tournament={tournament}
+                  selectedDate={selectedDate}
+                  onDateChange={setSelectedDate}
+                  onMatchMove={handleMatchMove}
+                  conflicts={conflicts}
+                />
+              </div>
+            ) : (
+              <div className="empty-state" style={{ flex: 1 }}>
+                <div className="empty-state-icon">📅</div>
+                <h2>No Schedule Generated Yet</h2>
+                <p>
+                  Click "Generate Schedule" above to create an intelligent<br/>
+                  cross-event schedule for all tournament events.
+                </p>
+                <button
+                  className="btn btn-primary"
+                  onClick={() => setShowGenerationModal(true)}
+                  style={{ fontSize: '1.1rem', padding: '1rem 2rem' }}
+                >
+                  ⚡ Generate Schedule Now
+                </button>
+              </div>
+            )}
 
             {/* Right Sidebar - Conflicts Panel */}
             {showConflictPanel && conflicts.length > 0 && (
@@ -575,6 +679,40 @@ const TournamentSchedulerPage = () => {
             onClose={() => setShowGenerationModal(false)}
           />
         )}
+
+        {/* Confirmation Modals */}
+        <ConfirmationModal
+          isOpen={!!pendingGeneration}
+          onClose={() => setPendingGeneration(null)}
+          onConfirm={confirmGeneration}
+          title="Generate Schedule?"
+          message={`This will schedule matches across ${tournament?.events?.length || 0} events. League matches will be scheduled first, followed by knockout rounds.`}
+          confirmText="Generate"
+          cancelText="Cancel"
+          type="info"
+        />
+
+        <ConfirmationModal
+          isOpen={showSaveConfirm}
+          onClose={() => setShowSaveConfirm(false)}
+          onConfirm={confirmSave}
+          title="Save Schedule?"
+          message="This will save all scheduled match times and courts to the database. Players will be notified of their match schedules."
+          confirmText="Save"
+          cancelText="Cancel"
+          type="success"
+        />
+
+        <ConfirmationModal
+          isOpen={showClearConfirm}
+          onClose={() => setShowClearConfirm(false)}
+          onConfirm={confirmClear}
+          title="Clear Entire Schedule?"
+          message="⚠️ This will remove ALL scheduled times and courts for this tournament. This action cannot be undone."
+          confirmText="Clear"
+          cancelText="Cancel"
+          type="danger"
+        />
 
         {/* Generating Overlay */}
         {generating && (

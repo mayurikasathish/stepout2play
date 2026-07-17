@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import React, { useState, useMemo } from 'react'
 
 const SchedulerCalendar = ({
   schedule,
@@ -55,15 +55,6 @@ const SchedulerCalendar = ({
       return itemDate.toDateString() === selectedDate.toDateString()
     })
 
-    if (daySchedule.length === 0) {
-      return (
-        <div className="empty-day">
-          <div className="empty-icon">📭</div>
-          <div>No matches scheduled for {selectedDate.toLocaleDateString()}</div>
-        </div>
-      )
-    }
-
     // Get unique time slots
     const timeSlots = []
     const startHour = 9
@@ -76,11 +67,32 @@ const SchedulerCalendar = ({
       }
     }
 
-    const courts = tournament.courtsAvailable || 4
+    // Get courts from courtsBySport or fall back to courtsAvailable
+    let courtsList = []
+    if (tournament.courtsBySport && Object.keys(tournament.courtsBySport).length > 0) {
+      // Multi-sport: flatten all courts with their custom names
+      Object.entries(tournament.courtsBySport).forEach(([sportId, courts]) => {
+        courts.forEach((courtName, idx) => {
+          courtsList.push({
+            number: courtsList.length + 1,
+            name: courtName,
+            sportId
+          })
+        })
+      })
+    } else {
+      // Legacy: use numbered courts
+      const courtCount = tournament.courtsAvailable || 4
+      courtsList = Array.from({ length: courtCount }, (_, idx) => ({
+        number: idx + 1,
+        name: `Court ${idx + 1}`,
+        sportId: null
+      }))
+    }
 
     return (
       <div className="calendar-container">
-        {/* Date Navigation */}
+        {/* Date Navigation - ALWAYS SHOW */}
         <div className="date-navigator">
           <button onClick={() => changeDate(-1)} className="nav-btn">
             ← Prev Day
@@ -98,49 +110,58 @@ const SchedulerCalendar = ({
           </button>
         </div>
 
-        {/* Calendar Grid */}
-        <div className="calendar-grid">
-          {/* Header Row */}
-          <div className="grid-header">
-            <div className="time-column-header">Time</div>
-            {[...Array(courts)].map((_, idx) => (
-              <div key={idx} className="court-header">
-                Court {idx + 1}
-              </div>
-            ))}
+        {/* Calendar Grid OR Empty Message */}
+        {daySchedule.length === 0 ? (
+          <div className="empty-day">
+            <div className="empty-icon">📭</div>
+            <div>No matches scheduled for {selectedDate.toLocaleDateString()}</div>
           </div>
-
-          {/* Time Rows */}
-          <div className="grid-body">
-            {timeSlots.map(time => (
-              <div key={time} className="time-row">
-                <div className="time-label">{time}</div>
-                {[...Array(courts)].map((_, courtIdx) => {
-                  const courtNum = courtIdx + 1
-
-                  // Find match at this time/court
-                  const match = daySchedule.find(item =>
-                    item.startTime === time && item.courtNumber === courtNum
-                  )
-
-                  return (
-                    <div
-                      key={courtIdx}
-                      className={`time-slot ${hoveredSlot?.time === time && hoveredSlot?.court === courtNum ? 'hovered' : ''}`}
-                      onDragOver={(e) => {
-                        e.preventDefault()
-                        setHoveredSlot({ time, court: courtNum })
-                      }}
-                      onDrop={(e) => handleDrop(e, time, courtNum)}
-                    >
-                      {match && renderMatchBlock(match, time, courtNum)}
-                    </div>
-                  )
-                })}
+        ) : (
+          <div className="calendar-grid-wrapper">
+            <div className="calendar-grid" style={{
+              gridTemplateColumns: `80px repeat(${courtsList.length}, minmax(180px, 1fr))`
+            }}>
+              {/* Header Row - All courts in ONE row */}
+              <div className="grid-header-sticky" style={{
+                display: 'contents'
+              }}>
+                <div className="time-column-header">Time</div>
+                {courtsList.map((court, idx) => (
+                  <div key={idx} className="court-header" title={court.sportId || ''}>
+                    {court.name}
+                  </div>
+                ))}
               </div>
-            ))}
+
+              {/* Time Rows */}
+              {timeSlots.map(time => (
+                <React.Fragment key={time}>
+                  <div className="time-label">{time}</div>
+                  {courtsList.map((court, courtIdx) => {
+                    // Find match at this time/court
+                    const match = daySchedule.find(item =>
+                      item.startTime === time && item.courtNumber === court.number
+                    )
+
+                    return (
+                      <div
+                        key={courtIdx}
+                        className={`time-slot ${hoveredSlot?.time === time && hoveredSlot?.court === court.number ? 'hovered' : ''}`}
+                        onDragOver={(e) => {
+                          e.preventDefault()
+                          setHoveredSlot({ time, court: court.number })
+                        }}
+                        onDrop={(e) => handleDrop(e, time, court.number)}
+                      >
+                        {match && renderMatchBlock(match, time, court.number)}
+                      </div>
+                    )
+                  })}
+                </React.Fragment>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     )
   }
@@ -267,21 +288,28 @@ const SchedulerCalendar = ({
           text-transform: uppercase;
         }
 
-        .calendar-grid {
+        .calendar-grid-wrapper {
           overflow-x: auto;
+          overflow-y: auto;
+          max-height: calc(100vh - 300px);
         }
 
-        .grid-header {
+        .calendar-grid {
           display: grid;
-          grid-template-columns: 80px repeat(auto-fit, minmax(150px, 1fr));
           gap: 1px;
           background: rgba(255, 255, 255, 0.05);
-          border-radius: 8px 8px 0 0;
-          overflow: hidden;
+          min-width: min-content;
+        }
+
+        .grid-header-sticky {
+          position: sticky;
+          top: 0;
+          z-index: 10;
         }
 
         .time-column-header, .court-header {
-          background: rgba(6, 13, 31, 0.8);
+          background: rgba(6, 13, 31, 0.95);
+          backdrop-filter: blur(10px);
           padding: 0.75rem;
           font-family: 'Barlow Condensed', sans-serif;
           font-weight: 700;
@@ -289,18 +317,12 @@ const SchedulerCalendar = ({
           text-transform: uppercase;
           color: #4fffb0;
           text-align: center;
+          border: 1px solid rgba(79, 255, 176, 0.2);
+          white-space: nowrap;
         }
 
-        .grid-body {
-          max-height: 600px;
-          overflow-y: auto;
-        }
-
-        .time-row {
-          display: grid;
-          grid-template-columns: 80px repeat(auto-fit, minmax(150px, 1fr));
-          gap: 1px;
-          background: rgba(255, 255, 255, 0.05);
+        .court-header {
+          border-bottom: 2px solid #4fffb0;
         }
 
         .time-label {
@@ -332,7 +354,7 @@ const SchedulerCalendar = ({
         }
 
         .match-block {
-          padding: 0.75rem;
+          padding: 0.5rem;
           border-radius: 6px;
           cursor: move;
           transition: all 0.2s ease;
@@ -357,20 +379,20 @@ const SchedulerCalendar = ({
         .match-content {
           display: flex;
           flex-direction: column;
-          gap: 0.5rem;
+          gap: 0.3rem;
         }
 
         .match-header {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          gap: 0.5rem;
+          gap: 0.4rem;
         }
 
         .event-badge {
           font-family: 'Barlow Condensed', sans-serif;
           font-weight: 700;
-          font-size: 0.7rem;
+          font-size: 0.75rem;
           padding: 0.25rem 0.5rem;
           border-radius: 4px;
           color: white;
@@ -387,7 +409,7 @@ const SchedulerCalendar = ({
         .match-details {
           display: flex;
           flex-direction: column;
-          gap: 0.25rem;
+          gap: 0.2rem;
         }
 
         .match-round {
@@ -399,8 +421,9 @@ const SchedulerCalendar = ({
 
         .match-time {
           font-family: 'Barlow', sans-serif;
-          font-size: 0.75rem;
-          color: rgba(255, 255, 255, 0.8);
+          font-size: 0.8rem;
+          color: rgba(255, 255, 255, 0.9);
+          font-weight: 500;
         }
 
         .empty-day {

@@ -21,7 +21,20 @@ class TournamentSchedulerService {
    * Can filter by phase: 'league', 'knockout', or null for all
    */
   async generateTournamentSchedule(tournamentId, settings = {}) {
-    const phase = settings.phase || null; // 'league', 'knockout', or null
+    let phase = settings.phase || null; // 'league', 'knockout', or null
+
+    // If no phase specified, check if we have league-cum-knockout events
+    if (!phase) {
+      const hasLeagueCumKnockout = (await this._loadTournamentData(tournamentId))
+        .events.some(e => e.bracketFormat === 'LEAGUE_CUM_KNOCKOUT' && !e.leaguePhaseScheduled);
+
+      // Default to league phase first for league-cum-knockout events
+      if (hasLeagueCumKnockout) {
+        phase = 'league';
+        console.log('📋 Defaulting to LEAGUE phase (league-cum-knockout events detected)');
+      }
+    }
+
     console.log(`🚀 Starting cross-event scheduling for tournament ${tournamentId}${phase ? ` (${phase} phase only)` : ''}`);
 
     // Step 1: Load tournament with all events and matches
@@ -49,7 +62,12 @@ class TournamentSchedulerService {
     // Step 6: Collect matches for requested phase
     const allMatches = this._collectAllMatches(tournament.events, phase);
 
+    console.log(`📊 Collected ${allMatches.length} matches to schedule`);
+    console.log(`   - Total events: ${tournament.events.length}`);
+    console.log(`   - Phase filter: ${phase || 'none (all matches)'}`);
+
     if (allMatches.length === 0) {
+      console.log('❌ No matches to schedule!');
       return {
         success: true,
         schedule: [],
@@ -63,6 +81,7 @@ class TournamentSchedulerService {
 
     // Step 7: Apply scheduling strategy
     let schedule;
+    console.log(`🎯 Using ${config.strategy.toUpperCase()} strategy`);
     switch (config.strategy) {
       case 'sequential':
         schedule = await this._scheduleSequential(allMatches, courtCalendar, config, tournament);
@@ -76,16 +95,19 @@ class TournamentSchedulerService {
       default:
         throw new Error(`Unknown strategy: ${config.strategy}`);
     }
+    console.log(`📅 Strategy produced ${schedule.length} scheduled slots`);
 
     // Step 8: Detect conflicts
     const conflicts = this._detectAllConflicts(schedule, config);
 
-    // Step 9: Auto-fix conflicts if requested
-    if (settings.autoFix && conflicts.length > 0) {
+    // Step 9: Auto-fix conflicts (ALWAYS enabled for better UX)
+    if (conflicts.length > 0) {
+      console.log(`🔧 Auto-fixing ${conflicts.length} conflicts...`);
       schedule = await this._autoFixConflicts(schedule, conflicts, courtCalendar, config);
       // Re-detect after fixes
       conflicts.length = 0;
       conflicts.push(...this._detectAllConflicts(schedule, config));
+      console.log(`✓ After auto-fix: ${conflicts.length} conflicts remaining`);
     }
 
     // Step 10: Calculate analytics
@@ -166,11 +188,9 @@ class TournamentSchedulerService {
     const result = await prisma.match.updateMany({
       where: { eventId: { in: eventIds } },
       data: {
-        date: null,
-        startTime: null,
-        endTime: null,
-        court: null,
-        courtNumber: null
+        scheduledAt: null,
+        courtNumber: null,
+        courtName: null
       }
     });
 
@@ -308,6 +328,31 @@ class TournamentSchedulerService {
         schedule.push(slot);
         this._markCourtBusy(courtCalendar, slot);
         this._updatePlayerSchedule(playerSchedule, match, slot, config);
+      } else {
+        console.log(`⚠️ Could not schedule match ${match.id} - will retry with more flexibility`);
+        // Try with progressively reduced rest requirements, but NEVER allow overlaps
+        const retryConfigs = [
+          { ...config, minRestTime: Math.floor(config.minRestTime * 0.66) }, // 66% of original
+          { ...config, minRestTime: Math.floor(config.minRestTime * 0.33) }, // 33% of original
+          { ...config, minRestTime: 10 } // Minimum 10 minutes
+        ];
+
+        let foundSlot = null;
+        for (const retryConfig of retryConfigs) {
+          foundSlot = this._findBestSlot(match, courtCalendar, playerSchedule, retryConfig);
+          if (foundSlot) {
+            console.log(`  ✓ Scheduled with ${retryConfig.minRestTime} min rest requirement`);
+            break;
+          }
+        }
+
+        if (foundSlot) {
+          schedule.push(foundSlot);
+          this._markCourtBusy(courtCalendar, foundSlot);
+          this._updatePlayerSchedule(playerSchedule, match, foundSlot, config);
+        } else {
+          console.log(`  ❌ Still could not schedule - no valid slots exist`);
+        }
       }
     }
 
@@ -355,6 +400,7 @@ class TournamentSchedulerService {
   /**
    * Find the best available slot for a match
    * NOW WITH MULTI-SPORT COURT SUPPORT!
+   * INTELLIGENT: Prefers slots with BETTER rest times
    */
   _findBestSlot(match, courtCalendar, playerSchedule, config, event = null) {
     const duration = config.matchDuration;
@@ -365,6 +411,9 @@ class TournamentSchedulerService {
     const courtsForThisSport = availableCourts.filter(court =>
       !court.sportId || court.sportId === matchSportId
     );
+
+    // INTELLIGENT: Collect ALL valid slots, then pick the BEST one
+    const validSlots = [];
 
     // Try each day
     for (let dayIndex = 0; dayIndex < courtCalendar.days.length; dayIndex++) {
@@ -383,8 +432,9 @@ class TournamentSchedulerService {
             continue;
           }
 
-          // Check player rest requirements
-          if (!this._checkPlayerRestRequirement(match, playerSchedule, day.date, timeSlot.start, config)) {
+          // Check player rest requirements and get min rest time
+          const restCheck = this._checkPlayerRestWithScore(match, playerSchedule, day.date, timeSlot.start, config);
+          if (!restCheck.isValid) {
             continue;
           }
 
@@ -393,8 +443,8 @@ class TournamentSchedulerService {
             continue;
           }
 
-          // Found a valid slot!
-          return {
+          // This is a valid slot - calculate a score
+          validSlots.push({
             matchId: match.id,
             eventId: match.eventId,
             eventName: event?.name || match.eventName || 'Unknown Event',
@@ -406,13 +456,23 @@ class TournamentSchedulerService {
             court: availableCourt.courtName,
             courtNumber: availableCourt.courtNumber,
             sportId: matchSportId,
-            participants: this._getMatchParticipants(match)
-          };
+            participants: this._getMatchParticipants(match),
+            _score: restCheck.minRestTime // Higher is better
+          });
         }
       }
     }
 
-    return null; // No slot found
+    if (validSlots.length === 0) {
+      return null; // No slot found
+    }
+
+    // INTELLIGENT: Pick the slot with BEST rest time (highest score)
+    validSlots.sort((a, b) => b._score - a._score);
+    const bestSlot = validSlots[0];
+    delete bestSlot._score; // Remove internal scoring
+
+    return bestSlot;
   }
 
   /**
@@ -477,12 +537,58 @@ class TournamentSchedulerService {
       // Calculate rest time
       const restMinutes = this._getMinutesBetween(lastMatch.endTime, startTime);
 
+      // CRITICAL: Reject if matches overlap (negative rest time)
+      // This prevents same player being scheduled in two matches simultaneously
+      if (restMinutes < 0) {
+        return false; // OVERLAPPING MATCHES - IMPOSSIBLE!
+      }
+
+      // Then check minimum rest requirement
       if (restMinutes < minRestMinutes) {
         return false; // Not enough rest
       }
     }
 
     return true;
+  }
+
+  /**
+   * INTELLIGENT: Check player rest AND return the minimum rest time (for scoring)
+   */
+  _checkPlayerRestWithScore(match, playerSchedule, date, startTime, config) {
+    const participants = this._getMatchParticipants(match);
+    const minRestMinutes = config.minRestTime;
+    let minRestFound = Infinity; // Track the WORST rest time for this slot
+
+    for (const playerId of participants) {
+      const lastMatch = playerSchedule.get(playerId);
+      if (!lastMatch) continue; // First match for this player
+
+      // Check if same day
+      if (!this._isSameDate(lastMatch.date, date)) continue;
+
+      // Calculate rest time
+      const restMinutes = this._getMinutesBetween(lastMatch.endTime, startTime);
+
+      // Track minimum
+      minRestFound = Math.min(minRestFound, restMinutes);
+
+      // CRITICAL: ALWAYS reject if matches overlap (negative rest time)
+      // This is ABSOLUTE - even if minRestTime is 0, we NEVER allow overlaps
+      if (restMinutes < 0) {
+        return { isValid: false, minRestTime: restMinutes };
+      }
+
+      // Check minimum rest requirement (but allow it to be 0 for emergency scheduling)
+      if (restMinutes < minRestMinutes) {
+        return { isValid: false, minRestTime: restMinutes };
+      }
+    }
+
+    return {
+      isValid: true,
+      minRestTime: minRestFound === Infinity ? 999 : minRestFound // 999 = first match (best)
+    };
   }
 
   /**
@@ -787,7 +893,8 @@ class TournamentSchedulerService {
     };
 
     // Court utilization per court
-    for (let i = 1; i <= config.courtsAvailable; i++) {
+    const totalCourts = this._getTotalCourts(config);
+    for (let i = 1; i <= totalCourts; i++) {
       const courtMatches = schedule.filter(s => s.courtNumber === i);
       const totalSlots = this._calculateTotalSlots(config);
       const utilization = totalSlots > 0 ? (courtMatches.length / totalSlots) * 100 : 0;
@@ -819,7 +926,18 @@ class TournamentSchedulerService {
     const daysCount = this._calculateDaysBetween(config.startDate, config.endDate);
     const dailyMinutes = this._getMinutesBetween(config.dailyStartTime, config.dailyEndTime);
     const slotsPerDay = Math.floor(dailyMinutes / (config.matchDuration + config.breakDuration));
-    return daysCount * slotsPerDay * config.courtsAvailable;
+    return daysCount * slotsPerDay * this._getTotalCourts(config);
+  }
+
+  /**
+   * Get the true total court count, preferring courtsBySport (multi-sport)
+   * over the legacy single courtsAvailable field.
+   */
+  _getTotalCourts(config) {
+    if (config.courtsBySport) {
+      return Object.values(config.courtsBySport).reduce((sum, courts) => sum + courts.length, 0);
+    }
+    return config.courtsAvailable || 0;
   }
 
   // ============================================================================
@@ -862,13 +980,13 @@ class TournamentSchedulerService {
     return {
       startDate: settings.startDate || tournament.startDate,
       endDate: settings.endDate || tournament.endDate,
-      dailyStartTime: settings.dailyStartTime || tournament.dailyStartTime || '09:00',
-      dailyEndTime: settings.dailyEndTime || tournament.dailyEndTime || '18:00',
+      dailyStartTime: settings.dailyStartTime || tournament.dailyStartTime || '08:00', // Start earlier
+      dailyEndTime: settings.dailyEndTime || tournament.dailyEndTime || '22:00', // End later
       courtsBySport, // { "badminton": ["Court 1", "Court 2"], "table-tennis": ["Table 1"] }
       courtsAvailable, // Legacy fallback
       matchDuration: settings.matchDuration ?? tournament.matchDuration ?? 45,
-      breakDuration: settings.breakDuration ?? tournament.breakDuration ?? 15,
-      minRestTime: settings.minRestTime ?? tournament.minRestTime ?? 30,
+      breakDuration: settings.breakDuration ?? tournament.breakDuration ?? 5, // Minimal break
+      minRestTime: settings.minRestTime ?? tournament.minRestTime ?? 45, // 45 min rest (one match worth)
       timeSlotDuration: 15, // 15-minute granularity
       strategy: settings.strategy || 'hybrid', // 'sequential', 'interleaved', or 'hybrid'
       advancedOptions: settings.advancedOptions || {
@@ -993,8 +1111,20 @@ class TournamentSchedulerService {
         const isKnockoutMatch = !isLeagueMatch;
 
         // Apply phase filter if specified
-        if (phaseFilter === 'league' && !isLeagueMatch) continue;
-        if (phaseFilter === 'knockout' && !isKnockoutMatch) continue;
+        // For league phase: skip ONLY knockout matches from LEAGUE_CUM_KNOCKOUT events
+        // Include: league matches from LEAGUE_CUM_KNOCKOUT + ALL matches from other formats
+        if (phaseFilter === 'league' && hasLeaguePhase && isKnockoutMatch) continue;
+
+        // For knockout phase: include ONLY knockout matches from LEAGUE_CUM_KNOCKOUT events
+        // Skip: all matches from non-phased events + league matches from LEAGUE_CUM_KNOCKOUT
+        if (phaseFilter === 'knockout' && (!hasLeaguePhase || !isKnockoutMatch)) continue;
+
+        // CRITICAL: Skip matches with NULL participants (knockout matches waiting for qualifiers)
+        // These can't be scheduled yet - they need to be filled by advancing qualifiers first
+        if (!match.participant1Id || !match.participant2Id) {
+          console.log(`  ⏭️ Skipping match ${match.bracketPosition} - participants not determined yet`);
+          continue;
+        }
 
         matches.push({
           ...match,
@@ -1028,9 +1158,11 @@ class TournamentSchedulerService {
         return priorityOrder[aPriority] - priorityOrder[bPriority];
       }
 
-      // Within same priority, later rounds first (finals, semis, etc.)
+      // Within same priority, earlier rounds first (round 1 has the most matches;
+      // roundNumber DECREASES as the bracket progresses, with roundNumber === 1
+      // being the final). So higher roundNumber must be scheduled first.
       if (a.roundNumber !== b.roundNumber) {
-        return a.roundNumber - b.roundNumber;
+        return b.roundNumber - a.roundNumber;
       }
 
       return a.matchNumber - b.matchNumber;

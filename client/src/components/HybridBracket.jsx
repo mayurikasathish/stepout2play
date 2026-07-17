@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import EditScoreButton from './EditScoreButton'
 import { formatMatchScore } from '../utils/scoreFormatter'
+import GroupCard from './GroupCard'
 
 const HybridBracket = ({ bracket, onMatchClick, onCaptureScorecard, isOrganizer }) => {
   const { event, groups, matches } = bracket
@@ -83,7 +84,7 @@ const HybridBracket = ({ bracket, onMatchClick, onCaptureScorecard, isOrganizer 
           </div>
           <div className="text-right">
             <div className="text-sm text-gray-600">Progress</div>
-            <div className="text-2xl font-bold text-primary-600">
+            <div className="text-2xl font-bold text-blue-600">
               {matches.filter(m => m.status === 'COMPLETED').length}/{matches.length}
             </div>
             <div className="text-xs text-gray-500">matches complete</div>
@@ -96,7 +97,7 @@ const HybridBracket = ({ bracket, onMatchClick, onCaptureScorecard, isOrganizer 
             onClick={() => setActiveTab('groups')}
             className={`px-6 py-3 font-semibold transition-all ${
               activeTab === 'groups'
-                ? 'text-primary-600 border-b-2 border-primary-600'
+                ? 'text-blue-600 border-b-2 border-blue-600'
                 : 'text-gray-600 hover:text-gray-900'
             }`}
           >
@@ -106,7 +107,7 @@ const HybridBracket = ({ bracket, onMatchClick, onCaptureScorecard, isOrganizer 
             onClick={() => setActiveTab('knockout')}
             className={`px-6 py-3 font-semibold transition-all ${
               activeTab === 'knockout'
-                ? 'text-primary-600 border-b-2 border-primary-600'
+                ? 'text-blue-600 border-b-2 border-blue-600'
                 : 'text-gray-600 hover:text-gray-900'
             }`}
           >
@@ -117,6 +118,21 @@ const HybridBracket = ({ bracket, onMatchClick, onCaptureScorecard, isOrganizer 
 
       {/* Group Stage View */}
       {activeTab === 'groups' && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {groups.map((group) => (
+            <GroupCard
+              key={group.id}
+              group={group}
+              isOrganizer={isOrganizer}
+              onMatchClick={onMatchClick}
+              onCaptureScorecard={onCaptureScorecard}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* OLD GROUP DISPLAY - REPLACED WITH GroupCard */}
+      {false && activeTab === 'groups' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {groups.map((group) => {
             const groupStandings = [...group.standings].sort((a, b) => {
@@ -141,16 +157,16 @@ const HybridBracket = ({ bracket, onMatchClick, onCaptureScorecard, isOrganizer 
             return (
               <div key={group.id} className="glass-card rounded-xl overflow-hidden">
                 {/* Group Header */}
-                <div className="bg-gradient-to-r from-primary-600 to-primary-700 text-white p-4">
+                <div className="bg-gradient-to-r from-blue-600 to-purple-700 text-white p-4">
                   <div className="flex justify-between items-center">
                     <div>
                       <h3 className="text-xl font-bold">{group.name}</h3>
-                      <p className="text-sm text-primary-100">
+                      <p className="text-sm text-blue-100">
                         {completedMatches}/{totalMatches} matches complete
                       </p>
                     </div>
                     <div className="text-right">
-                      <div className="text-xs text-primary-100">Qualifiers</div>
+                      <div className="text-xs text-blue-100">Qualifiers</div>
                       <div className="text-2xl font-bold">Top {event.advanceCount}</div>
                     </div>
                   </div>
@@ -233,7 +249,7 @@ const HybridBracket = ({ bracket, onMatchClick, onCaptureScorecard, isOrganizer 
                               {gameDiffDisplay}
                             </td>
                             <td className="px-4 py-3 text-center">
-                              <span className="font-bold text-primary-600 text-base">
+                              <span className="font-bold text-blue-600 text-base">
                                 {standing.points}
                               </span>
                             </td>
@@ -293,6 +309,7 @@ const HybridBracket = ({ bracket, onMatchClick, onCaptureScorecard, isOrganizer 
           })}
         </div>
       )}
+      {/* END OLD GROUP DISPLAY */}
 
       {/* Knockout Stage View */}
       {activeTab === 'knockout' && (

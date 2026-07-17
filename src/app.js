@@ -18,6 +18,7 @@ const matchRoutes = require('./routes/match.routes');
 const playerProfileRoutes = require('./routes/playerProfile.routes');
 const followRoutes = require('./routes/follow.routes');
 const tournamentSchedulerRoutes = require('./routes/tournamentScheduler.routes');
+const achievementRoutes = require('./routes/achievement.routes');
 
 const app = express();
 
@@ -59,6 +60,7 @@ app.use('/api/matches', matchRoutes); // Match routes for live matches
 app.use('/api/users', playerProfileRoutes); // Player profile routes
 app.use('/api/follows', followRoutes); // Follow routes
 app.use('/api/tournaments', tournamentSchedulerRoutes); // Tournament scheduler routes
+app.use('/api', achievementRoutes); // Achievement routes
 
 // Health check
 app.get('/api/health', (req, res) => {

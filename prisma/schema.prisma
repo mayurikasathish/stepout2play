@@ -39,6 +39,7 @@ model User {
   playerRatings        PlayerRating[]
   following            Follow[]       @relation("UserFollowing")
   followers            Follow[]       @relation("UserFollowers")
+  achievements         Achievement[]
 
   @@map("users")
 }
@@ -177,6 +178,7 @@ model Tournament {
   replacementWindowHours Int?           @default(24) // Hours before event start when replacement window closes
   events               Event[]
   organization         Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  achievements         Achievement[]
 
   @@map("tournaments")
 }
@@ -219,6 +221,7 @@ model Event {
   matches          Match[]
   registrations    Registration[]
   groups           Group[]
+  achievements     Achievement[]
 
   @@map("events")
 }
@@ -442,6 +445,7 @@ model PlayerRating {
   id            String              @id @default(uuid())
   userId        String
   sportId       String              // "badminton", "tennis", "table-tennis", etc.
+  category      String              @default("SINGLES") // "SINGLES", "DOUBLES", "MIXED_DOUBLES"
   rating        Float               @default(1200.0) // Glicko-2 rating
   rd            Float               @default(350.0)  // Rating Deviation (uncertainty)
   volatility    Float               @default(0.06)   // Volatility (rating consistency)
@@ -452,8 +456,9 @@ model PlayerRating {
   user          User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   ratingChanges MatchRatingChange[]
 
-  @@unique([userId, sportId])
+  @@unique([userId, sportId, category])
   @@index([sportId])
+  @@index([category])
   @@index([rating])
   @@map("player_ratings")
 }
@@ -463,6 +468,7 @@ model MatchRatingChange {
   matchId       String
   userId        String
   sportId       String
+  category      String        @default("SINGLES") // "SINGLES", "DOUBLES", "MIXED_DOUBLES"
   oldRating     Float
   newRating     Float
   ratingChange  Float         // Positive or negative
@@ -472,7 +478,7 @@ model MatchRatingChange {
   newVolatility Float
   createdAt     DateTime      @default(now())
   match         Match         @relation(fields: [matchId], references: [id], onDelete: Cascade)
-  playerRating  PlayerRating? @relation(fields: [userId, sportId], references: [userId, sportId], onDelete: Cascade)
+  playerRating  PlayerRating? @relation(fields: [userId, sportId, category], references: [userId, sportId, category], onDelete: Cascade)
 
   @@index([matchId])
   @@index([userId])
@@ -495,4 +501,25 @@ model Follow {
   @@index([followingId])
   @@index([status])
   @@map("follows")
+}
+
+model Achievement {
+  id           String   @id @default(uuid())
+  userId       String
+  tournamentId String
+  eventId      String
+  position     Int      // 1=Gold, 2=Silver, 3=Bronze
+  wonAt        DateTime @default(now())
+  createdAt    DateTime @default(now())
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  event      Event      @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tournamentId])
+  @@index([eventId])
+  @@index([position])
+  @@index([wonAt])
+  @@map("achievements")
 }

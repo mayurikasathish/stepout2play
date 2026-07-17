@@ -9,107 +9,39 @@ class PlayerProfileController {
     try {
       const { userId } = req.params;
 
-      // 1. Get all ratings for this user (per sport)
+      // 1. Get all ratings for this user (per sport AND category)
       const playerRatings = await prisma.playerRating.findMany({
-        where: { userId },
-        include: {
-          ratingChanges: {
-            orderBy: { createdAt: 'desc' },
-            take: 1 // Get latest change for win/loss info
-          }
-        }
+        where: { userId }
       });
 
-      // 2. Get per-sport stats (wins, losses, rank)
-      const sportsStats = await Promise.all(
-        playerRatings.map(async (rating) => {
-          // Get all matches for this sport
-          const matches = await prisma.match.findMany({
-            where: {
-              status: 'COMPLETED',
-              event: { sportId: rating.sportId },
-              OR: [
-                { participant1: { userId } },
-                { participant2: { userId } }
-              ]
-            },
-            include: {
-              participant1: { include: { user: true } },
-              participant2: { include: { user: true } }
-            }
-          });
+      // 2. Group ratings by sport
+      const sportGroups = {};
 
-          // Calculate wins and losses
-          let wins = 0;
-          let losses = 0;
-          let currentStreak = 0;
-          let streakType = null;
-
-          // Sort by completion date to calculate streak
-          const sortedMatches = matches.sort((a, b) =>
-            new Date(b.completedAt) - new Date(a.completedAt)
-          );
-
-          for (const match of sortedMatches) {
-            const isPlayer1 = match.participant1?.userId === userId;
-            const isWinner = match.winnerId === (isPlayer1 ? match.participant1Id : match.participant2Id);
-
-            if (isWinner) {
-              wins++;
-              if (streakType === null) streakType = 'W';
-              if (streakType === 'W') currentStreak++;
-              else break;
-            } else {
-              losses++;
-              if (streakType === null) streakType = 'L';
-              if (streakType === 'L') currentStreak++;
-              else break;
-            }
-          }
-
-          // Calculate rank based on new requirements:
-          // 1. Player must have played at least 1 match
-          // 2. At least 2 players must have played matches in this sport
-          let rank = null;
-          let totalRankedPlayers = null;
-
-          if (rating.matchCount > 0) {
-            // Count total players who have played at least 1 match in this sport
-            const playersWithMatches = await prisma.playerRating.count({
-              where: {
-                sportId: rating.sportId,
-                matchCount: { gt: 0 }
-              }
-            });
-
-            // Only rank if at least 2 players have played
-            if (playersWithMatches >= 2) {
-              // Count how many players have higher rating (among those who played)
-              const higherRatedCount = await prisma.playerRating.count({
-                where: {
-                  sportId: rating.sportId,
-                  matchCount: { gt: 0 },
-                  rating: { gt: rating.rating }
-                }
-              });
-
-              rank = higherRatedCount + 1;
-              totalRankedPlayers = playersWithMatches;
-            }
-          }
-
-          return {
-            sportId: rating.sportId,
-            rating: Math.round(rating.rating),
-            wins,
-            losses,
-            rank,
-            totalRankedPlayers,
-            streak: currentStreak > 0 ? `${streakType}${currentStreak}` : null,
-            matchCount: rating.matchCount
+      for (const rating of playerRatings) {
+        if (!sportGroups[rating.sportId]) {
+          sportGroups[rating.sportId] = {
+            singles: null,
+            doubles: null,
+            mixedDoubles: null
           };
-        })
-      );
+        }
+
+        const categoryKey = rating.category === 'SINGLES' ? 'singles'
+          : rating.category === 'DOUBLES' ? 'doubles'
+          : 'mixedDoubles';
+
+        // Get stats for this category
+        const categoryStats = await this._getCategoryStats(userId, rating);
+        sportGroups[rating.sportId][categoryKey] = categoryStats;
+      }
+
+      // 3. Convert to array format
+      const sportsStats = Object.entries(sportGroups).map(([sportId, categories]) => ({
+        sportId,
+        singles: categories.singles || { rating: 1200, wins: 0, losses: 0, rank: null, totalRankedPlayers: null, streak: null, matchCount: 0 },
+        doubles: categories.doubles || { rating: 1200, wins: 0, losses: 0, rank: null, totalRankedPlayers: null, streak: null, matchCount: 0 },
+        mixedDoubles: categories.mixedDoubles || { rating: 1200, wins: 0, losses: 0, rank: null, totalRankedPlayers: null, streak: null, matchCount: 0 }
+      }));
 
       // 3. Calculate career stats
       const allMatches = await prisma.match.findMany({
@@ -426,6 +358,94 @@ class PlayerProfileController {
     } catch (error) {
       next(error);
     }
+  }
+
+  // Helper method to get category stats
+  async _getCategoryStats(userId, rating) {
+    // Get matches for this sport AND category
+    const eventFormat = rating.category === 'SINGLES' ? 'SINGLES'
+      : rating.category === 'DOUBLES' ? 'DOUBLES'
+      : 'MIXED_DOUBLES';
+
+    const matches = await prisma.match.findMany({
+      where: {
+        status: 'COMPLETED',
+        event: {
+          sportId: rating.sportId,
+          format: eventFormat
+        },
+        OR: [
+          { participant1: { userId } },
+          { participant2: { userId } }
+        ]
+      },
+      include: {
+        participant1: true,
+        participant2: true
+      },
+      orderBy: { completedAt: 'desc' }
+    });
+
+    // Calculate wins, losses, streak
+    let wins = 0;
+    let losses = 0;
+    let currentStreak = 0;
+    let streakType = null;
+
+    for (const match of matches) {
+      const isPlayer1 = match.participant1?.userId === userId;
+      const isWinner = match.winnerId === (isPlayer1 ? match.participant1Id : match.participant2Id);
+
+      if (isWinner) {
+        wins++;
+        if (streakType === null) streakType = 'W';
+        if (streakType === 'W') currentStreak++;
+        else break;
+      } else {
+        losses++;
+        if (streakType === null) streakType = 'L';
+        if (streakType === 'L') currentStreak++;
+        else break;
+      }
+    }
+
+    // Calculate rank (per category per sport)
+    let rank = null;
+    let totalRankedPlayers = null;
+
+    if (rating.matchCount > 0) {
+      const playersWithMatches = await prisma.playerRating.count({
+        where: {
+          sportId: rating.sportId,
+          category: rating.category,
+          matchCount: { gt: 0 }
+        }
+      });
+
+      if (playersWithMatches >= 2) {
+        const higherRatedCount = await prisma.playerRating.count({
+          where: {
+            sportId: rating.sportId,
+            category: rating.category,
+            matchCount: { gt: 0 },
+            rating: { gt: rating.rating }
+          }
+        });
+
+        rank = higherRatedCount + 1;
+        totalRankedPlayers = playersWithMatches;
+      }
+    }
+
+    return {
+      rating: Math.round(rating.rating),
+      wins,
+      losses,
+      rank,
+      totalRankedPlayers,
+      streak: currentStreak > 0 ? `${streakType}${currentStreak}` : null,
+      matchCount: rating.matchCount
+    };
   }
 }
 
