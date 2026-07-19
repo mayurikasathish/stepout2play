@@ -3,7 +3,7 @@ import EditScoreButton from './EditScoreButton'
 import { formatMatchScore } from '../utils/scoreFormatter'
 import GroupCard from './GroupCard'
 
-const HybridBracket = ({ bracket, onMatchClick, onCaptureScorecard, isOrganizer }) => {
+const HybridBracket = ({ bracket, onMatchClick, onCaptureScorecard, onWalkover, isOrganizer }) => {
   const { event, groups, matches } = bracket
   const [activeTab, setActiveTab] = useState('groups')
 
@@ -126,6 +126,7 @@ const HybridBracket = ({ bracket, onMatchClick, onCaptureScorecard, isOrganizer 
               isOrganizer={isOrganizer}
               onMatchClick={onMatchClick}
               onCaptureScorecard={onCaptureScorecard}
+              onWalkover={onWalkover}
             />
           ))}
         </div>
@@ -299,6 +300,21 @@ const HybridBracket = ({ bracket, onMatchClick, onCaptureScorecard, isOrganizer 
                               />
                             </div>
                           )}
+                          {onWalkover && isOrganizer && match.status !== 'COMPLETED' && match.participant1 && match.participant2 && (
+                            <div className="mt-2 pt-2 border-t border-gray-200">
+                              <button
+                                onClick={() => onWalkover(match)}
+                                className="w-full text-sm font-semibold px-3 py-2 rounded-lg transition-all"
+                                style={{
+                                  background: 'rgba(255, 152, 0, 0.1)',
+                                  color: '#ff9800',
+                                  border: '1px solid rgba(255, 152, 0, 0.3)'
+                                }}
+                              >
+                                ⚠️ Walkover
+                              </button>
+                            </div>
+                          )}
                         </div>
                       )
                     })}
@@ -394,6 +410,21 @@ const HybridBracket = ({ bracket, onMatchClick, onCaptureScorecard, isOrganizer 
                                 />
                               </div>
                             )}
+                            {onWalkover && isOrganizer && match.status !== 'COMPLETED' && match.participant1 && match.participant2 && (
+                              <div className="px-3 pb-3 border-t border-gray-100 pt-2">
+                                <button
+                                  onClick={() => onWalkover(match)}
+                                  className="w-full text-sm font-semibold px-3 py-2 rounded-lg transition-all"
+                                  style={{
+                                    background: '#000',
+                                    color: '#fff',
+                                    border: '1px solid #333'
+                                  }}
+                                >
+                                  ⚠️ Walkover
+                                </button>
+                              </div>
+                            )}
 
                             {match.status === 'PENDING' && (
                               <div className="bg-yellow-50 px-3 py-2 border-t border-yellow-200">
@@ -460,6 +491,21 @@ const HybridBracket = ({ bracket, onMatchClick, onCaptureScorecard, isOrganizer 
                         onManualEntry={() => onMatchClick(bronzeMatch)}
                         onCaptureScore={() => onCaptureScorecard?.(bronzeMatch)}
                       />
+                    </div>
+                  )}
+                  {onWalkover && isOrganizer && bronzeMatch.status !== 'COMPLETED' && bronzeMatch.participant1 && bronzeMatch.participant2 && (
+                    <div className="bg-gray-50 px-4 py-3 border-t border-gray-200">
+                      <button
+                        onClick={() => onWalkover(bronzeMatch)}
+                        className="w-full text-sm font-semibold px-3 py-2 rounded-lg transition-all"
+                        style={{
+                          background: 'rgba(255, 152, 0, 0.1)',
+                          color: '#ff9800',
+                          border: '1px solid rgba(255, 152, 0, 0.3)'
+                        }}
+                      >
+                        ⚠️ Walkover
+                      </button>
                     </div>
                   )}
                 </div>

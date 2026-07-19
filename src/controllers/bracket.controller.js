@@ -447,6 +447,114 @@ class BracketController {
       next(error);
     }
   }
+
+  /**
+   * POST /matches/:matchId/walkover
+   * Declare a walkover for a match
+   * Body: { winnerId, reason? }
+   */
+  async declareWalkover(req, res, next) {
+    try {
+      const { matchId } = req.params;
+      const { winnerId, reason } = req.body;
+
+      if (!winnerId) {
+        return res.status(400).json({ success: false, error: 'winnerId is required' });
+      }
+
+      // Get match with full details
+      const match = await prisma.match.findUnique({
+        where: { id: matchId },
+        include: {
+          event: {
+            include: {
+              tournament: {
+                include: { organization: true }
+              }
+            }
+          },
+          participant1: { include: { user: true, partner: true } },
+          participant2: { include: { user: true, partner: true } }
+        }
+      });
+
+      if (!match) {
+        return res.status(404).json({ success: false, error: 'Match not found' });
+      }
+
+      // Verify winnerId is one of the participants
+      if (winnerId !== match.participant1Id && winnerId !== match.participant2Id) {
+        return res.status(400).json({ success: false, error: 'winnerId must be one of the match participants' });
+      }
+
+      // Update match with walkover and advance winner in a transaction
+      const updatedMatch = await prisma.$transaction(async (tx) => {
+        const updated = await tx.match.update({
+          where: { id: matchId },
+          data: {
+            status: 'COMPLETED',
+            winnerId: winnerId,
+            isWalkover: true,
+            walkoverReason: reason || null,
+            score: 'W.O.',
+            completedAt: new Date()
+          },
+          include: {
+            event: {
+              include: {
+                tournament: true
+              }
+            },
+            participant1: { include: { user: true, partner: true } },
+            participant2: { include: { user: true, partner: true } }
+          }
+        });
+
+        // Advance winner to next round if there is a nextMatchId
+        if (match.nextMatchId) {
+          await bracketService.advanceWinnerInBracket(tx, match, winnerId);
+        }
+
+        return updated;
+      });
+
+      // Notify participants
+      const winner = winnerId === updatedMatch.participant1Id ? updatedMatch.participant1 : updatedMatch.participant2;
+      const loser = winnerId === updatedMatch.participant1Id ? updatedMatch.participant2 : updatedMatch.participant1;
+
+      if (winner) {
+        await NotificationHelpers.sendMatchWalkover({
+          userId: winner.userId,
+          isWinner: true,
+          reason: reason || 'Opponent could not play',
+          tournamentName: updatedMatch.event.tournament.name,
+          eventName: updatedMatch.event.name,
+          tournamentId: updatedMatch.event.tournamentId,
+          eventId: updatedMatch.eventId
+        });
+      }
+
+      if (loser) {
+        await NotificationHelpers.sendMatchWalkover({
+          userId: loser.userId,
+          isWinner: false,
+          reason: reason || 'Unable to play',
+          tournamentName: updatedMatch.event.tournament.name,
+          eventName: updatedMatch.event.name,
+          tournamentId: updatedMatch.event.tournamentId,
+          eventId: updatedMatch.eventId
+        });
+      }
+
+      res.status(200).json({
+        success: true,
+        message: 'Walkover declared successfully',
+        match: updatedMatch
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = new BracketController();

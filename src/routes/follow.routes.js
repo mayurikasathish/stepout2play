@@ -10,6 +10,7 @@ router.delete('/:userId', authenticate, (req, res, next) => followController.unf
 router.patch('/:followId/accept', authenticate, (req, res, next) => followController.acceptFollowRequest(req, res, next));
 router.patch('/:followId/reject', authenticate, (req, res, next) => followController.rejectFollowRequest(req, res, next));
 router.get('/following', authenticate, (req, res, next) => followController.getFollowing(req, res, next));
+router.get('/circle', authenticate, (req, res, next) => followController.getCircle(req, res, next));
 router.get('/status/:userId', authenticate, (req, res, next) => followController.getFollowStatus(req, res, next));
 
 module.exports = router;

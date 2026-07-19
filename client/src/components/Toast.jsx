@@ -26,7 +26,7 @@ const Toast = ({ message, type = 'success', onClose, duration = 3000 }) => {
     : 'bg-gradient-to-r from-red-500 to-red-600'
 
   return (
-    <div className="fixed top-4 right-4 z-[10000] animate-slide-up">
+    <div className="fixed right-4 z-[10000] animate-slide-up" style={{ top: '100px' }}>
       <div className={`${bgColor} text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 min-w-[300px]`}>
         <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
           {type === 'success' ? <CheckIcon /> : <ErrorIcon />}

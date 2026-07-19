@@ -128,8 +128,18 @@ class PlayerProfileController {
       const totalMatches = totalWins + totalLosses;
       const winRate = totalMatches > 0 ? ((totalWins / totalMatches) * 100).toFixed(1) : 0;
 
-      // Count sports played (sports with at least 1 match)
-      const sportsPlayed = sportsStats.filter(s => s.matchCount > 0).length;
+      // Count sports played (sports with at least 1 match in any category)
+      const sportsPlayed = sportsStats.filter(s =>
+        s.singles.matchCount > 0 || s.doubles.matchCount > 0 || s.mixedDoubles.matchCount > 0
+      ).length;
+
+      // Calculate wins in last 10 matches (for Form metric)
+      const last10Matches = sortedAllMatches.slice(0, 10);
+      const last10Wins = last10Matches.filter(match => {
+        const isPlayer1 = match.participant1?.userId === userId;
+        const isWinner = match.winnerId === (isPlayer1 ? match.participant1Id : match.participant2Id);
+        return isWinner;
+      }).length;
 
       const careerStats = {
         totalMatches,
@@ -141,7 +151,8 @@ class PlayerProfileController {
         currentStreak: currentStreak > 0 ? `${streakType}${currentStreak}` : null,
         highestRating,
         bestRank: bestRank || null,
-        sportsPlayed
+        sportsPlayed,
+        last10Wins  // New field for Form calculation
       };
 
       res.status(200).json({

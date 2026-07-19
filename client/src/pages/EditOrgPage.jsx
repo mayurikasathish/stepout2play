@@ -16,6 +16,8 @@ const EditOrgPage = () => {
   const [showToast, setShowToast] = useState(false)
   const [toastMessage, setToastMessage] = useState('')
   const [toastType, setToastType] = useState('success')
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false)
+  const [leaving, setLeaving] = useState(false)
 
   const [formData, setFormData] = useState({
     tagline: '',
@@ -103,6 +105,33 @@ const EditOrgPage = () => {
       }
     } catch (err) {
       console.error('Error loading org data:', err)
+    }
+  }
+
+  const handleLeaveOrg = async () => {
+    try {
+      setLeaving(true)
+      const res = await api.delete(`/orgs/${selectedOrgId}/leave`)
+
+      if (res.data.success) {
+        setToastMessage(res.data.message || 'You have left the organization')
+        setToastType('success')
+        setShowToast(true)
+        setShowLeaveConfirm(false)
+
+        // Redirect to manage page after 2 seconds
+        setTimeout(() => {
+          navigate('/manage')
+        }, 2000)
+      }
+    } catch (err) {
+      console.error('Error leaving organization:', err)
+      setToastMessage(err.response?.data?.error || 'Failed to leave organization')
+      setToastType('error')
+      setShowToast(true)
+      setShowLeaveConfirm(false)
+    } finally {
+      setLeaving(false)
     }
   }
 
@@ -1078,6 +1107,44 @@ const EditOrgPage = () => {
               </div>
             </div>
 
+            {/* Danger Zone */}
+            <div className="section" style={{ borderColor: 'rgba(239, 68, 68, 0.3)', background: 'rgba(239, 68, 68, 0.05)' }}>
+              <div className="section-title" style={{ color: '#ef4444' }}>
+                <span>⚠️</span> DANGER ZONE
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <p style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.875rem' }}>
+                  {orgs.find(o => o.id === selectedOrgId)?.myRole === 'OWNER' || orgs.find(o => o.id === selectedOrgId)?.role === 'OWNER'
+                    ? 'As the owner, you must transfer ownership or remove all members before you can leave.'
+                    : 'Once you leave, you will lose access to this organization and all its tournaments.'}
+                </p>
+                <button
+                  onClick={() => setShowLeaveConfirm(true)}
+                  style={{
+                    padding: '0.75rem 1.5rem',
+                    background: 'rgba(239, 68, 68, 0.1)',
+                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                    borderRadius: '12px',
+                    color: '#ef4444',
+                    fontWeight: '700',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    fontSize: '0.875rem',
+                    width: 'fit-content'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.background = 'rgba(239, 68, 68, 0.2)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.background = 'rgba(239, 68, 68, 0.1)'
+                  }}
+                >
+                  🚪 Leave Organization
+                </button>
+              </div>
+            </div>
+
             {/* Actions */}
             <div className="actions-bar">
               <button
@@ -1104,6 +1171,85 @@ const EditOrgPage = () => {
           type={toastType}
           onClose={() => setShowToast(false)}
         />
+      )}
+
+      {/* Leave Organization Confirmation Modal */}
+      {showLeaveConfirm && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0, 0, 0, 0.8)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          padding: '1rem'
+        }}>
+          <div style={{
+            background: 'rgba(15, 25, 45, 0.95)',
+            border: '1px solid rgba(239, 68, 68, 0.3)',
+            borderRadius: '16px',
+            padding: '2rem',
+            maxWidth: '500px',
+            width: '100%',
+            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)'
+          }}>
+            <h2 style={{ fontSize: '1.5rem', fontWeight: '700', color: '#ef4444', marginBottom: '1rem' }}>
+              ⚠️ Leave Organization?
+            </h2>
+            <p style={{ color: 'rgba(255, 255, 255, 0.8)', marginBottom: '1.5rem', lineHeight: '1.6' }}>
+              Are you sure you want to leave <strong>{orgs.find(o => o.id === selectedOrgId)?.name}</strong>?
+              <br/><br/>
+              You will lose access to:
+            </p>
+            <ul style={{ color: 'rgba(255, 255, 255, 0.7)', marginBottom: '1.5rem', paddingLeft: '1.5rem', lineHeight: '1.8' }}>
+              <li>Organization management</li>
+              <li>Tournament creation and management</li>
+              <li>Member management</li>
+              <li>All organization data</li>
+            </ul>
+            <p style={{ color: '#ef4444', fontSize: '0.875rem', marginBottom: '1.5rem', fontWeight: '600' }}>
+              This action cannot be undone.
+            </p>
+            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setShowLeaveConfirm(false)}
+                disabled={leaving}
+                style={{
+                  padding: '0.75rem 1.5rem',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  borderRadius: '12px',
+                  color: 'rgba(255, 255, 255, 0.8)',
+                  fontWeight: '600',
+                  cursor: leaving ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.2s',
+                  opacity: leaving ? 0.5 : 1
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleLeaveOrg}
+                disabled={leaving}
+                style={{
+                  padding: '0.75rem 1.5rem',
+                  background: '#ef4444',
+                  border: 'none',
+                  borderRadius: '12px',
+                  color: '#fff',
+                  fontWeight: '700',
+                  cursor: leaving ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.2s',
+                  opacity: leaving ? 0.5 : 1
+                }}
+              >
+                {leaving ? 'Leaving...' : 'Yes, Leave Organization'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   )

@@ -971,4 +971,535 @@ const checkOrgName = async (req, res) => {
   }
 };
 
-module.exports = { createOrg, getMyOrgs, getOrg, getOrgPublic, updateOrg, deleteOrg, inviteMember, getOrgTournaments, discoverOrgs, followOrg, unfollowOrg, requestJoin, getJoinRequests, acceptJoinRequest, rejectJoinRequest, sendInvitation, getReceivedInvitations, acceptInvitation, declineInvitation, checkOrgName };
+// POST /orgs/:orgId/request-upgrade — Member requests admin upgrade
+const requestUpgrade = async (req, res, next) => {
+  try {
+    const { orgId } = req.params;
+    const userId = req.user.id;
+
+    // Check if user is a MEMBER
+    const membership = await prisma.orgMember.findUnique({
+      where: {
+        userId_orgId: {
+          userId,
+          orgId
+        }
+      }
+    });
+
+    if (!membership) {
+      return res.status(404).json({
+        success: false,
+        error: 'You are not a member of this organization'
+      });
+    }
+
+    if (membership.role !== 'MEMBER') {
+      return res.status(400).json({
+        success: false,
+        error: 'Only members can request upgrades'
+      });
+    }
+
+    // Check if there's already a pending request
+    const existingRequest = await prisma.orgUpgradeRequest.findFirst({
+      where: {
+        orgId,
+        userId,
+        status: 'PENDING'
+      }
+    });
+
+    if (existingRequest) {
+      return res.status(400).json({
+        success: false,
+        error: 'You already have a pending upgrade request'
+      });
+    }
+
+    // Create upgrade request
+    const upgradeRequest = await prisma.orgUpgradeRequest.create({
+      data: {
+        orgId,
+        userId
+      }
+    });
+
+    // Get org and user details
+    const org = await prisma.organization.findUnique({
+      where: { id: orgId },
+      select: { name: true }
+    });
+
+    // Notify all OWNER and ADMIN members
+    const adminMembers = await prisma.orgMember.findMany({
+      where: {
+        orgId,
+        role: {
+          in: ['OWNER', 'ADMIN']
+        }
+      }
+    });
+
+    for (const admin of adminMembers) {
+      await notificationService.createNotification({
+        userId: admin.userId,
+        type: 'UPGRADE_REQUEST',
+        title: 'Admin Upgrade Request',
+        message: `${req.user.firstName} ${req.user.lastName} wants to be upgraded to Admin`,
+        data: {
+          orgId,
+          requestId: upgradeRequest.id,
+          requesterId: userId
+        },
+        actionUrl: `/manage?tab=upgrade-requests`,
+        actionText: 'View Request',
+        priority: 'HIGH'
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: 'Upgrade request sent to admins',
+      request: upgradeRequest
+    });
+
+  } catch (error) {
+    console.error('Error requesting upgrade:', error);
+    next(error);
+  }
+};
+
+// GET /orgs/:orgId/upgrade-requests — Get pending upgrade requests (OWNER/ADMIN only)
+const getUpgradeRequests = async (req, res, next) => {
+  try {
+    const { orgId } = req.params;
+
+    const requests = await prisma.orgUpgradeRequest.findMany({
+      where: {
+        orgId,
+        status: 'PENDING'
+      },
+      include: {
+        organization: {
+          select: {
+            name: true
+          }
+        }
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+
+    // Get user details for each request
+    const requestsWithUsers = await Promise.all(
+      requests.map(async (req) => {
+        const user = await prisma.user.findUnique({
+          where: { id: req.userId },
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            profilePicture: true
+          }
+        });
+        return {
+          ...req,
+          user
+        };
+      })
+    );
+
+    return res.json({
+      success: true,
+      requests: requestsWithUsers
+    });
+
+  } catch (error) {
+    console.error('Error fetching upgrade requests:', error);
+    next(error);
+  }
+};
+
+// POST /orgs/:orgId/upgrade-requests/:requestId/accept — Accept upgrade request
+const acceptUpgradeRequest = async (req, res, next) => {
+  try {
+    const { orgId, requestId } = req.params;
+    const accepterId = req.user.id;
+
+    // Find the request
+    const request = await prisma.orgUpgradeRequest.findUnique({
+      where: { id: requestId }
+    });
+
+    if (!request) {
+      return res.status(404).json({
+        success: false,
+        error: 'Upgrade request not found'
+      });
+    }
+
+    if (request.status !== 'PENDING') {
+      return res.status(400).json({
+        success: false,
+        error: 'This request has already been processed'
+      });
+    }
+
+    // Get org and user details
+    const org = await prisma.organization.findUnique({
+      where: { id: orgId },
+      select: { name: true }
+    });
+
+    const requestUser = await prisma.user.findUnique({
+      where: { id: request.userId },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true
+      }
+    });
+
+    const accepter = await prisma.user.findUnique({
+      where: { id: accepterId },
+      select: {
+        firstName: true,
+        lastName: true
+      }
+    });
+
+    // Update member role and request status in transaction
+    await prisma.$transaction([
+      // Update member role to ADMIN
+      prisma.orgMember.updateMany({
+        where: {
+          userId: request.userId,
+          orgId
+        },
+        data: {
+          role: 'ADMIN'
+        }
+      }),
+      // Mark request as accepted
+      prisma.orgUpgradeRequest.update({
+        where: { id: requestId },
+        data: {
+          status: 'ACCEPTED',
+          acceptedBy: accepterId
+        }
+      })
+    ]);
+
+    // Notify the upgraded member
+    await notificationService.createNotification({
+      userId: request.userId,
+      type: 'UPGRADE_ACCEPTED',
+      title: 'Promoted to Admin! 🎉',
+      message: `You've been promoted to ADMIN in ${org.name}`,
+      data: {
+        orgId,
+        requestId
+      },
+      actionUrl: `/orgs/${orgId}`,
+      actionText: 'View Organization',
+      priority: 'HIGH'
+    });
+
+    // Notify all other OWNER/ADMIN members
+    const allAdmins = await prisma.orgMember.findMany({
+      where: {
+        orgId,
+        role: {
+          in: ['OWNER', 'ADMIN']
+        },
+        userId: {
+          not: request.userId // Don't notify the upgraded member again
+        }
+      }
+    });
+
+    for (const admin of allAdmins) {
+      if (admin.userId !== accepterId) { // Don't notify the accepter
+        await notificationService.createNotification({
+          userId: admin.userId,
+          type: 'MEMBER_UPGRADED',
+          title: 'Member Upgraded',
+          message: `${requestUser.firstName} ${requestUser.lastName} has been upgraded to ADMIN by ${accepter.firstName} ${accepter.lastName}`,
+          data: {
+            orgId,
+            upgradedUserId: request.userId,
+            acceptedBy: accepterId
+          },
+          actionUrl: `/orgs/${orgId}`,
+          actionText: 'View Organization',
+          priority: 'MEDIUM'
+        });
+      }
+    }
+
+    return res.json({
+      success: true,
+      message: `${requestUser.firstName} ${requestUser.lastName} is now an Admin!`
+    });
+
+  } catch (error) {
+    console.error('Error accepting upgrade request:', error);
+    next(error);
+  }
+};
+
+// POST /orgs/:orgId/upgrade-requests/:requestId/reject — Reject upgrade request
+const rejectUpgradeRequest = async (req, res, next) => {
+  try {
+    const { requestId } = req.params;
+
+    const request = await prisma.orgUpgradeRequest.findUnique({
+      where: { id: requestId }
+    });
+
+    if (!request) {
+      return res.status(404).json({
+        success: false,
+        error: 'Upgrade request not found'
+      });
+    }
+
+    if (request.status !== 'PENDING') {
+      return res.status(400).json({
+        success: false,
+        error: 'This request has already been processed'
+      });
+    }
+
+    // Mark as rejected
+    await prisma.orgUpgradeRequest.update({
+      where: { id: requestId },
+      data: {
+        status: 'REJECTED'
+      }
+    });
+
+    return res.json({
+      success: true,
+      message: 'Upgrade request rejected'
+    });
+
+  } catch (error) {
+    console.error('Error rejecting upgrade request:', error);
+    next(error);
+  }
+};
+
+// PATCH /orgs/:orgId/members/:userId/role — Update member role
+const updateMemberRole = async (req, res, next) => {
+  try {
+    const { orgId, userId } = req.params;
+    const { role } = req.body;
+
+    // Validate role
+    const validRoles = ['OWNER', 'ADMIN', 'MEMBER'];
+    if (!role || !validRoles.includes(role)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid role. Must be OWNER, ADMIN, or MEMBER'
+      });
+    }
+
+    // Check if requester has permission (must be OWNER or ADMIN)
+    const requesterMembership = await prisma.orgMember.findUnique({
+      where: {
+        userId_orgId: {
+          userId: req.user.id,
+          orgId
+        }
+      }
+    });
+
+    if (!requesterMembership || !['OWNER', 'ADMIN'].includes(requesterMembership.role)) {
+      return res.status(403).json({
+        success: false,
+        error: 'Only owners and admins can change member roles'
+      });
+    }
+
+    // Find the target membership
+    const targetMembership = await prisma.orgMember.findUnique({
+      where: {
+        userId_orgId: {
+          userId,
+          orgId
+        }
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true
+          }
+        }
+      }
+    });
+
+    if (!targetMembership) {
+      return res.status(404).json({
+        success: false,
+        error: 'Member not found in this organization'
+      });
+    }
+
+    // Prevent non-owners from promoting to OWNER
+    if (role === 'OWNER' && requesterMembership.role !== 'OWNER') {
+      return res.status(403).json({
+        success: false,
+        error: 'Only owners can promote members to owner'
+      });
+    }
+
+    // Update the role
+    const updatedMembership = await prisma.orgMember.update({
+      where: {
+        id: targetMembership.id
+      },
+      data: {
+        role
+      }
+    });
+
+    // Get org details
+    const org = await prisma.organization.findUnique({
+      where: { id: orgId },
+      select: { name: true }
+    });
+
+    // Notify the upgraded member
+    await notificationService.createNotification({
+      userId: targetMembership.userId,
+      type: 'ROLE_UPDATED',
+      title: 'Role Updated',
+      message: `You've been promoted to ${role} in ${org.name}`,
+      data: {
+        orgId,
+        newRole: role,
+        oldRole: targetMembership.role
+      },
+      actionUrl: `/orgs/${orgId}`,
+      actionText: 'View Organization',
+      priority: 'HIGH'
+    });
+
+    return res.json({
+      success: true,
+      message: `${targetMembership.user.firstName} ${targetMembership.user.lastName} is now ${role}`,
+      membership: updatedMembership
+    });
+
+  } catch (error) {
+    console.error('Error updating member role:', error);
+    next(error);
+  }
+};
+
+// DELETE /orgs/:orgId/leave — Leave an organization
+const leaveOrganization = async (req, res, next) => {
+  try {
+    const { orgId } = req.params;
+    const userId = req.user.id;
+
+    // Find the membership
+    const membership = await prisma.orgMember.findUnique({
+      where: {
+        userId_orgId: {
+          userId,
+          orgId
+        }
+      }
+    });
+
+    if (!membership) {
+      return res.status(404).json({
+        success: false,
+        error: 'You are not a member of this organization'
+      });
+    }
+
+    // Check if user is the OWNER
+    if (membership.role === 'OWNER') {
+      // Check if there are other members
+      const memberCount = await prisma.orgMember.count({
+        where: { orgId }
+      });
+
+      if (memberCount > 1) {
+        // There are other members - owner cannot leave without transferring ownership
+        return res.status(400).json({
+          success: false,
+          error: 'As the owner, you must transfer ownership or remove all members before leaving'
+        });
+      }
+      // If owner is the only member, they can leave (org will be orphaned but still exist)
+    }
+
+    // Get org details for notification
+    const org = await prisma.organization.findUnique({
+      where: { id: orgId },
+      select: { name: true }
+    });
+
+    // Delete the membership
+    await prisma.orgMember.delete({
+      where: {
+        id: membership.id
+      }
+    });
+
+    // Notify remaining admins/owners
+    const remainingAdmins = await prisma.orgMember.findMany({
+      where: {
+        orgId,
+        role: {
+          in: ['OWNER', 'ADMIN']
+        }
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true
+          }
+        }
+      }
+    });
+
+    for (const admin of remainingAdmins) {
+      await notificationService.createNotification({
+        userId: admin.userId,
+        type: 'MEMBER_LEFT',
+        title: 'Member Left Organization',
+        message: `${req.user.firstName} ${req.user.lastName} has left ${org.name}`,
+        data: {
+          orgId,
+          leftUserId: userId
+        },
+        actionUrl: `/orgs/${orgId}`,
+        actionText: 'View Organization',
+        priority: 'LOW'
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: `You have left ${org.name}`
+    });
+
+  } catch (error) {
+    console.error('Error leaving organization:', error);
+    next(error);
+  }
+};
+
+module.exports = { createOrg, getMyOrgs, getOrg, getOrgPublic, updateOrg, deleteOrg, inviteMember, getOrgTournaments, discoverOrgs, followOrg, unfollowOrg, requestJoin, getJoinRequests, acceptJoinRequest, rejectJoinRequest, sendInvitation, getReceivedInvitations, acceptInvitation, declineInvitation, checkOrgName, leaveOrganization, updateMemberRole, requestUpgrade, getUpgradeRequests, acceptUpgradeRequest, rejectUpgradeRequest };

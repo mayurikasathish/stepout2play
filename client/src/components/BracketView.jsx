@@ -28,6 +28,11 @@ const BracketView = ({ eventId, eventName, eventFormat, registrationCount, isOrg
   const [publishing, setPublishing] = useState(false)
   const [showPublishConfirm, setShowPublishConfirm] = useState(false)
   const [showScheduler, setShowScheduler] = useState(false)
+  const [showWalkoverModal, setShowWalkoverModal] = useState(false)
+  const [walkoverMatch, setWalkoverMatch] = useState(null)
+  const [walkoverWinner, setWalkoverWinner] = useState('')
+  const [walkoverReason, setWalkoverReason] = useState('')
+  const [submittingWalkover, setSubmittingWalkover] = useState(false)
 
   // Debug logging
   useEffect(() => {
@@ -139,6 +144,45 @@ const BracketView = ({ eventId, eventName, eventFormat, registrationCount, isOrg
     setShowScorecardModal(true)
   }
 
+  const handleWalkoverClick = (match) => {
+    setWalkoverMatch(match)
+    setWalkoverWinner('')
+    setWalkoverReason('')
+    setShowWalkoverModal(true)
+  }
+
+  const handleWalkoverSubmit = async () => {
+    if (!walkoverWinner) {
+      setToastMessage('Please select a winner')
+      setToastType('error')
+      setShowToast(true)
+      return
+    }
+
+    try {
+      setSubmittingWalkover(true)
+      await api.post(`/matches/${walkoverMatch.id}/walkover`, {
+        winnerId: walkoverWinner,
+        reason: walkoverReason || undefined
+      })
+
+      setShowWalkoverModal(false)
+      setWalkoverMatch(null)
+      setWalkoverWinner('')
+      setWalkoverReason('')
+      loadBracket()
+      setToastMessage('Walkover declared successfully')
+      setToastType('success')
+      setShowToast(true)
+    } catch (err) {
+      console.error('Error declaring walkover:', err)
+      setToastMessage(err.response?.data?.error || 'Failed to declare walkover')
+      setToastType('error')
+      setShowToast(true)
+    } finally {
+      setSubmittingWalkover(false)
+    }
+  }
 
   const handleMatchUpdate = async (winnerId, score, pointHistory) => {
     try {
@@ -495,6 +539,7 @@ const BracketView = ({ eventId, eventName, eventFormat, registrationCount, isOrg
           bracket={bracket}
           onMatchClick={isOrganizer ? handleMatchClick : null}
           onCaptureScorecard={isOrganizer ? handleCaptureScorecard : null}
+          onWalkover={isOrganizer ? handleWalkoverClick : null}
           isOrganizer={isOrganizer}
         />
       ) : (
@@ -505,6 +550,7 @@ const BracketView = ({ eventId, eventName, eventFormat, registrationCount, isOrg
               isOrganizer={isOrganizer}
               onMatchClick={isOrganizer ? handleMatchClick : null}
               onCaptureScorecard={isOrganizer ? handleCaptureScorecard : null}
+              onWalkover={isOrganizer ? handleWalkoverClick : null}
               eventName={eventName}
               tournamentName={tournament?.name || 'Tournament'}
             />
@@ -514,6 +560,7 @@ const BracketView = ({ eventId, eventName, eventFormat, registrationCount, isOrg
               onMatchClick={isOrganizer ? handleMatchClick : null}
               onCaptureScorecard={isOrganizer ? handleCaptureScorecard : null}
               onMarkAsLive={isOrganizer ? handleMarkAsLive : null}
+              onWalkover={isOrganizer ? handleWalkoverClick : null}
               eventName={eventName}
               tournamentName={tournament?.name || 'Tournament'}
             />
@@ -714,6 +761,149 @@ const BracketView = ({ eventId, eventName, eventFormat, registrationCount, isOrg
                 className="flex-1 px-6 py-3 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-semibold rounded-xl transition-all shadow-lg"
               >
                 Yes, Edit Match
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Walkover Modal */}
+      {showWalkoverModal && walkoverMatch && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-md" onClick={() => !submittingWalkover && setShowWalkoverModal(false)} />
+          <div style={{
+            position: 'relative',
+            background: 'linear-gradient(135deg, rgba(10, 22, 40, 0.98), rgba(6, 13, 31, 0.99))',
+            border: '1px solid rgba(255, 165, 0, 0.3)',
+            borderRadius: '24px',
+            boxShadow: '0 25px 50px rgba(0, 0, 0, 0.5)',
+            width: '100%',
+            maxWidth: '32rem',
+            padding: '2rem',
+            fontFamily: "'Barlow Condensed', sans-serif"
+          }}>
+            <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+              <div style={{
+                width: '4rem',
+                height: '4rem',
+                background: 'linear-gradient(135deg, #ff9800 0%, #ff5722 100%)',
+                borderRadius: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 1rem'
+              }}>
+                <svg style={{ width: '2rem', height: '2rem', color: '#fff' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <h3 style={{ fontSize: '1.75rem', fontWeight: '900', color: '#ff9800', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '-0.02em' }}>
+                DECLARE WALKOVER
+              </h3>
+              <p style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '0.95rem', lineHeight: '1.6', marginBottom: '1rem' }}>
+                {walkoverMatch.participant1?.user?.firstName} {walkoverMatch.participant1?.user?.lastName}
+                {walkoverMatch.participant1?.partner && ` / ${walkoverMatch.participant1.partner.firstName} ${walkoverMatch.participant1.partner.lastName}`}
+                {' vs '}
+                {walkoverMatch.participant2?.user?.firstName} {walkoverMatch.participant2?.user?.lastName}
+                {walkoverMatch.participant2?.partner && ` / ${walkoverMatch.participant2.partner.firstName} ${walkoverMatch.participant2.partner.lastName}`}
+              </p>
+            </div>
+
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label style={{ display: 'block', color: '#ff9800', fontSize: '0.9rem', fontWeight: '700', marginBottom: '0.5rem', textTransform: 'uppercase' }}>
+                Who gets the walkover?
+              </label>
+              <select
+                value={walkoverWinner}
+                onChange={(e) => setWalkoverWinner(e.target.value)}
+                disabled={submittingWalkover}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  background: 'rgba(255, 255, 255, 0.95)',
+                  border: '1px solid rgba(255, 152, 0, 0.3)',
+                  borderRadius: '12px',
+                  color: '#000',
+                  fontSize: '1rem',
+                  fontFamily: "'Barlow Condensed', sans-serif",
+                  cursor: submittingWalkover ? 'not-allowed' : 'pointer'
+                }}
+              >
+                <option value="" style={{ color: '#666' }}>Select Winner</option>
+                <option value={walkoverMatch.participant1?.id} style={{ color: '#000' }}>
+                  {walkoverMatch.participant1?.user?.firstName} {walkoverMatch.participant1?.user?.lastName}
+                  {walkoverMatch.participant1?.partner && ` / ${walkoverMatch.participant1.partner.firstName} ${walkoverMatch.participant1.partner.lastName}`}
+                </option>
+                <option value={walkoverMatch.participant2?.id} style={{ color: '#000' }}>
+                  {walkoverMatch.participant2?.user?.firstName} {walkoverMatch.participant2?.user?.lastName}
+                  {walkoverMatch.participant2?.partner && ` / ${walkoverMatch.participant2.partner.firstName} ${walkoverMatch.participant2.partner.lastName}`}
+                </option>
+              </select>
+            </div>
+
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label style={{ display: 'block', color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.9rem', fontWeight: '700', marginBottom: '0.5rem' }}>
+                Reason (optional)
+              </label>
+              <input
+                type="text"
+                value={walkoverReason}
+                onChange={(e) => setWalkoverReason(e.target.value)}
+                placeholder="e.g., Injury, No-show, Withdrew..."
+                disabled={submittingWalkover}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  borderRadius: '12px',
+                  color: '#fff',
+                  fontSize: '0.95rem',
+                  fontFamily: "'Barlow Condensed', sans-serif"
+                }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button
+                onClick={() => setShowWalkoverModal(false)}
+                disabled={submittingWalkover}
+                style={{
+                  flex: 1,
+                  padding: '0.875rem 1rem',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  color: '#fff',
+                  fontWeight: '700',
+                  borderRadius: '12px',
+                  cursor: submittingWalkover ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.3s',
+                  textTransform: 'uppercase',
+                  fontSize: '0.9rem',
+                  opacity: submittingWalkover ? 0.5 : 1
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleWalkoverSubmit}
+                disabled={submittingWalkover}
+                style={{
+                  flex: 1,
+                  padding: '0.875rem 1rem',
+                  background: submittingWalkover ? 'rgba(255, 152, 0, 0.5)' : 'linear-gradient(135deg, #ff9800 0%, #ff5722 100%)',
+                  border: 'none',
+                  color: '#fff',
+                  fontWeight: '700',
+                  borderRadius: '12px',
+                  cursor: submittingWalkover ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.3s',
+                  textTransform: 'uppercase',
+                  fontSize: '0.9rem',
+                  boxShadow: submittingWalkover ? 'none' : '0 4px 15px rgba(255, 152, 0, 0.4)'
+                }}
+              >
+                {submittingWalkover ? 'Declaring...' : 'Confirm Walkover'}
               </button>
             </div>
           </div>

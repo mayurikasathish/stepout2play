@@ -129,4 +129,12 @@ router.post(
   bracketController.cancelMatch.bind(bracketController)
 );
 
+// POST /matches/:matchId/walkover - Declare walkover
+router.post(
+  '/matches/:matchId/walkover',
+  authenticate,
+  requireMatchOrgRole(['OWNER', 'ADMIN']),
+  bracketController.declareWalkover.bind(bracketController)
+);
+
 module.exports = router;

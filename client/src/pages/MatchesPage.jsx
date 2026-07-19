@@ -531,6 +531,8 @@ const RegistrationCard = ({ registration, navigate, isUpcoming, highlightedEvent
   const [withdrawing, setWithdrawing] = useState(false)
   const [withdrawalReason, setWithdrawalReason] = useState('')
   const [hasViewedBracket, setHasViewedBracket] = useState(false)
+  const [showWithdrawalSuccess, setShowWithdrawalSuccess] = useState(false)
+  const [withdrawalMessage, setWithdrawalMessage] = useState('')
 
   // Check localStorage for viewed state
   useEffect(() => {
@@ -566,14 +568,17 @@ const RegistrationCard = ({ registration, navigate, isUpcoming, highlightedEvent
       })
 
       if (response.data.success) {
-        alert(response.data.message || 'Withdrawal successful. The organizer has been notified.')
+        setWithdrawalMessage(response.data.message || 'Withdrawal successful. The organizer has been notified.')
         setShowWithdrawModal(false)
-        // Reload the page to reflect the change
-        window.location.reload()
+        setShowWithdrawalSuccess(true)
+        // Reload after modal is closed
+        setTimeout(() => window.location.reload(), 2500)
       }
     } catch (err) {
       console.error('Error withdrawing:', err)
-      alert(err.response?.data?.error || 'Failed to withdraw from event')
+      setWithdrawalMessage(err.response?.data?.error || 'Failed to withdraw from event')
+      setShowWithdrawModal(false)
+      setShowWithdrawalSuccess(true)
     } finally {
       setWithdrawing(false)
     }
@@ -879,6 +884,120 @@ const RegistrationCard = ({ registration, navigate, isUpcoming, highlightedEvent
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Withdrawal Success Modal */}
+      {showWithdrawalSuccess && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.7)',
+            backdropFilter: 'blur(8px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            animation: 'fadeIn 0.3s ease-out'
+          }}
+          onClick={() => setShowWithdrawalSuccess(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: 'linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%)',
+              borderRadius: '24px',
+              padding: '48px',
+              maxWidth: '500px',
+              width: '90%',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              textAlign: 'center',
+              animation: 'slideUp 0.4s ease-out'
+            }}
+          >
+            {/* Success Icon */}
+            <div
+              style={{
+                width: '80px',
+                height: '80px',
+                borderRadius: '50%',
+                background: withdrawalMessage.includes('Failed')
+                  ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(220, 38, 38, 0.2))'
+                  : 'linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(22, 163, 74, 0.2))',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 24px',
+                border: withdrawalMessage.includes('Failed')
+                  ? '3px solid rgba(239, 68, 68, 0.5)'
+                  : '3px solid rgba(34, 197, 94, 0.5)',
+                animation: 'scaleIn 0.5s ease-out'
+              }}
+            >
+              <span style={{ fontSize: '3rem' }}>
+                {withdrawalMessage.includes('Failed') ? '❌' : '✓'}
+              </span>
+            </div>
+
+            {/* Title */}
+            <h3 style={{
+              fontSize: '1.8rem',
+              fontWeight: '700',
+              color: '#fff',
+              marginBottom: '16px',
+              fontFamily: "'Barlow Condensed', sans-serif",
+              textTransform: 'uppercase',
+              letterSpacing: '-0.02em'
+            }}>
+              {withdrawalMessage.includes('Failed') ? 'Withdrawal Failed' : 'Withdrawal Successful'}
+            </h3>
+
+            {/* Message */}
+            <p style={{
+              color: 'rgba(255, 255, 255, 0.8)',
+              fontSize: '1.05rem',
+              marginBottom: '32px',
+              lineHeight: '1.6'
+            }}>
+              {withdrawalMessage}
+            </p>
+
+            {/* Close Button */}
+            <button
+              onClick={() => {
+                setShowWithdrawalSuccess(false)
+                if (!withdrawalMessage.includes('Failed')) {
+                  window.location.reload()
+                }
+              }}
+              style={{
+                background: 'rgba(255, 255, 255, 0.15)',
+                color: '#fff',
+                border: '1px solid rgba(255, 255, 255, 0.3)',
+                padding: '12px 32px',
+                borderRadius: '12px',
+                fontSize: '1rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                fontFamily: "'Barlow Condensed', sans-serif",
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.background = 'rgba(255, 255, 255, 0.25)'
+                e.target.style.transform = 'translateY(-2px)'
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = 'rgba(255, 255, 255, 0.15)'
+                e.target.style.transform = 'translateY(0)'
+              }}
+            >
+              Close
+            </button>
           </div>
         </div>
       )}

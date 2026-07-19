@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import api from '../services/api'
 
-const PlayerRadarCard = () => {
+const PlayerRadarCard = ({ userId }) => {
   const { user } = useAuth()
   const [isAnimated, setIsAnimated] = useState(false)
   const [activeVertex, setActiveVertex] = useState(0)
@@ -12,51 +12,48 @@ const PlayerRadarCard = () => {
     experience: 0,
     versatility: 0
   })
+  const [rawStats, setRawStats] = useState({
+    winRatePercent: 0,
+    formWins: 0,
+    experienceMatches: 0,
+    versatilitySports: 0
+  })
 
   // Fetch stats from profile
   useEffect(() => {
     const fetchStats = async () => {
-      if (!user?.id) return
+      const targetUserId = userId || user?.id
+      if (!targetUserId) return
 
       try {
-        const response = await api.get(`/users/${user.id}/profile-stats`)
+        const response = await api.get(`/users/${targetUserId}/profile-stats`)
         if (response.data.success) {
           const careerStats = response.data.careerStats
 
-          // Calculate stats
-          const winRate = careerStats.winRate || 0
+          // Raw values to display
+          const winRatePercent = careerStats.winRate || 0
+          const formWins = careerStats.last10Wins || 0
+          const experienceMatches = careerStats.totalMatches || 0
+          const versatilitySports = careerStats.sportsPlayed || 0
 
-          // Form: based on recent performance (use current streak as indicator)
-          // currentStreak is "W3" or "L2" format
-          let form = 50 // Default neutral
-          if (careerStats.currentStreak) {
-            const streakType = careerStats.currentStreak.charAt(0)
-            const streakCount = parseInt(careerStats.currentStreak.substring(1))
-
-            if (streakType === 'W') {
-              // Winning streak: 50 + (streak * 8), capped at 100
-              form = Math.min(100, 50 + (streakCount * 8))
-            } else if (streakType === 'L') {
-              // Losing streak: 50 - (streak * 8), floored at 0
-              form = Math.max(0, 50 - (streakCount * 8))
-            }
-          }
-
-          // Experience: based on total matches played (scale to 100)
-          // 50 matches = 100%, scales linearly
-          const experience = Math.min(100, (careerStats.totalMatches / 50) * 100)
-
-          // Versatility: based on number of sports played
-          // 6 sports = 100%, scales linearly
-          const versatility = careerStats.sportsPlayed
-            ? Math.min(100, (careerStats.sportsPlayed / 6) * 100)
-            : 0
+          // Normalized values for diamond shape (0-100 scale)
+          const winRate = winRatePercent // Already 0-100
+          const form = (formWins / 10) * 100 // 0-10 → 0-100
+          const experience = Math.min(100, (experienceMatches / 100) * 100) // 0-100+ → 0-100
+          const versatility = Math.min(100, (versatilitySports / 6) * 100) // 0-6 → 0-100
 
           setStats({
             winRate: Math.round(winRate),
             form: Math.round(form),
             experience: Math.round(experience),
             versatility: Math.round(versatility)
+          })
+
+          setRawStats({
+            winRatePercent: Math.round(winRatePercent),
+            formWins: formWins,
+            experienceMatches: experienceMatches,
+            versatilitySports: versatilitySports
           })
         }
       } catch (err) {
@@ -65,7 +62,7 @@ const PlayerRadarCard = () => {
     }
 
     fetchStats()
-  }, [user])
+  }, [user, userId])
 
   // Chart config - DIAMOND (4 vertices)
   const cx = 175 // center x
@@ -75,10 +72,10 @@ const PlayerRadarCard = () => {
 
   // Metrics in clockwise order starting from top (DIAMOND shape)
   const metrics = [
-    { key: 'winRate', label: 'Win Rate', value: stats.winRate },      // Top
-    { key: 'form', label: 'Form', value: stats.form },                // Right
-    { key: 'experience', label: 'Experience', value: stats.experience }, // Bottom
-    { key: 'versatility', label: 'Versatility', value: stats.versatility }, // Left
+    { key: 'winRate', label: 'Win Rate', value: stats.winRate, display: `${rawStats.winRatePercent}%` },      // Top
+    { key: 'form', label: 'Form', value: stats.form, display: `${rawStats.formWins}/10` },                // Right
+    { key: 'experience', label: 'Experience', value: stats.experience, display: rawStats.experienceMatches }, // Bottom
+    { key: 'versatility', label: 'Versatility', value: stats.versatility, display: rawStats.versatilitySports }, // Left
   ]
 
   // Calculate point position with bulge effect
@@ -323,7 +320,7 @@ const PlayerRadarCard = () => {
                 <g key={i} transform={`translate(${groupX}, ${groupY})`}>
                   {/* Number at origin (0,0) */}
                   <text x="0" y="0" className="metric-value">
-                    {metric.value}
+                    {metric.display}
                   </text>
                   {/* Label offset down by fixed amount */}
                   <text x="0" y="14" className="metric-label">

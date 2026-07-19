@@ -1406,25 +1406,181 @@ export default function LandingPage() {
           }
         }
 
+        @media (max-width: 1024px) {
+          .hero {
+            padding: 6rem 1.5rem 8rem;
+          }
+
+          .hero-h1 {
+            font-size: clamp(3rem, 10vw, 6rem);
+          }
+
+          .cube-arrow-left {
+            left: 1%;
+          }
+
+          .cube-arrow-right {
+            right: 1%;
+          }
+        }
+
         @media (max-width: 768px) {
-          .nav { padding: 0 1.5rem; }
-          .section { padding: 5rem 1.5rem; }
-          .modal { padding: 2rem; }
+          .nav { padding: 0 1rem; }
+          .section { padding: 4rem 1.5rem; }
+          .modal { padding: 1.5rem; max-width: 95%; }
           .nav-btns { gap: 0.5rem; }
-          .btn-nav { padding: 0.6rem 1.2rem; font-size: 0.85rem; }
+          .btn-nav { padding: 0.6rem 1rem; font-size: 0.85rem; }
+
+          .hero {
+            padding: 5rem 1rem 6rem;
+            min-height: 85vh;
+          }
+
+          .hero-h1 {
+            font-size: clamp(2.5rem, 12vw, 5rem);
+            margin-bottom: 1.5rem;
+          }
+
+          .hero-sub {
+            font-size: clamp(0.9rem, 3vw, 1.1rem);
+            margin-bottom: 2rem;
+          }
+
+          .hero-ctas {
+            flex-direction: column;
+            gap: 0.75rem;
+            width: 100%;
+          }
+
+          .hero-ctas button {
+            width: 100%;
+            max-width: 300px;
+          }
+
+          .btn-main, .btn-sec {
+            padding: 0.85rem 2rem;
+            font-size: 1rem;
+          }
+
+          .features-section {
+            padding: 6rem 1rem;
+          }
+
+          .features-headline {
+            font-size: clamp(2.5rem, 10vw, 4rem);
+          }
+
+          .features-subhead {
+            font-size: clamp(0.9rem, 3vw, 1rem);
+          }
+
+          .cycling-section {
+            min-height: 40vh;
+            padding: 2rem 1rem;
+          }
+
+          .cycling-text {
+            font-size: clamp(2.5rem, 10vw, 5rem);
+            text-align: center;
+          }
+
+          .stats-section {
+            padding: 5rem 1rem;
+          }
+
+          .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+          }
+
+          .stat-card {
+            padding: 1.5rem 1rem;
+          }
+
+          .stat-number {
+            font-size: clamp(2rem, 8vw, 3rem);
+          }
+
+          .stat-label {
+            font-size: 0.85rem;
+          }
+
+          .cta-section {
+            padding: 6rem 1rem;
+          }
+
+          .cta-headline {
+            font-size: clamp(2.5rem, 10vw, 4rem);
+          }
+
+          .cta-subhead {
+            font-size: clamp(0.9rem, 3vw, 1rem);
+          }
+
+          .cta-buttons {
+            flex-direction: column;
+            width: 100%;
+          }
+
+          .cta-buttons button {
+            width: 100%;
+            max-width: 300px;
+          }
 
           .footer-content {
             grid-template-columns: 1fr;
             text-align: center;
+            gap: 2rem;
           }
 
           .footer-socials {
             justify-content: center;
           }
 
+          .footer {
+            padding: 3rem 1rem 1.5rem;
+          }
+
+          .cube-arrow {
+            width: 40px;
+            height: 40px;
+            font-size: 1.5rem;
+          }
+
+          .cube-arrow-left {
+            left: 0.5%;
+          }
+
+          .cube-arrow-right {
+            right: 0.5%;
+          }
+
+          .modal-title {
+            font-size: 2rem;
+          }
+
+          .form-row {
+            flex-direction: column;
+            gap: 0;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .nav-logo {
+            font-size: 1.1rem;
+          }
+
+          .btn-nav {
+            padding: 0.5rem 0.8rem;
+            font-size: 0.75rem;
+          }
+
+          .hero-h1 {
+            font-size: clamp(2rem, 12vw, 3.5rem);
+          }
+
           .stats-grid {
-            grid-template-columns: repeat(2, 1fr);
-            gap: 1.5rem;
+            grid-template-columns: 1fr;
           }
         }
       `}</style>

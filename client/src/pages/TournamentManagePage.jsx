@@ -579,12 +579,6 @@ const TournamentManagePage = () => {
                 <TrashIcon className="w-4 h-4" />
                 Delete
               </button>
-              <button
-                onClick={() => navigate(`/tournaments/${id}`)}
-                className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg"
-              >
-                Share
-              </button>
             </div>
           </div>
 

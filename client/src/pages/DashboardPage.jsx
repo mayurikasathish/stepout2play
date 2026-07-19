@@ -125,6 +125,82 @@ const DashboardPage = () => {
         .chart-wrapper {
           transform: scale(1.15);
         }
+
+        @media (max-width: 1200px) {
+          .demo-section {
+            grid-template-columns: 1fr;
+            gap: 3rem;
+            padding: 2rem 0;
+          }
+
+          .left-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+          }
+
+          .greeting-text {
+            position: static;
+            max-width: 100%;
+            margin-bottom: 2rem;
+          }
+
+          .greeting-name {
+            font-size: clamp(2rem, 6vw, 3.5rem);
+          }
+
+          .greeting-message {
+            font-size: clamp(1.5rem, 5vw, 2.5rem);
+          }
+
+          .chart-section {
+            margin-top: 0;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+          }
+
+          .chart-wrapper {
+            transform: scale(1);
+            max-width: 400px;
+            width: 100%;
+          }
+
+          .center-section {
+            min-height: auto;
+          }
+
+          .right-section {
+            justify-content: center;
+            align-items: center;
+          }
+
+          .right-section > div {
+            max-width: 100%;
+            align-items: center !important;
+            margin-right: 0 !important;
+          }
+        }
+
+        @media (max-width: 768px) {
+          .content-wrapper {
+            padding: 1rem;
+          }
+
+          .demo-section {
+            gap: 2rem;
+            padding: 1rem 0;
+          }
+
+          .greeting-name {
+            font-size: clamp(1.75rem, 8vw, 2.5rem);
+          }
+
+          .greeting-message {
+            font-size: clamp(1.25rem, 6vw, 1.75rem);
+          }
+        }
       `}</style>
 
       <div className="dashboard-container">

@@ -18,6 +18,12 @@ const ManagePage = () => {
   const [deleteConfirmModal, setDeleteConfirmModal] = useState(null)
   const [readMoreModal, setReadMoreModal] = useState(null)
   const [confirmActionModal, setConfirmActionModal] = useState(null)
+  const [leaveConfirmModal, setLeaveConfirmModal] = useState(null)
+  const [leaving, setLeaving] = useState(false)
+  const [upgradeConfirmModal, setUpgradeConfirmModal] = useState(null)
+  const [upgrading, setUpgrading] = useState(false)
+  const [showCopyToast, setShowCopyToast] = useState(false)
+  const [copyToastMessage, setCopyToastMessage] = useState('')
 
   useEffect(() => {
     loadOrganizations()
@@ -182,6 +188,59 @@ const ManagePage = () => {
     } catch (err) {
       console.error(`Error ${confirmActionModal.type}ing request:`, err)
       alert(err.response?.data?.error || `Failed to ${confirmActionModal.type} request`)
+    }
+  }
+
+  const handleLeaveOrg = async (org) => {
+    try {
+      setLeaving(true)
+      const res = await api.delete(`/orgs/${org.id}/leave`)
+
+      if (res.data.success) {
+        setLeaveConfirmModal(null)
+        // Refresh context to update org list
+        refreshContext()
+        // Refresh organizations
+        loadOrganizations()
+      }
+    } catch (err) {
+      console.error('Error leaving organization:', err)
+      alert(err.response?.data?.error || 'Failed to leave organization')
+    } finally {
+      setLeaving(false)
+    }
+  }
+
+  const handleCopyMinisiteLink = (org) => {
+    const baseUrl = window.location.origin
+    const minisiteUrl = `${baseUrl}/orgs/${org.slug || org.id}`
+
+    navigator.clipboard.writeText(minisiteUrl).then(() => {
+      setCopyToastMessage('Minisite link copied to clipboard! ✓')
+      setShowCopyToast(true)
+      setTimeout(() => setShowCopyToast(false), 3000)
+    }).catch(err => {
+      console.error('Failed to copy:', err)
+      setCopyToastMessage('Failed to copy link')
+      setShowCopyToast(true)
+      setTimeout(() => setShowCopyToast(false), 3000)
+    })
+  }
+
+  const handleRequestUpgrade = async (org) => {
+    try {
+      setUpgrading(true)
+      const res = await api.post(`/orgs/${org.id}/request-upgrade`)
+
+      if (res.data.success) {
+        setUpgradeConfirmModal(null)
+        alert('Upgrade request sent to admins! You\'ll be notified when they respond.')
+      }
+    } catch (err) {
+      console.error('Error requesting upgrade:', err)
+      alert(err.response?.data?.error || 'Failed to send upgrade request')
+    } finally {
+      setUpgrading(false)
     }
   }
 
@@ -871,8 +930,89 @@ const ManagePage = () => {
           color: #ec4899;
         }
 
+        .btn-leave {
+          background: transparent;
+          color: rgba(251, 146, 60, 0.7);
+          font-family: 'Barlow Condensed', sans-serif;
+          font-size: 0.9rem;
+          padding: 0.4rem 0.75rem;
+          border: none;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          display: flex;
+          align-items: center;
+          gap: 0.35rem;
+        }
+
+        .btn-leave:hover {
+          color: #fb923c;
+        }
+
+        .btn-upgrade {
+          background: transparent;
+          color: rgba(0, 212, 255, 0.7);
+          font-family: 'Barlow Condensed', sans-serif;
+          font-size: 0.9rem;
+          padding: 0.4rem 0.75rem;
+          border: none;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          display: flex;
+          align-items: center;
+          gap: 0.35rem;
+        }
+
+        .btn-upgrade:hover {
+          color: #00d4ff;
+        }
+
+        .btn-share {
+          background: transparent;
+          color: rgba(79, 255, 176, 0.7);
+          font-family: 'Barlow Condensed', sans-serif;
+          font-size: 0.9rem;
+          padding: 0.4rem 0.75rem;
+          border: none;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          display: flex;
+          align-items: center;
+          gap: 0.35rem;
+        }
+
+        .btn-share:hover {
+          color: #4fffb0;
+        }
+
         .btn-tertiary:hover {
           color: #00d4ff;
+        }
+
+        .copy-toast {
+          position: fixed;
+          top: 100px;
+          right: 2rem;
+          background: linear-gradient(135deg, rgba(79, 255, 176, 0.95), rgba(0, 212, 255, 0.95));
+          color: #060d1f;
+          padding: 1rem 1.5rem;
+          border-radius: 12px;
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 700;
+          font-size: 1rem;
+          box-shadow: 0 8px 25px rgba(79, 255, 176, 0.4);
+          z-index: 10000;
+          animation: slideInDown 0.3s ease;
+        }
+
+        @keyframes slideInDown {
+          from {
+            transform: translateY(-50px);
+            opacity: 0;
+          }
+          to {
+            transform: translateY(0);
+            opacity: 1;
+          }
         }
 
         .delete-modal-overlay {
@@ -1236,6 +1376,12 @@ const ManagePage = () => {
                               >
                                 ✏ Edit Org
                               </button>
+                              <button
+                                className="btn-share"
+                                onClick={() => handleCopyMinisiteLink(org)}
+                              >
+                                🔗 Share Minisite
+                              </button>
                             </>
                           )}
                           {org.myRole === 'OWNER' && (
@@ -1244,6 +1390,22 @@ const ManagePage = () => {
                               onClick={() => setDeleteConfirmModal(org)}
                             >
                               🗑 Delete Org
+                            </button>
+                          )}
+                          {org.myRole === 'MEMBER' && (
+                            <button
+                              className="btn-upgrade"
+                              onClick={() => setUpgradeConfirmModal(org)}
+                            >
+                              ⬆️ Request Admin
+                            </button>
+                          )}
+                          {org.myRole !== 'OWNER' && (
+                            <button
+                              className="btn-leave"
+                              onClick={() => setLeaveConfirmModal(org)}
+                            >
+                              🚪 Leave Org
                             </button>
                           )}
                         </div>
@@ -1458,8 +1620,166 @@ const ManagePage = () => {
               </div>
             </div>
           )}
+
+          {upgradeConfirmModal && (
+            <div className="delete-modal-overlay" onClick={() => !upgrading && setUpgradeConfirmModal(null)}>
+              <div className="delete-modal-content" onClick={(e) => e.stopPropagation()} style={{ borderColor: 'rgba(0, 212, 255, 0.3)', boxShadow: '0 0 40px rgba(0, 212, 255, 0.2)' }}>
+                <div className="delete-modal-icon" style={{ fontSize: '4rem' }}>⬆️</div>
+                <div className="delete-modal-title" style={{ color: '#00d4ff' }}>REQUEST ADMIN ROLE?</div>
+                <div className="delete-modal-text" style={{ marginBottom: '1rem' }}>
+                  You're requesting to be upgraded to Admin in this organization.
+                </div>
+                <div className="delete-modal-org-name" style={{ color: '#00d4ff', marginBottom: '1.5rem' }}>
+                  {upgradeConfirmModal.name}
+                </div>
+                <div style={{
+                  background: 'rgba(0, 212, 255, 0.1)',
+                  border: '1px solid rgba(0, 212, 255, 0.3)',
+                  borderRadius: '12px',
+                  padding: '1.5rem',
+                  marginBottom: '1.5rem',
+                  textAlign: 'left'
+                }}>
+                  <div style={{ color: 'rgba(255, 255, 255, 0.9)', marginBottom: '1rem', fontWeight: '600' }}>
+                    As an Admin, you'll be able to:
+                  </div>
+                  <ul style={{
+                    color: 'rgba(255, 255, 255, 0.7)',
+                    paddingLeft: '1.5rem',
+                    marginBottom: '0',
+                    lineHeight: '1.8'
+                  }}>
+                    <li>Create and manage tournaments</li>
+                    <li>Invite and manage members</li>
+                    <li>Edit organization profile</li>
+                    <li>Accept join requests</li>
+                  </ul>
+                </div>
+                <div style={{ fontSize: '0.875rem', color: 'rgba(255, 255, 255, 0.5)', marginBottom: '1.5rem' }}>
+                  Your request will be sent to all Owners and Admins. The first one to accept will upgrade you!
+                </div>
+                <div className="delete-modal-actions">
+                  <button
+                    className="btn-cancel"
+                    onClick={() => setUpgradeConfirmModal(null)}
+                    disabled={upgrading}
+                    style={{ opacity: upgrading ? 0.5 : 1 }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => handleRequestUpgrade(upgradeConfirmModal)}
+                    disabled={upgrading}
+                    style={{
+                      flex: 1,
+                      background: upgrading ? 'rgba(0, 212, 255, 0.5)' : '#00d4ff',
+                      color: '#060d1f',
+                      fontFamily: "'Barlow Condensed', sans-serif",
+                      fontWeight: 700,
+                      fontSize: '1rem',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                      padding: '0.875rem 1.5rem',
+                      border: 'none',
+                      borderRadius: '8px',
+                      cursor: upgrading ? 'not-allowed' : 'pointer',
+                      transition: 'all 0.3s ease',
+                      opacity: upgrading ? 0.5 : 1
+                    }}
+                  >
+                    {upgrading ? 'Sending Request...' : 'Yes, Request Admin Role'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {leaveConfirmModal && (
+            <div className="delete-modal-overlay" onClick={() => !leaving && setLeaveConfirmModal(null)}>
+              <div className="delete-modal-content" onClick={(e) => e.stopPropagation()} style={{ borderColor: 'rgba(251, 146, 60, 0.3)', boxShadow: '0 0 40px rgba(251, 146, 60, 0.2)' }}>
+                <div className="delete-modal-icon" style={{ fontSize: '4rem' }}>🚪</div>
+                <div className="delete-modal-title" style={{ color: '#fb923c' }}>LEAVING THE TEAM?</div>
+                <div className="delete-modal-text" style={{ marginBottom: '1rem' }}>
+                  You're about to step away from this organization.
+                </div>
+                <div className="delete-modal-org-name" style={{ color: '#fb923c', marginBottom: '1rem' }}>
+                  {leaveConfirmModal.name}
+                </div>
+                <div style={{
+                  background: 'rgba(251, 146, 60, 0.1)',
+                  border: '1px solid rgba(251, 146, 60, 0.3)',
+                  borderRadius: '12px',
+                  padding: '1.5rem',
+                  marginBottom: '1.5rem',
+                  textAlign: 'left'
+                }}>
+                  <div style={{ color: 'rgba(255, 255, 255, 0.9)', marginBottom: '1rem', fontWeight: '600' }}>
+                    You will lose access to:
+                  </div>
+                  <ul style={{
+                    color: 'rgba(255, 255, 255, 0.7)',
+                    paddingLeft: '1.5rem',
+                    marginBottom: '0',
+                    lineHeight: '1.8'
+                  }}>
+                    <li>Organization management & tournaments</li>
+                    <li>Member directory & communications</li>
+                    <li>Event scheduling & registration</li>
+                    <li>All organization data & history</li>
+                  </ul>
+                </div>
+                {leaveConfirmModal.myRole === 'OWNER' && (
+                  <div className="delete-modal-warning" style={{ background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#ef4444' }}>
+                    ⚠ As OWNER, you must transfer ownership or remove all members before leaving.
+                  </div>
+                )}
+                <div style={{ fontSize: '0.875rem', color: 'rgba(255, 255, 255, 0.5)', marginTop: '1rem', marginBottom: '1.5rem' }}>
+                  You can rejoin anytime if invited again by an admin.
+                </div>
+                <div className="delete-modal-actions">
+                  <button
+                    className="btn-cancel"
+                    onClick={() => setLeaveConfirmModal(null)}
+                    disabled={leaving}
+                    style={{ opacity: leaving ? 0.5 : 1 }}
+                  >
+                    Stay in Team
+                  </button>
+                  <button
+                    onClick={() => handleLeaveOrg(leaveConfirmModal)}
+                    disabled={leaving}
+                    style={{
+                      flex: 1,
+                      background: leaving ? 'rgba(251, 146, 60, 0.5)' : '#fb923c',
+                      color: '#fff',
+                      fontFamily: "'Barlow Condensed', sans-serif",
+                      fontWeight: 700,
+                      fontSize: '1rem',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                      padding: '0.875rem 1.5rem',
+                      border: 'none',
+                      borderRadius: '8px',
+                      cursor: leaving ? 'not-allowed' : 'pointer',
+                      transition: 'all 0.3s ease',
+                      opacity: leaving ? 0.5 : 1
+                    }}
+                  >
+                    {leaving ? 'Leaving...' : 'Yes, Leave Organization'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Copy Toast */}
+      {showCopyToast && (
+        <div className="copy-toast">
+          {copyToastMessage}
+        </div>
+      )}
     </>
   )
 }

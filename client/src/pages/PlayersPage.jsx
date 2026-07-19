@@ -334,6 +334,7 @@ const PlayersPage = () => {
   })
   const [sendingInvite, setSendingInvite] = useState(false)
   const [followStatuses, setFollowStatuses] = useState({}) // { userId: 'accepted' | 'pending' | 'none' }
+  const [activeTab, setActiveTab] = useState('all') // 'all' | 'following'
 
   useEffect(() => {
     loadMyOrgs()
@@ -510,7 +511,11 @@ const PlayersPage = () => {
       fullName.includes(search.toLowerCase()) ||
       (p.email || '').toLowerCase().includes(search.toLowerCase()) ||
       (p.city || '').toLowerCase().includes(search.toLowerCase())
-    return matchesSearch
+
+    // Filter by tab
+    const matchesTab = activeTab === 'all' || (activeTab === 'following' && followStatuses[p.id] === 'accepted')
+
+    return matchesSearch && matchesTab
   })
 
   return (
@@ -711,6 +716,68 @@ const PlayersPage = () => {
             <p className="page-subtitle">
               Browse player profiles and invite them to your organizations.
             </p>
+          </div>
+
+          {/* Tab Navigation */}
+          <div style={{
+            display: 'flex',
+            gap: '8px',
+            marginBottom: '2rem',
+            borderBottom: '2px solid rgba(255, 255, 255, 0.1)',
+            padding: '0 1rem'
+          }}>
+            <button
+              onClick={() => setActiveTab('all')}
+              style={{
+                padding: '12px 24px',
+                background: 'none',
+                border: 'none',
+                color: activeTab === 'all' ? '#4fffb0' : 'rgba(255, 255, 255, 0.6)',
+                fontFamily: "'Barlow Condensed', sans-serif",
+                fontSize: '1.1rem',
+                fontWeight: activeTab === 'all' ? '700' : '500',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                cursor: 'pointer',
+                borderBottom: activeTab === 'all' ? '3px solid #4fffb0' : '3px solid transparent',
+                transition: 'all 0.2s',
+                marginBottom: '-2px'
+              }}
+              onMouseEnter={(e) => {
+                if (activeTab !== 'all') e.target.style.color = 'rgba(255, 255, 255, 0.9)'
+              }}
+              onMouseLeave={(e) => {
+                if (activeTab !== 'all') e.target.style.color = 'rgba(255, 255, 255, 0.6)'
+              }}
+            >
+              All Players
+            </button>
+            <button
+              onClick={() => setActiveTab('following')}
+              style={{
+                padding: '12px 24px',
+                background: 'none',
+                border: 'none',
+                color: activeTab === 'following' ? '#4fffb0' : 'rgba(255, 255, 255, 0.6)',
+                fontFamily: "'Barlow Condensed', sans-serif",
+                fontSize: '1.1rem',
+                fontWeight: activeTab === 'following' ? '700' : '500',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                cursor: 'pointer',
+                borderBottom: activeTab === 'following' ? '3px solid #4fffb0' : '3px solid transparent',
+                transition: 'all 0.2s',
+                marginBottom: '-2px'
+              }}
+              onMouseEnter={(e) => {
+                if (activeTab !== 'following') e.target.style.color = 'rgba(255, 255, 255, 0.9)'
+              }}
+              onMouseLeave={(e) => {
+                if (activeTab !== 'following') e.target.style.color = 'rgba(255, 255, 255, 0.6)'
+              }}
+            >
+              Following
+            </button>
           </div>
 
           {/* Search bar */}

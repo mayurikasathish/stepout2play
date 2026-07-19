@@ -79,6 +79,7 @@ model Organization {
   followers          OrgFollower[]
   joinRequests       OrgJoinRequest[]
   invitations        OrgInvitation[]
+  upgradeRequests    OrgUpgradeRequest[]
 
   @@map("organizations")
 }
@@ -126,6 +127,20 @@ model OrgInvitation {
 
   @@unique([orgId, inviteeId])
   @@map("org_invitations")
+}
+
+model OrgUpgradeRequest {
+  id         String       @id @default(uuid())
+  orgId      String
+  userId     String       // Member requesting upgrade
+  status     String       @default("PENDING") // PENDING, ACCEPTED, REJECTED
+  acceptedBy String?      // ID of OWNER/ADMIN who accepted
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, userId, status])
+  @@map("org_upgrade_requests")
 }
 
 model OrgMember {
@@ -306,6 +321,7 @@ model Match {
   feedsPosition   Int?
   isByeMatch      Boolean              @default(false)
   isWalkover      Boolean              @default(false)
+  walkoverReason  String?
   scheduledAt     DateTime?
   actualStartTime DateTime?
   completedAt     DateTime?

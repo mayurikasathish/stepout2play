@@ -148,6 +148,23 @@ const NotificationHelpers = {
       icon: 'trophy',
       priority: 'MEDIUM'
     });
+  },
+
+  // Match walkover notification
+  async sendMatchWalkover({ userId, isWinner, reason, tournamentName, eventName, tournamentId, eventId }) {
+    return await notificationService.createNotification({
+      userId,
+      type: 'MATCH_WALKOVER',
+      title: isWinner ? 'Walkover Victory' : 'Match Walkover',
+      message: isWinner
+        ? `You won by walkover in ${eventName}${reason ? ` - ${reason}` : ''}`
+        : `Walkover declared in ${eventName}${reason ? ` - ${reason}` : ''}`,
+      data: { tournamentName, eventName, tournamentId, eventId, isWinner, reason },
+      actionUrl: `/tournaments/${tournamentId}`,
+      actionText: 'View Tournament',
+      icon: 'exclamation-triangle',
+      priority: 'HIGH'
+    });
   }
 };
 

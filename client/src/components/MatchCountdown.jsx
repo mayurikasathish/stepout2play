@@ -1,21 +1,46 @@
 import { useState, useEffect } from 'react'
+import { useAuth } from '../context/AuthContext'
+import api from '../services/api'
 
 const MatchCountdown = () => {
+  const { user } = useAuth()
   const [currentTime, setCurrentTime] = useState(new Date())
+  const [nextMatchTime, setNextMatchTime] = useState(null)
+  const [matchDetails, setMatchDetails] = useState(null)
+  const [loading, setLoading] = useState(true)
 
-  // Placeholder: next match time - SET ONCE on component mount (you'll fetch this from backend)
-  // const nextMatchTime = null // Set to null for "no matches" state
-  const [nextMatchTime] = useState(() => new Date(Date.now() + 28 * 60 * 1000)) // Fixed: 28 mins from mount time
+  // Fetch next match
+  useEffect(() => {
+    const fetchNextMatch = async () => {
+      if (!user?.id) return
 
-  // Placeholder match details (you'll fetch this from backend)
-  const matchDetails = {
-    tournament: 'City Championships',
-    event: 'Men\'s Singles Quarterfinals',
-    opponent: 'Alex Martinez',
-    venue: 'Central Sports Complex',
-    court: 'Court 3',
-    time: '03:46 PM' // Fixed match time - doesn't change
-  }
+      try {
+        const response = await api.get(`/users/${user.id}/next-match`)
+        if (response.data.success && response.data.nextMatch) {
+          const match = response.data.nextMatch
+          setNextMatchTime(new Date(match.scheduledAt))
+          setMatchDetails({
+            tournament: match.tournamentName,
+            event: match.eventName,
+            opponent: match.opponent,
+            court: match.courtName || 'TBD',
+            scheduledAt: new Date(match.scheduledAt)
+          })
+        } else {
+          setNextMatchTime(null)
+          setMatchDetails(null)
+        }
+      } catch (err) {
+        console.error('Error fetching next match:', err)
+        setNextMatchTime(null)
+        setMatchDetails(null)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchNextMatch()
+  }, [user])
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -30,29 +55,28 @@ const MatchCountdown = () => {
     const diff = nextMatchTime - currentTime
     if (diff <= 0) return { type: 'now', message: 'MATCH TIME!' }
 
-    const hours = Math.floor(diff / (1000 * 60 * 60))
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24))
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
     const seconds = Math.floor((diff % (1000 * 60)) / 1000)
 
-    // Less than 60 mins: show countdown
-    if (hours === 0 && minutes < 60) {
+    // More than 24 hours: show days + hours
+    if (diff > 24 * 60 * 60 * 1000) {
       return {
-        type: 'countdown',
-        minutes,
-        seconds,
+        type: 'days',
+        days,
+        hours,
         message: 'BUCKLE UP, your next match is in'
       }
     }
 
-    // More than 60 mins: show time
+    // Less than 24 hours: show HH:MM:SS countdown
     return {
-      type: 'scheduled',
-      time: nextMatchTime.toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false
-      }),
-      message: 'NEXT MATCH AT'
+      type: 'countdown',
+      hours,
+      minutes,
+      seconds,
+      message: 'BUCKLE UP, your next match starts in'
     }
   }
 
@@ -253,31 +277,28 @@ const MatchCountdown = () => {
         }
       `}</style>
 
-      {!timeData ? (
+      {loading ? (
+        <div className="no-match-container">
+          <div className="no-match-text">Loading...</div>
+        </div>
+      ) : !timeData ? (
         <div className="no-match-container">
           <div className="no-match-emoji">😌</div>
-          <div className="no-match-text">You've got no matches today!</div>
+          <div className="no-match-text">No upcoming matches scheduled</div>
         </div>
-      ) : timeData.type === 'countdown' ? (
+      ) : timeData.type === 'days' ? (
         <div className="countdown-wrapper">
           <div className="countdown-container">
-            <div className="countdown-message">Buckle Up, your next match starts in</div>
+            <div className="countdown-message">{timeData.message}</div>
             <div className="countdown-circle">
               <div className="countdown-display">
-                <span className="digit">
-                  <span key={timeData.minutes} className="digit-inner">
-                    {String(timeData.minutes).padStart(2, '0')}
-                  </span>
-                </span>
-                <span className="colon">:</span>
-                <span className="digit">
-                  <span key={timeData.seconds} className="digit-inner">
-                    {String(timeData.seconds).padStart(2, '0')}
-                  </span>
-                </span>
+                <span>{timeData.days}</span>
+                <span className="colon" style={{ fontSize: '2rem', opacity: 0.5 }}>d</span>
+                <span style={{ marginLeft: '0.5rem' }}>{timeData.hours}</span>
+                <span className="colon" style={{ fontSize: '2rem', opacity: 0.5 }}>h</span>
               </div>
             </div>
-            <div className="countdown-label">MINUTES</div>
+            <div className="countdown-label">{timeData.days === 1 ? 'DAY' : 'DAYS'}</div>
 
             <div className="match-details">
               <div className="detail-item full-width">
@@ -293,8 +314,61 @@ const MatchCountdown = () => {
                 <div className="detail-value highlight">{matchDetails.opponent}</div>
               </div>
               <div className="detail-item">
-                <div className="detail-label">Venue</div>
-                <div className="detail-value">{matchDetails.venue}</div>
+                <div className="detail-label">Court</div>
+                <div className="detail-value">{matchDetails.court}</div>
+              </div>
+              <div className="detail-item">
+                <div className="detail-label">Match Time</div>
+                <div className="detail-value">
+                  {matchDetails.scheduledAt.toLocaleTimeString('en-US', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: true
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : timeData.type === 'countdown' ? (
+        <div className="countdown-wrapper">
+          <div className="countdown-container">
+            <div className="countdown-message">{timeData.message}</div>
+            <div className="countdown-circle">
+              <div className="countdown-display" style={{ fontSize: '3rem' }}>
+                <span className="digit">
+                  <span key={timeData.hours} className="digit-inner">
+                    {String(timeData.hours).padStart(2, '0')}
+                  </span>
+                </span>
+                <span className="colon">:</span>
+                <span className="digit">
+                  <span key={timeData.minutes} className="digit-inner">
+                    {String(timeData.minutes).padStart(2, '0')}
+                  </span>
+                </span>
+                <span className="colon">:</span>
+                <span className="digit">
+                  <span key={timeData.seconds} className="digit-inner">
+                    {String(timeData.seconds).padStart(2, '0')}
+                  </span>
+                </span>
+              </div>
+            </div>
+            <div className="countdown-label">HH : MM : SS</div>
+
+            <div className="match-details">
+              <div className="detail-item full-width">
+                <div className="detail-label">Tournament</div>
+                <div className="detail-value">{matchDetails.tournament}</div>
+              </div>
+              <div className="detail-item full-width">
+                <div className="detail-label">Event</div>
+                <div className="detail-value">{matchDetails.event}</div>
+              </div>
+              <div className="detail-item full-width">
+                <div className="detail-label">Opponent</div>
+                <div className="detail-value highlight">{matchDetails.opponent}</div>
               </div>
               <div className="detail-item">
                 <div className="detail-label">Court</div>
@@ -302,15 +376,16 @@ const MatchCountdown = () => {
               </div>
               <div className="detail-item">
                 <div className="detail-label">Match Time</div>
-                <div className="detail-value">{matchDetails.time}</div>
+                <div className="detail-value">
+                  {matchDetails.scheduledAt.toLocaleTimeString('en-US', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: true
+                  })}
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      ) : timeData.type === 'scheduled' ? (
-        <div className="countdown-container">
-          <div className="countdown-message">{timeData.message}</div>
-          <div className="countdown-time">{timeData.time}</div>
         </div>
       ) : (
         <div className="countdown-container">

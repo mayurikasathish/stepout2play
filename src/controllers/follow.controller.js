@@ -338,6 +338,185 @@ class FollowController {
       next(error);
     }
   }
+
+  /**
+   * Get "Your Circle" - detailed info about people you follow
+   * GET /follows/circle
+   */
+  async getCircle(req, res, next) {
+    try {
+      const userId = req.user.id;
+
+      // Get all users the current user is following (accepted only)
+      const following = await prisma.follow.findMany({
+        where: {
+          followerId: userId,
+          status: 'accepted',
+        },
+        include: {
+          following: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              profilePicture: true,
+              city: true,
+              state: true,
+              sports: true,
+              bio: true,
+              primaryRole: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      });
+
+      const followingUsers = following.map(f => f.following);
+      const followingIds = followingUsers.map(u => u.id);
+
+      // Get their recent registrations
+      const recentRegistrations = await prisma.registration.findMany({
+        where: {
+          userId: { in: followingIds },
+          status: 'CONFIRMED',
+          isWithdrawn: false,
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              profilePicture: true,
+            },
+          },
+          event: {
+            include: {
+              tournament: {
+                select: {
+                  id: true,
+                  name: true,
+                  startDate: true,
+                  city: true,
+                  state: true,
+                  venueName: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        take: 20,
+      });
+
+      // Get their recent achievements
+      const recentAchievements = await prisma.achievement.findMany({
+        where: {
+          userId: { in: followingIds },
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              profilePicture: true,
+            },
+          },
+          tournament: {
+            select: {
+              id: true,
+              name: true,
+              city: true,
+              state: true,
+            },
+          },
+          event: {
+            select: {
+              id: true,
+              name: true,
+              format: true,
+            },
+          },
+        },
+        orderBy: {
+          wonAt: 'desc',
+        },
+        take: 20,
+      });
+
+      // Get their ratings across sports
+      const ratings = await prisma.playerRating.findMany({
+        where: {
+          userId: { in: followingIds },
+        },
+        orderBy: {
+          rating: 'desc',
+        },
+      });
+
+      // Group ratings by user
+      const ratingsByUser = {};
+      ratings.forEach(r => {
+        if (!ratingsByUser[r.userId]) {
+          ratingsByUser[r.userId] = [];
+        }
+        ratingsByUser[r.userId].push({
+          sportId: r.sportId,
+          rating: Math.round(r.rating),
+          matchCount: r.matchCount,
+        });
+      });
+
+      // Get live feed items from people you follow
+      const feedItems = await prisma.liveFeedItem.findMany({
+        where: {
+          actorId: { in: followingIds },
+        },
+        include: {
+          actor: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              profilePicture: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        take: 30,
+      });
+
+      // Enhance user data with ratings
+      const enhancedUsers = followingUsers.map(user => ({
+        ...user,
+        ratings: ratingsByUser[user.id] || [],
+      }));
+
+      res.status(200).json({
+        success: true,
+        data: {
+          following: enhancedUsers,
+          recentRegistrations,
+          recentAchievements,
+          feedItems,
+          stats: {
+            followingCount: followingUsers.length,
+            totalActivities: recentRegistrations.length + recentAchievements.length + feedItems.length,
+          },
+        },
+      });
+    } catch (error) {
+      console.error('Error fetching circle:', error);
+      next(error);
+    }
+  }
 }
 
 module.exports = new FollowController();

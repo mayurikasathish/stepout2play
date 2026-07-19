@@ -43,7 +43,7 @@ const getInitials = (reg) => {
   return `${reg.user.firstName[0]}${reg.user.lastName[0]}`
 }
 
-const GroupCard = ({ group, isOrganizer, onMatchClick, onCaptureScorecard }) => {
+const GroupCard = ({ group, isOrganizer, onMatchClick, onCaptureScorecard, onWalkover }) => {
   const groupStatus = STATUS_CONFIG[group.status] || STATUS_CONFIG.PENDING
 
   // Standings sorted by points desc, wins desc (backend already sorts, but just in case)
@@ -196,7 +196,7 @@ const GroupCard = ({ group, isOrganizer, onMatchClick, onCaptureScorecard }) => 
                 </div>
 
                   {/* Status badge or Edit button */}
-                  <div className="flex items-center gap-2 shrink-0 justify-end min-w-[120px]">
+                  <div className="flex flex-col items-stretch gap-2 shrink-0 justify-end min-w-[120px]">
                     {(isCompleted || match.status === 'READY') && isOrganizer ? (
                       <div onClick={(e) => e.stopPropagation()} className="w-full">
                         <EditScoreButton
@@ -211,6 +211,21 @@ const GroupCard = ({ group, isOrganizer, onMatchClick, onCaptureScorecard }) => 
                           {statusCfg.label}
                         </span>
                       </div>
+                    )}
+
+                    {/* Walkover button */}
+                    {isOrganizer && onWalkover && match.status !== 'COMPLETED' && match.participant1 && match.participant2 && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onWalkover(match); }}
+                        className="w-full text-xs font-semibold px-2 py-1.5 rounded-lg transition-all"
+                        style={{
+                          background: '#000',
+                          color: '#fff',
+                          border: '1px solid #333'
+                        }}
+                      >
+                        ⚠️ Walkover
+                      </button>
                     )}
                   </div>
                 </div>

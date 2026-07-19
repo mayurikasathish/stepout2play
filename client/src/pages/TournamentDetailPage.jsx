@@ -61,6 +61,7 @@ const TournamentDetailPage = () => {
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [showNotEligibleModal, setShowNotEligibleModal] = useState(false)
   const [eligibilityData, setEligibilityData] = useState({ reasons: [], userAge: null, eventCategory: null, eventGender: null })
+  const [filterEventType, setFilterEventType] = useState('all')
   const [showPartnerModal, setShowPartnerModal] = useState(false)
   const [currentEvent, setCurrentEvent] = useState(null)
   const [showCancelModal, setShowCancelModal] = useState(false)
@@ -85,10 +86,10 @@ const TournamentDetailPage = () => {
             .filter(reg => reg.status === 'CONFIRMED' || reg.status === 'STANDBY')
             .map(reg => [reg.eventId, reg])
         )
-        // Also maintain the set for backward compatibility (only CONFIRMED for registration check)
+        // Include both CONFIRMED and STANDBY in registeredEvents (for isRegistered check)
         const eventIds = new Set(
           response.data.registrations
-            .filter(reg => reg.status === 'CONFIRMED')
+            .filter(reg => reg.status === 'CONFIRMED' || reg.status === 'STANDBY')
             .map(reg => reg.eventId)
         )
         setRegisteredEvents(eventIds)
@@ -189,12 +190,19 @@ const TournamentDetailPage = () => {
       })
 
       if (response.data.success) {
+        // Get the registration from response
+        const registration = response.data.registration
+        const isWaitlisted = registration?.status === 'STANDBY' || registration?.isStandby
+
         // Mark event as registered
         setRegisteredEvents(prev => new Set([...prev, eventId]))
 
-        // Check if registration is on standby/waitlist
-        const registration = response.data.registration
-        const isWaitlisted = registration?.status === 'STANDBY' || registration?.isStandby
+        // IMPORTANT: Also update userRegistrations map with the new registration
+        setUserRegistrations(prev => {
+          const newMap = new Map(prev)
+          newMap.set(eventId, registration)
+          return newMap
+        })
 
         // Show success modal with appropriate message
         setSuccessMessage({
@@ -577,18 +585,54 @@ const TournamentDetailPage = () => {
           borderRadius: '24px',
           padding: '2rem'
         }}>
-          <h2 style={{
-            fontSize: '2rem',
-            fontWeight: '900',
-            color: '#4fffb0',
-            marginBottom: '1.5rem',
-            textTransform: 'uppercase',
-            letterSpacing: '-0.02em'
-          }}>Events</h2>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+            <h2 style={{
+              fontSize: '2rem',
+              fontWeight: '900',
+              color: '#4fffb0',
+              margin: 0,
+              textTransform: 'uppercase',
+              letterSpacing: '-0.02em'
+            }}>Events</h2>
+
+            {/* Event Type Filter */}
+            <div style={{ position: 'relative' }}>
+              <select
+                value={filterEventType}
+                onChange={(e) => setFilterEventType(e.target.value)}
+                style={{
+                  appearance: 'none',
+                  padding: '0.75rem 2.5rem 0.75rem 1rem',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  borderRadius: '12px',
+                  outline: 'none',
+                  transition: 'all 0.2s',
+                  color: '#fff',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  fontSize: '0.875rem',
+                  minWidth: '180px'
+                }}
+              >
+                <option value="all" style={{ background: '#0a1628', color: '#fff' }}>All Event Types</option>
+                <option value="SINGLES" style={{ background: '#0a1628', color: '#fff' }}>Singles</option>
+                <option value="DOUBLES" style={{ background: '#0a1628', color: '#fff' }}>Doubles</option>
+                <option value="MIXED_DOUBLES" style={{ background: '#0a1628', color: '#fff' }}>Mixed Doubles</option>
+              </select>
+              <div style={{ pointerEvents: 'none', position: 'absolute', top: '50%', right: '0.75rem', transform: 'translateY(-50%)' }}>
+                <svg style={{ width: '1.25rem', height: '1.25rem', color: 'rgba(255, 255, 255, 0.5)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
+          </div>
 
           {tournament.events && tournament.events.length > 0 ? (
             <div className="space-y-4">
-              {tournament.events.map((event) => (
+              {tournament.events
+                .filter(event => filterEventType === 'all' || event.format === filterEventType)
+                .map((event) => (
                 <EventCard
                   key={event.id}
                   event={event}
@@ -598,6 +642,7 @@ const TournamentDetailPage = () => {
                   onCancelRegistration={handleCancelRegistration}
                   registering={registering}
                   isRegistered={registeredEvents.has(event.id)}
+                  registration={userRegistrations.get(event.id)}
                 />
               ))}
             </div>
@@ -697,7 +742,7 @@ const TournamentDetailPage = () => {
 }
 
 // Event Card Component
-const EventCard = ({ event, tournament, canRegister, onRegister, onCancelRegistration, registering, isRegistered }) => {
+const EventCard = ({ event, tournament, canRegister, onRegister, onCancelRegistration, registering, isRegistered, registration }) => {
   const [showDetails, setShowDetails] = useState(false)
 
   const getFormatLabel = (format) => {
@@ -714,6 +759,9 @@ const EventCard = ({ event, tournament, canRegister, onRegister, onCancelRegistr
   const isDeadlinePassed = registrationDeadline ? registrationDeadline < new Date() : false
 
   const hasDetails = event.rules || tournament?.rules
+
+  // Check if registration is on standby
+  const isOnStandby = registration && (registration.status === 'STANDBY' || registration.isStandby)
 
   return (
     <div style={{
@@ -870,21 +918,32 @@ const EventCard = ({ event, tournament, canRegister, onRegister, onCancelRegistr
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 <div style={{
                   padding: '0.75rem 1.5rem',
-                  background: 'rgba(79, 255, 176, 0.15)',
-                  color: '#4fffb0',
+                  background: isOnStandby ? 'rgba(251, 146, 60, 0.15)' : 'rgba(79, 255, 176, 0.15)',
+                  color: isOnStandby ? '#fb923c' : '#4fffb0',
                   fontWeight: '700',
                   borderRadius: '12px',
-                  border: '1px solid rgba(79, 255, 176, 0.3)',
+                  border: isOnStandby ? '1px solid rgba(251, 146, 60, 0.3)' : '1px solid rgba(79, 255, 176, 0.3)',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0.5rem',
                   justifyContent: 'center',
                   textTransform: 'uppercase'
                 }}>
-                  <svg style={{ width: '1.25rem', height: '1.25rem' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  Registered
+                  {isOnStandby ? (
+                    <>
+                      <svg style={{ width: '1.25rem', height: '1.25rem' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      On Standby {registration?.standbyPosition ? `(#${registration.standbyPosition})` : ''}
+                    </>
+                  ) : (
+                    <>
+                      <svg style={{ width: '1.25rem', height: '1.25rem' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      Registered
+                    </>
+                  )}
                 </div>
                 <button
                   onClick={() => !isDeadlinePassed && onCancelRegistration(event.id)}

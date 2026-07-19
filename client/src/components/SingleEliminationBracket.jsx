@@ -22,7 +22,7 @@ const getRatingChange = (match, participant) => {
   }
 }
 
-const SingleEliminationBracket = ({ matches, onMatchClick, onCaptureScorecard, onMarkAsLive, eventName, tournamentName }) => {
+const SingleEliminationBracket = ({ matches, onMatchClick, onCaptureScorecard, onMarkAsLive, onWalkover, eventName, tournamentName }) => {
   const [zoom, setZoom] = useState(100)
   const bracketRef = useRef(null)
   const [connectorLines, setConnectorLines] = useState([])
@@ -433,6 +433,32 @@ const SingleEliminationBracket = ({ matches, onMatchClick, onCaptureScorecard, o
               onManualEntry={() => onMatchClick(match)}
               onCaptureScore={() => onCaptureScorecard?.(match)}
             />
+          )}
+
+          {/* Walkover button - show for matches that can be played (not BYE, not already completed) */}
+          {onWalkover && match.status !== 'COMPLETED' && match.status !== 'BYE' && match.participant1 && match.participant2 && (
+            <button
+              onClick={() => onWalkover(match)}
+              className="w-full text-sm font-semibold px-3 py-2 rounded-lg transition-all"
+              style={{
+                background: '#000',
+                color: '#fff',
+                border: '1px solid #333',
+                marginTop: '0.5rem'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.background = 'rgba(255, 152, 0, 0.2)'
+                e.target.style.transform = 'scale(1.02)'
+                e.target.style.boxShadow = '0 2px 8px rgba(255, 152, 0, 0.2)'
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = 'rgba(255, 152, 0, 0.1)'
+                e.target.style.transform = 'scale(1)'
+                e.target.style.boxShadow = 'none'
+              }}
+            >
+              ⚠️ Walkover
+            </button>
           )}
 
           {/* Maintain consistent card height even without button */}

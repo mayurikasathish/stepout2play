@@ -12,12 +12,8 @@ const LiveArena = () => {
   const [loadingSpotlight, setLoadingSpotlight] = useState(true)
   const [nearbyTournaments, setNearbyTournaments] = useState([])
   const [loadingTournaments, setLoadingTournaments] = useState(true)
-
-  // Placeholder data for circle
-  const circleItems = [
-    { id: 1, type: 'live', player1: 'Alex', player2: 'Jordan', score: '21-18' },
-    { id: 2, type: 'result', player: 'Sam', result: 'Won Finals 21-19' },
-  ]
+  const [circleData, setCircleData] = useState(null)
+  const [loadingCircle, setLoadingCircle] = useState(true)
 
   // Fetch spotlight matches
   useEffect(() => {
@@ -30,6 +26,27 @@ const LiveArena = () => {
   useEffect(() => {
     loadNearbyTournaments()
   }, [user])
+
+  // Fetch circle data
+  useEffect(() => {
+    if (user) {
+      loadCircleData()
+    }
+  }, [user])
+
+  const loadCircleData = async () => {
+    try {
+      setLoadingCircle(true)
+      const response = await api.get('/follows/circle')
+      if (response.data.success) {
+        setCircleData(response.data.data)
+      }
+      setLoadingCircle(false)
+    } catch (err) {
+      console.error('Error loading circle data:', err)
+      setLoadingCircle(false)
+    }
+  }
 
   const loadSpotlightMatches = async () => {
     try {
@@ -401,27 +418,91 @@ const LiveArena = () => {
           <div className="arena-content">
             {activeTab === 'circle' && (
               <>
-                {circleItems.map(item => (
-                  <div key={item.id} className="liquid-card">
-                    <div className="card-content">
-                      {item.type === 'live' && (
-                        <>
-                          <div className="card-title">
-                            <span className="live-indicator"></span>
-                            {item.player1} vs {item.player2}
-                          </div>
-                          <div className="card-subtitle">{item.score}</div>
-                        </>
-                      )}
-                      {item.type === 'result' && (
-                        <>
-                          <div className="card-title">{item.player}</div>
-                          <div className="card-subtitle">{item.result}</div>
-                        </>
-                      )}
-                    </div>
+                {loadingCircle ? (
+                  <div className="empty-state" style={{ padding: '2rem 1rem' }}>
+                    Loading your circle...
                   </div>
-                ))}
+                ) : !circleData || circleData.following.length === 0 ? (
+                  <div className="empty-state" style={{ padding: '1.5rem 1rem' }}>
+                    You're not following anyone yet.<br/>
+                    <button
+                      onClick={() => navigate('/players')}
+                      style={{
+                        color: '#4fffb0',
+                        textDecoration: 'underline',
+                        marginTop: '0.75rem',
+                        display: 'inline-block',
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontFamily: "'Barlow Condensed', sans-serif",
+                        fontSize: '0.85rem',
+                        fontWeight: 600
+                      }}
+                    >
+                      Find players to follow →
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    {/* Recent Achievements */}
+                    {circleData.recentAchievements.slice(0, 3).map(achievement => {
+                      const medal = achievement.position === 1 ? '🥇' : achievement.position === 2 ? '🥈' : '🥉'
+                      const medalName = achievement.position === 1 ? 'Gold' : achievement.position === 2 ? 'Silver' : 'Bronze'
+
+                      return (
+                        <div
+                          key={achievement.id}
+                          className="liquid-card"
+                          style={{ cursor: 'pointer' }}
+                          onClick={() => navigate(`/players/${achievement.user.id}`)}
+                        >
+                          <div className="card-content">
+                            <div className="card-title">
+                              {medal} {achievement.user.firstName} {achievement.user.lastName}
+                            </div>
+                            <div className="card-subtitle">
+                              Won {medalName} • {achievement.event.name}
+                            </div>
+                            <div className="card-subtitle" style={{ marginTop: '0.25rem', fontSize: '0.7rem' }}>
+                              {achievement.tournament.name}
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+
+                    {/* Recent Registrations */}
+                    {circleData.recentRegistrations.slice(0, 2).map(reg => (
+                      <div
+                        key={reg.id}
+                        className="liquid-card"
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => navigate(`/tournaments/${reg.event.tournament.id}`)}
+                      >
+                        <div className="card-content">
+                          <div className="card-title">
+                            {reg.user.firstName} {reg.user.lastName}
+                            {reg.partner && ` / ${reg.partner.firstName} ${reg.partner.lastName}`}
+                          </div>
+                          <div className="card-subtitle">
+                            Registered for {reg.event.name}
+                          </div>
+                          <div className="card-subtitle" style={{ marginTop: '0.25rem', fontSize: '0.7rem', color: '#4fffb0' }}>
+                            {reg.event.tournament.name} • {new Date(reg.event.tournament.startDate).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+
+                    {/* If no activities */}
+                    {circleData.recentAchievements.length === 0 && circleData.recentRegistrations.length === 0 && (
+                      <div className="empty-state" style={{ padding: '1.5rem 1rem' }}>
+                        No recent activity from your circle
+                      </div>
+                    )}
+                  </>
+                )}
               </>
             )}
 

@@ -32,6 +32,7 @@ const Navbar = () => {
   const [isExploreOpen, setIsExploreOpen] = useState(false)
   const [pendingCount, setPendingCount] = useState(0)
   const [unreadNotifications, setUnreadNotifications] = useState(0)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const exploreRef = useRef(null)
   const userMenuRef = useRef(null)
 
@@ -103,6 +104,7 @@ const Navbar = () => {
   useEffect(() => {
     setIsExploreOpen(false)
     setIsUserMenuOpen(false)
+    setIsMobileMenuOpen(false)
   }, [location.pathname])
 
   const isActive = (path) => location.pathname === path
@@ -496,21 +498,130 @@ const Navbar = () => {
           line-height: 1.4;
         }
 
-        @media (max-width: 768px) {
+        /* Hamburger Menu */
+        .hamburger {
+          display: none;
+          flex-direction: column;
+          gap: 5px;
+          background: transparent;
+          border: none;
+          cursor: pointer;
+          padding: 0.5rem;
+        }
+
+        .hamburger-line {
+          width: 24px;
+          height: 2px;
+          background: #4fffb0;
+          transition: all 0.3s ease;
+        }
+
+        .hamburger.open .hamburger-line:nth-child(1) {
+          transform: rotate(45deg) translateY(7px);
+        }
+
+        .hamburger.open .hamburger-line:nth-child(2) {
+          opacity: 0;
+        }
+
+        .hamburger.open .hamburger-line:nth-child(3) {
+          transform: rotate(-45deg) translateY(-7px);
+        }
+
+        /* Mobile Menu */
+        .mobile-menu {
+          position: fixed;
+          top: 64px;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: linear-gradient(160deg, #0a1628 0%, #060d1f 100%);
+          transform: translateX(-100%);
+          transition: transform 0.3s ease;
+          overflow-y: auto;
+          z-index: 199;
+          padding: 2rem;
+        }
+
+        .mobile-menu.open {
+          transform: translateX(0);
+        }
+
+        .mobile-nav-link {
+          font-family: 'Barlow Condensed', sans-serif;
+          font-weight: 700;
+          font-size: 1.5rem;
+          letter-spacing: 0.03em;
+          text-transform: uppercase;
+          padding: 1rem;
+          background: transparent;
+          border: none;
+          color: rgba(255,255,255,0.7);
+          cursor: pointer;
+          transition: all 0.2s ease;
+          width: 100%;
+          text-align: left;
+          display: block;
+          border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .mobile-nav-link:hover,
+        .mobile-nav-link.active {
+          color: #4fffb0;
+          background: rgba(79,255,176,0.1);
+        }
+
+        .mobile-explore-items {
+          padding-left: 1rem;
+          margin-top: 0.5rem;
+        }
+
+        .mobile-explore-item {
+          padding: 0.75rem 1rem;
+          font-size: 1.1rem;
+          color: rgba(255,255,255,0.6);
+          border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        @media (max-width: 1024px) {
           .nav-container {
             padding: 0 1rem;
+            grid-template-columns: auto 1fr auto;
           }
+
           .nav-center {
             display: none;
           }
+
+          .hamburger {
+            display: flex;
+            justify-self: start;
+          }
+        }
+
+        @media (max-width: 768px) {
           .user-info {
             display: none;
+          }
+
+          .bell-btn {
+            padding: 0.4rem;
+          }
+
+          .nav-right {
+            gap: 0.5rem;
           }
         }
       `}</style>
 
       <nav className="dark-nav">
         <div className="nav-container">
+          <button className={`hamburger ${isMobileMenuOpen ? 'open' : ''}`} onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+            <span className="hamburger-line"></span>
+            <span className="hamburger-line"></span>
+            <span className="hamburger-line"></span>
+          </button>
+
           <div className="nav-logo" onClick={() => navigate('/')}>
             Step<span>Out</span>2Play
           </div>
@@ -598,6 +709,41 @@ const Navbar = () => {
               </>
             ) : null}
           </div>
+        </div>
+
+        {/* Mobile Menu */}
+        <div className={`mobile-menu ${isMobileMenuOpen ? 'open' : ''}`}>
+          {user && navItems.map((item) => (
+            item.isDropdown ? (
+              <div key={item.name}>
+                <div className="mobile-nav-link" onClick={() => setIsExploreOpen(!isExploreOpen)}>
+                  {item.name}
+                </div>
+                {isExploreOpen && (
+                  <div className="mobile-explore-items">
+                    {exploreItems.map((exploreItem) => (
+                      <div
+                        key={exploreItem.path}
+                        className="mobile-explore-item mobile-nav-link"
+                        onClick={() => navigate(exploreItem.path)}
+                      >
+                        {exploreItem.label}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <button
+                key={item.path}
+                onClick={() => navigate(item.path)}
+                className={`mobile-nav-link ${isActive(item.path) ? 'active' : ''}`}
+              >
+                {item.name}
+                {item.showDot && <span style={{ marginLeft: '0.5rem', color: '#ef4444' }}>•</span>}
+              </button>
+            )
+          ))}
         </div>
       </nav>
     </>
