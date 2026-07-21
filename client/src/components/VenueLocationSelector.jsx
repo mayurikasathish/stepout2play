@@ -377,7 +377,7 @@ const VenueLocationSelector = ({
             </button>
           </div>
           <div className="text-xs" style={{ color: darkMode ? 'rgba(79, 255, 176, 0.8)' : '#059669' }}>
-            Lat: {latitude ? latitude.toFixed(6) : 'N/A'}, Lon: {longitude ? longitude.toFixed(6) : 'N/A'}
+            Lat: {latitude ? parseFloat(latitude).toFixed(6) : 'N/A'}, Lon: {longitude ? parseFloat(longitude).toFixed(6) : 'N/A'}
           </div>
 
           {showMap && (
@@ -387,7 +387,7 @@ const VenueLocationSelector = ({
                 height="200"
                 frameBorder="0"
                 style={{ borderRadius: '8px' }}
-                src={`https://www.openstreetmap.org/export/embed.html?bbox=${longitude-0.01},${latitude-0.01},${longitude+0.01},${latitude+0.01}&layer=mapnik&marker=${latitude},${longitude}`}
+                src={`https://www.openstreetmap.org/export/embed.html?bbox=${parseFloat(longitude)-0.01},${parseFloat(latitude)-0.01},${parseFloat(longitude)+0.01},${parseFloat(latitude)+0.01}&layer=mapnik&marker=${parseFloat(latitude)},${parseFloat(longitude)}`}
               />
             </div>
           )}
