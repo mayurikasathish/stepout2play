@@ -1,0 +1,38 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🔍 Running pre-commit checks..."
+
+# Check for debugging console.logs in staged files (warning only)
+if git diff --cached --name-only | grep -E '\.(js|jsx)$' | xargs grep -n 'console\.log' 2>/dev/null; then
+  echo "⚠️  Warning: console.log found in staged files"
+  echo "   Consider removing debug statements before committing"
+fi
+
+# Validate Prisma schema if changed
+if git diff --cached --name-only | grep -q "prisma/schema.prisma"; then
+  echo "📊 Prisma schema changed, validating..."
+  npx prisma validate || {
+    echo "❌ Prisma schema validation failed"
+    exit 1
+  }
+  echo "✅ Prisma schema valid"
+fi
+
+# Check for large files (>5MB)
+LARGE_FILES=$(git diff --cached --name-only | while read file; do
+  if [ -f "$file" ]; then
+    SIZE=$(stat -c%s "$file" 2>/dev/null || stat -f%z "$file" 2>/dev/null || echo 0)
+    if [ "$SIZE" -gt 5242880 ]; then
+      echo "$file ($(numfmt --to=iec-i --suffix=B $SIZE 2>/dev/null || echo "${SIZE} bytes"))"
+    fi
+  fi
+done)
+
+if [ -n "$LARGE_FILES" ]; then
+  echo "⚠️  Warning: Large files detected:"
+  echo "$LARGE_FILES"
+  echo "   Consider using Git LFS for large files"
+fi
+
+echo "✅ Pre-commit checks complete"

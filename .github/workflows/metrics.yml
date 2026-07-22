@@ -1,0 +1,48 @@
+name: Code Metrics
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  metrics:
+    name: Generate Code Metrics
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for accurate metrics
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Calculate code metrics
+        run: |
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "📊 CODE METRICS REPORT"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+          echo ""
+          echo "📁 Code Structure:"
+          echo "  React Components: $(find client/src -name "*.jsx" 2>/dev/null | wc -l)"
+          echo "  Backend Files: $(find src -name "*.js" 2>/dev/null | wc -l)"
+          echo "  Total LOC: $(find src client/src -name "*.js" -o -name "*.jsx" 2>/dev/null | xargs wc -l | tail -1 | awk '{print $1}')"
+
+          echo ""
+          echo "🗄️  Database:"
+          echo "  Models: $(grep -c "^model " prisma/schema.prisma || echo "0")"
+          echo "  Migrations: $(ls -1 prisma/migrations 2>/dev/null | grep -v migration_lock | wc -l)"
+
+          echo ""
+          echo "📊 Git Statistics:"
+          echo "  Total Commits: $(git rev-list --count HEAD)"
+          echo "  Contributors: $(git log --format='%aN' | sort -u | wc -l)"
+          echo "  Branches: $(git branch -a | wc -l)"
+
+          echo ""
+          echo "✅ Metrics calculation complete"
